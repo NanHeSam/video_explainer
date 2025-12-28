@@ -51,44 +51,50 @@ Check the "Current Status" and "Next Actions" sections below.
 - [x] Configuration system (config.py, config.yaml)
 - [x] Core data models (models.py)
 - [x] Content ingestion module (markdown parser)
-- [x] Tests for ingestion (21 tests, all passing)
+- [x] Mock LLM provider with realistic responses
+- [x] Content understanding/analyzer module
+- [x] Script generation module with visual cues
+- [x] CLI review interface (rich-based)
+- [x] Motion Canvas setup and validation
+- [x] Manual test animation (Prefill vs Decode scene)
+- [x] 61 tests, all passing
 
 ### In Progress
-- [ ] progress.md creation (this file)
+- [ ] ElevenLabs TTS integration
 
 ### Not Started
-- [ ] Mock LLM provider
-- [ ] Script generation module
-- [ ] CLI review interface
-- [ ] Motion Canvas setup
-- [ ] Manual test animation
-- [ ] ElevenLabs TTS integration
 - [ ] Video composition (FFmpeg)
-- [ ] Dockerfile
-- [ ] End-to-end test
+- [ ] Dockerfile for containerization
+- [ ] End-to-end test with full pipeline
 
 ---
 
 ## Architecture Summary
 
 ```
-Pipeline: Source → Parse → Analyze → Script → Storyboard → Assets → Video
+Pipeline: Source → Parse → Analyze → Script → Review → Storyboard → Assets → Video
 
 Key files:
 ├── src/
-│   ├── config.py          # Configuration management
-│   ├── models.py          # Pydantic data models
+│   ├── config.py          # Configuration management (DONE)
+│   ├── models.py          # Pydantic data models (DONE)
 │   ├── ingestion/         # Document parsing (DONE)
 │   │   ├── markdown.py    # Markdown parser
 │   │   └── parser.py      # Main parser interface
-│   ├── understanding/     # Content analysis (TODO)
-│   ├── script/            # Script generation (TODO)
-│   ├── storyboard/        # Visual planning (TODO)
-│   ├── audio/             # TTS integration (TODO)
-│   ├── composition/       # Video assembly (TODO)
-│   └── review/            # CLI review (TODO)
-├── animations/            # Motion Canvas project (TODO)
-├── tests/                 # Test suite
+│   ├── understanding/     # Content analysis (DONE)
+│   │   ├── llm_provider.py # Mock + real LLM providers
+│   │   └── analyzer.py    # Content analyzer
+│   ├── script/            # Script generation (DONE)
+│   │   └── generator.py   # Script with visual cues
+│   ├── review/            # CLI review interface (DONE)
+│   │   └── cli.py         # Rich-based review CLI
+│   ├── audio/             # TTS integration (IN PROGRESS)
+│   └── composition/       # Video assembly (TODO)
+├── animations/            # Motion Canvas project (DONE)
+│   ├── src/scenes/        # Animation scenes
+│   │   └── prefillDecode.tsx  # Test animation
+│   └── src/styles/        # Color palette, fonts
+├── tests/                 # 61 passing tests
 └── output/                # Generated assets
 ```
 
