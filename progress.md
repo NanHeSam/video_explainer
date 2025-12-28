@@ -11,19 +11,21 @@ I'm continuing work on the Video Explainer system. This project generates
 explainer videos from technical documents.
 
 Key context:
-- Design doc: design.md (read this first for full architecture)
-- Progress: progress.md (you're reading it - has current state)
+- Design doc: design.md (full architecture and visual style guide)
+- Progress: progress.md (current state and next steps)
 - Test content: /Users/prajwal/Desktop/Learning/inference/website/post.md
-  (LLM inference article - our first video topic)
 
-Current phase: Phase 1 MVP
-- Target: 3-4 min video on "Prefill vs Decode + KV Cache"
-- Using Motion Canvas (TypeScript) for animations
-- ElevenLabs for TTS
-- Mock LLM responses during development (to save money)
+Current phase: Phase 2 - First Video Generation
+- Phase 1 MVP is COMPLETE (95 tests passing)
+- Target: Generate first video using mock data (no API costs)
+- Motion Canvas animation exists at animations/src/scenes/prefillDecode.tsx
+- Need to: render animation, combine with mock audio, produce final video
 
-Please read design.md and this progress.md, then continue from where we left off.
-Check the "Current Status" and "Next Actions" sections below.
+Key commands:
+  source .venv/bin/activate && pytest tests/ -v  # Run all tests
+  cd animations && npm run dev                    # Start Motion Canvas editor
+
+Check "Next Actions" section below for current tasks.
 ```
 
 ---
@@ -168,17 +170,20 @@ pytest tests/test_ingestion.py -v
 
 ## Next Actions
 
-1. **Build mock LLM provider** - Create a provider that returns pre-computed
-   responses for testing the pipeline without API costs
+1. **Render Motion Canvas animation** - Use npm run render to export the
+   prefillDecode.tsx scene to video file
 
-2. **Build script generation** - Module to generate video scripts with visual
-   cues from analyzed content
+2. **Generate mock audio** - Use MockTTS to create placeholder audio files
+   for each scene
 
-3. **Build CLI review** - Simple interface to approve/edit scripts
+3. **Compose final video** - Use VideoComposer to combine rendered animation
+   with audio track
 
-4. **Set up Motion Canvas** - Initialize the TypeScript animation project
+4. **Test full pipeline** - Verify the complete flow works end-to-end with
+   mock data before enabling real APIs
 
-5. **Create test animation** - Manually build one animation to validate style
+5. **Enable real LLM API** - Switch from mock to Claude/OpenAI when ready
+   for production content generation
 
 ---
 
@@ -196,9 +201,12 @@ pytest tests/test_ingestion.py -v
 
 | Date | Commit | Description |
 |------|--------|-------------|
-| (pending) | - | Initial project setup with ingestion module |
+| Dec 2024 | d770b7c | Initial project setup with ingestion, understanding, and script modules |
+| Dec 2024 | 609b95a | Add CLI review interface and Motion Canvas animation setup |
+| Dec 2024 | b3fc60d | Add TTS and video composition modules |
+| Dec 2024 | 1237125 | Complete Phase 1 MVP with Dockerfile and E2E tests |
 
 ---
 
 *Last Updated: December 2024*
-*Session: Initial Setup*
+*Session: Phase 2 - First Video Generation*

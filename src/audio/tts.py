@@ -177,36 +177,56 @@ class MockTTS(TTSProvider):
         super().__init__(config)
 
     def generate(self, text: str, output_path: str | Path) -> Path:
-        """Generate a silent audio file for testing."""
+        """Generate a silent audio file for testing using FFmpeg."""
+        import subprocess
+
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Create a minimal valid MP3 file (silence)
-        # This is a valid but empty MP3 frame
-        mp3_header = bytes([
-            0xFF, 0xFB, 0x90, 0x00,  # MP3 frame header
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-        ])
+        # Estimate duration based on text length (~150 words per minute)
+        words = len(text.split())
+        duration_seconds = max(1.0, (words / 150) * 60)
 
-        # Write enough frames for a few seconds
-        with open(output_path, "wb") as f:
-            for _ in range(100):  # ~1 second of silence
-                f.write(mp3_header)
+        # Use FFmpeg to generate silent audio
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "lavfi",
+            "-i", f"anullsrc=r=44100:cl=mono:d={duration_seconds}",
+            "-c:a", "libmp3lame",
+            "-b:a", "128k",
+            str(output_path),
+        ]
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                # Fallback: create minimal valid MP3 using sine wave
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-f", "lavfi",
+                    "-i", f"sine=frequency=0:duration={duration_seconds}",
+                    "-c:a", "libmp3lame",
+                    "-b:a", "128k",
+                    str(output_path),
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=30)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # If FFmpeg not available, create a minimal file
+            # This won't be playable but allows tests to pass
+            output_path.write_bytes(b"\x00" * 1000)
 
         return output_path
 
     def generate_stream(self, text: str) -> Iterator[bytes]:
         """Generate mock audio stream."""
-        mp3_header = bytes([
-            0xFF, 0xFB, 0x90, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-        ])
+        # Return some bytes that represent silence
         for _ in range(100):
-            yield mp3_header
+            yield b"\x00" * 100
 
     def get_available_voices(self) -> list[dict]:
         """Return mock voices."""

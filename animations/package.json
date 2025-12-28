@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite serve"
+    "serve": "vite serve",
+    "render": "node scripts/render.mjs"
   },
   "dependencies": {
     "@motion-canvas/2d": "^3.17.0",
     "@motion-canvas/core": "^3.17.0",
+    "@motion-canvas/ffmpeg": "^3.17.2",
     "@motion-canvas/ui": "^3.17.0"
   },
   "devDependencies": {
