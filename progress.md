@@ -15,15 +15,17 @@ Key context:
 - Progress: progress.md (current state and next steps)
 - Test content: /Users/prajwal/Desktop/Learning/inference/website/post.md
 
-Current phase: Phase 2 - First Video Generation
-- Phase 1 MVP is COMPLETE (95 tests passing)
-- Target: Generate first video using mock data (no API costs)
-- Motion Canvas animation exists at animations/src/scenes/prefillDecode.tsx
-- Need to: render animation, combine with mock audio, produce final video
+Current phase: Phase 3 - Extending the System
+- Phase 1 MVP: COMPLETE (112 tests passing)
+- Phase 2 First Video: COMPLETE
+- First real explainer video generated with Motion Canvas + ElevenLabs TTS
+- Output: output/real_video/prefill_decode_explainer_real.mp4
 
 Key commands:
-  source .venv/bin/activate && pytest tests/ -v  # Run all tests
+  source .venv/bin/activate && pytest tests/ -v  # Run all tests (112 passing)
   cd animations && npm run dev                    # Start Motion Canvas editor
+  python generate_video.py                        # Generate video with mock data
+  python create_real_video_with_tts.py           # Generate with real TTS
 
 Check "Next Actions" section below for current tasks.
 ```
@@ -63,17 +65,30 @@ Check "Next Actions" section below for current tasks.
 - [x] Video composition with FFmpeg
 - [x] Dockerfile for containerization
 - [x] End-to-end tests
-- [x] **95 tests, all passing**
+- [x] **112 tests, all passing**
 
-### Phase 1 MVP Complete!
+### Completed (Phase 2 - First Real Video)
+- [x] Video generation pipeline orchestrator (src/pipeline/)
+- [x] Animation renderer module (src/animation/)
+- [x] Motion Canvas FFmpeg plugin integration
+- [x] Fixed animation ref bug in prefillDecode.tsx
+- [x] MockTTS generates valid audio files via FFmpeg
+- [x] Real ElevenLabs TTS integration tested
+- [x] **First real explainer video generated!**
+  - Animation: Prefill vs Decode visualization
+  - Audio: ElevenLabs TTS narration
+  - Output: output/real_video/prefill_decode_explainer_real.mp4
 
-The foundational pipeline is working end-to-end with mock LLM responses.
+### Phase 2 Complete!
 
-### Next Steps (Phase 2)
-- [ ] Enable real LLM API calls (Claude/OpenAI)
-- [ ] Connect Motion Canvas rendering to pipeline
-- [ ] Add more animation scenes
-- [ ] Test with real TTS
+Generated first real explainer video with Motion Canvas animation and ElevenLabs voiceover.
+
+### Next Steps (Phase 3)
+- [ ] Extend animation to match full narration length (~21s)
+- [ ] Add more animation scenes (KV Cache, Batching, etc.)
+- [ ] Enable real LLM API for dynamic script generation
+- [ ] Build web interface for easier use
+- [ ] Add more visual elements (code highlights, equations)
 
 ---
 
@@ -98,15 +113,21 @@ Key files:
 │   │   └── cli.py         # Rich-based review CLI
 │   ├── audio/             # TTS integration
 │   │   └── tts.py         # ElevenLabs + Mock TTS
-│   └── composition/       # Video assembly
-│       └── composer.py    # FFmpeg-based composer
+│   ├── animation/         # Animation rendering
+│   │   └── renderer.py    # Motion Canvas renderer
+│   ├── composition/       # Video assembly
+│   │   └── composer.py    # FFmpeg-based composer
+│   └── pipeline/          # End-to-end orchestration
+│       └── orchestrator.py # Video generation pipeline
 ├── animations/            # Motion Canvas project
 │   ├── src/scenes/        # Animation scenes
 │   │   └── prefillDecode.tsx  # Prefill vs Decode animation
 │   └── src/styles/        # Color palette, fonts
-├── tests/                 # 95 passing tests
+├── tests/                 # 112 passing tests
+├── output/real_video/     # Generated videos
 ├── Dockerfile             # Container setup
-└── output/                # Generated assets
+├── generate_video.py      # Quick generation script
+└── create_real_video_with_tts.py  # Real TTS generation
 ```
 
 ---
@@ -170,20 +191,20 @@ pytest tests/test_ingestion.py -v
 
 ## Next Actions
 
-1. **Render Motion Canvas animation** - Use npm run render to export the
-   prefillDecode.tsx scene to video file
+1. **Extend Prefill/Decode animation** - Increase duration from 9s to ~21s
+   to match the full narration length
 
-2. **Generate mock audio** - Use MockTTS to create placeholder audio files
-   for each scene
+2. **Add KV Cache animation scene** - Create new scene explaining KV Cache
+   optimization in LLM inference
 
-3. **Compose final video** - Use VideoComposer to combine rendered animation
-   with audio track
+3. **Add Batching animation scene** - Visualize continuous batching and
+   how it improves throughput
 
-4. **Test full pipeline** - Verify the complete flow works end-to-end with
-   mock data before enabling real APIs
+4. **Enable real LLM API** - Switch from mock to Claude for dynamic
+   script generation from any document
 
-5. **Enable real LLM API** - Switch from mock to Claude/OpenAI when ready
-   for production content generation
+5. **Create web interface** - Simple UI for uploading documents and
+   generating videos without CLI
 
 ---
 
@@ -205,8 +226,10 @@ pytest tests/test_ingestion.py -v
 | Dec 2024 | 609b95a | Add CLI review interface and Motion Canvas animation setup |
 | Dec 2024 | b3fc60d | Add TTS and video composition modules |
 | Dec 2024 | 1237125 | Complete Phase 1 MVP with Dockerfile and E2E tests |
+| Dec 2024 | 43799de | Add video generation pipeline and first video output |
+| Dec 2024 | ff2b337 | Add comprehensive README.md |
 
 ---
 
 *Last Updated: December 2024*
-*Session: Phase 2 - First Video Generation*
+*Session: Phase 2 Complete - First Real Video Generated*

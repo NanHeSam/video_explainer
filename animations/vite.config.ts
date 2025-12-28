@@ -1,16 +1,15 @@
 import {defineConfig} from 'vite';
-import motionCanvas from '@motion-canvas/vite-plugin';
-import ffmpeg from '@motion-canvas/ffmpeg';
+import motionCanvasPkg from '@motion-canvas/vite-plugin';
+import ffmpegPkg from '@motion-canvas/ffmpeg';
+
+const motionCanvas = motionCanvasPkg.default || motionCanvasPkg;
+const ffmpegPlugin = ffmpegPkg.default || ffmpegPkg;
 
 export default defineConfig({
   plugins: [
-    (motionCanvas as any).default
-      ? (motionCanvas as any).default({
-          project: ['./src/project.ts'],
-        })
-      : (motionCanvas as any)({
-          project: ['./src/project.ts'],
-        }),
-    (ffmpeg as any).default ? (ffmpeg as any).default() : (ffmpeg as any)(),
+    motionCanvas({
+      project: ['./src/project.ts'],
+    }),
+    ffmpegPlugin(),
   ],
 });

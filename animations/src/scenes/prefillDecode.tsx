@@ -115,14 +115,14 @@ export default makeScene2D(function* (view) {
   );
 
   // Create tokens for prefill side (8 tokens in a row)
-  const prefillTokens: Rect[] = [];
+  const prefillTokenRefs: ReturnType<typeof createRef<Rect>>[] = [];
   const tokenWidth = 60;
   const tokenGap = 10;
   const startX = -3.5 * (tokenWidth + tokenGap);
 
   for (let i = 0; i < 8; i++) {
     const token = createRef<Rect>();
-    prefillTokens.push(token());
+    prefillTokenRefs.push(token);
     prefillContainer().add(
       <Rect
         ref={token}
@@ -138,10 +138,10 @@ export default makeScene2D(function* (view) {
   }
 
   // Create tokens for decode side (showing one-at-a-time generation)
-  const decodeTokens: Rect[] = [];
+  const decodeTokenRefs: ReturnType<typeof createRef<Rect>>[] = [];
   for (let i = 0; i < 8; i++) {
     const token = createRef<Rect>();
-    decodeTokens.push(token());
+    decodeTokenRefs.push(token);
     decodeContainer().add(
       <Rect
         ref={token}
@@ -158,8 +158,8 @@ export default makeScene2D(function* (view) {
 
   // Show tokens
   yield* all(
-    ...prefillTokens.map((t, i) => t.opacity(1, 0.3)),
-    ...decodeTokens.map((t, i) => t.opacity(1, 0.3)),
+    ...prefillTokenRefs.map((t) => t().opacity(1, 0.3)),
+    ...decodeTokenRefs.map((t) => t().opacity(1, 0.3)),
   );
 
   yield* waitFor(0.5);
@@ -322,7 +322,7 @@ export default makeScene2D(function* (view) {
 
   // Animate Prefill: all tokens light up at once, high GPU, low memory
   yield* all(
-    ...prefillTokens.map(t => t.fill(Colors.tokenActive, 0.3)),
+    ...prefillTokenRefs.map(t => t().fill(Colors.tokenActive, 0.3)),
     prefillGpuFill().width(barWidth * 0.95, 0.5, easeInOutCubic),
     prefillMemFill().width(barWidth * 0.3, 0.5, easeInOutCubic),
   );
@@ -334,9 +334,9 @@ export default makeScene2D(function* (view) {
   // Animate Decode: tokens light up one at a time, low GPU, high memory
   yield* sequence(
     0.3,
-    ...decodeTokens.map((t, i) =>
+    ...decodeTokenRefs.map((t) =>
       chain(
-        t.fill(Colors.tokenActive, 0.2),
+        t().fill(Colors.tokenActive, 0.2),
         all(
           decodeGpuFill().width(barWidth * 0.05, 0.1, easeInOutCubic),
           decodeMemFill().width(barWidth * 0.95, 0.1, easeInOutCubic),
