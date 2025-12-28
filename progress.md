@@ -15,19 +15,28 @@ Key context:
 - Progress: progress.md (current state and next steps)
 - Test content: /Users/prajwal/Desktop/Learning/inference/website/post.md
 
-Current phase: Phase 4 - Production Ready
+Current phase: Phase 4 - Quality & Generalization
 - Phase 1 MVP: COMPLETE (112 tests)
 - Phase 2 First Video: COMPLETE
-- Phase 3 Automated Animation: COMPLETE (119 tests passing)
-  - Remotion integration for programmatic video generation
-  - Abstract renderer interface (swappable backends)
-  - Full E2E pipeline generating 176s videos
+- Phase 3 Automated Animation: COMPLETE
+- Phase 3.5 Quality Focus: IN PROGRESS (169 tests passing)
+  - Storyboard-first workflow implemented
+  - JSON schema for storyboards
+  - StoryboardPlayer (runtime interpreter)
+  - Custom components: Token, TokenRow, GPUGauge
+  - PrefillDecodeScene hand-crafted demo working
 
 Key commands:
-  source .venv/bin/activate && pytest tests/ -v  # Run all tests (119 passing)
+  source .venv/bin/activate && pytest tests/ -v  # Run all tests (169 passing)
   cd remotion && npm run dev                      # Start Remotion studio
-  python generate_video.py --test                 # Generate video with mock data
-  python generate_video.py --source path/to/doc.md  # Generate from document
+  # Select "PrefillDecode" composition to see the hand-crafted demo
+  # Select "StoryboardPlayer" to test storyboard rendering
+
+Key files:
+  storyboards/schema/storyboard.schema.json      # Storyboard JSON schema
+  storyboards/examples/prefill_vs_decode.json    # Example storyboard
+  storyboards/prefill_vs_decode.md               # Human-readable storyboard
+  src/storyboard/                                 # Python storyboard module
 
 Check "Next Actions" section below for current tasks.
 ```
@@ -89,6 +98,20 @@ Check "Next Actions" section below for current tasks.
 
 Successfully migrated from manual Motion Canvas animations to fully automated Remotion-based rendering. The pipeline now generates complete explainer videos programmatically from any document.
 
+### In Progress (Phase 3.5 - Quality & Generalization)
+- [x] Identified quality issues with templated animations
+- [x] Designed storyboard-first workflow (TTS → Storyboard → Animation)
+- [x] Created detailed storyboard for Prefill vs Decode scene
+- [x] Built custom Remotion components (Token, TokenRow, GPUGauge)
+- [x] Built PrefillDecodeScene hand-crafted demo
+- [x] Defined JSON schema for storyboards
+- [x] Built StoryboardPlayer (runtime storyboard interpreter)
+- [x] Created Python storyboard module (loader, validator, renderer)
+- [x] **169 tests passing**
+- [ ] Render storyboard JSON through StoryboardPlayer
+- [ ] Build storyboard generator (LLM-assisted)
+- [ ] Add TTS word-level timestamps for sync points
+
 ### Next Steps (Phase 4 - Production Ready)
 - [ ] Enable real LLM API (Anthropic/OpenAI) for dynamic content analysis
 - [ ] Add more animation components (code highlights, equations, diagrams)
@@ -101,47 +124,55 @@ Successfully migrated from manual Motion Canvas animations to fully automated Re
 ## Architecture Summary
 
 ```
-Pipeline: Source → Parse → Analyze → Script → Review → TTS → Remotion → Compose → Video
+Pipeline (Evolved - Quality Focus):
+
+Document → Parse → Analyze → Script → TTS → Storyboard → Animation → Compose → Video
+                                       │         ↑
+                                       │    (JSON schema)
+                                       └─────────┘
+                                    (word timestamps)
 
 Key files:
 ├── src/
 │   ├── config.py          # Configuration management
 │   ├── models.py          # Pydantic data models
 │   ├── ingestion/         # Document parsing
-│   │   ├── markdown.py    # Markdown parser
-│   │   └── parser.py      # Main parser interface
-│   ├── understanding/     # Content analysis
-│   │   ├── llm_provider.py # Mock + real LLM providers
-│   │   └── analyzer.py    # Content analyzer
+│   ├── understanding/     # Content analysis (LLM)
 │   ├── script/            # Script generation
-│   │   └── generator.py   # Script with visual cues
 │   ├── review/            # CLI review interface
-│   │   └── cli.py         # Rich-based review CLI
 │   ├── audio/             # TTS integration
-│   │   └── tts.py         # ElevenLabs + Mock TTS
+│   ├── storyboard/        # NEW: Storyboard module
+│   │   ├── models.py      # Pydantic models for storyboard
+│   │   ├── loader.py      # Load/validate storyboard JSON
+│   │   └── renderer.py    # Render via Remotion
 │   ├── animation/         # Animation rendering
-│   │   └── renderer.py    # Abstract renderer + Remotion implementation
 │   ├── composition/       # Video assembly
-│   │   └── composer.py    # FFmpeg-based composer
 │   └── pipeline/          # End-to-end orchestration
-│       └── orchestrator.py # Video generation pipeline
-├── remotion/              # Remotion project (React-based animations)
+├── storyboards/           # NEW: Storyboard files
+│   ├── schema/
+│   │   └── storyboard.schema.json  # JSON schema
+│   ├── examples/
+│   │   └── prefill_vs_decode.json  # Example storyboard
+│   └── prefill_vs_decode.md        # Human-readable design
+├── remotion/              # Remotion project
 │   ├── src/
 │   │   ├── components/    # Animation components
-│   │   │   ├── TitleCard.tsx
-│   │   │   ├── TokenGrid.tsx
-│   │   │   ├── ProgressBar.tsx
-│   │   │   └── TextReveal.tsx
-│   │   ├── scenes/        # Scene compositions
-│   │   │   ├── ExplainerVideo.tsx
-│   │   │   └── SceneRenderer.tsx
-│   │   └── types/         # TypeScript types
+│   │   │   ├── Token.tsx          # NEW: Token with glow
+│   │   │   ├── TokenRow.tsx       # NEW: Prefill/decode modes
+│   │   │   ├── GPUGauge.tsx       # NEW: Utilization bar
+│   │   │   ├── registry.ts        # NEW: Component registry
+│   │   │   └── ...
+│   │   ├── scenes/
+│   │   │   ├── PrefillDecodeScene.tsx  # NEW: Hand-crafted demo
+│   │   │   ├── StoryboardPlayer.tsx    # NEW: Runtime interpreter
+│   │   │   └── ...
+│   │   └── types/
+│   │       ├── script.ts
+│   │       └── storyboard.ts      # NEW: Storyboard types
 │   └── scripts/
-│       └── render.mjs     # Headless rendering script
-├── animations/            # Legacy Motion Canvas project (deprecated)
-├── tests/                 # 119 passing tests
+│       └── render.mjs
+├── tests/                 # 169 passing tests
 ├── output/                # Generated videos
-├── Dockerfile             # Container setup
 └── generate_video.py      # CLI entry point
 ```
 
@@ -217,27 +248,32 @@ python generate_video.py --source path/to/document.md
 
 ## Next Actions
 
-1. **Enable real LLM API** - Switch from mock to Claude/GPT-4 for dynamic
+### Immediate (Phase 3.5 Completion)
+
+1. **Test StoryboardPlayer with example JSON** - Verify the runtime
+   interpreter renders prefill_vs_decode.json correctly
+
+2. **Add TTS word timestamps** - ElevenLabs provides word-level timing;
+   integrate this into audio module for sync points
+
+3. **Build storyboard generator** - LLM-assisted module that:
+   - Takes script + audio timing
+   - Uses example storyboards as context
+   - Outputs valid storyboard JSON
+
+### Future (Phase 4)
+
+4. **Enable real LLM API** - Switch from mock to Claude/GPT-4 for dynamic
    content analysis and script generation
 
-2. **Add more animation components** - Create components for:
+5. **Add more animation components** - Create components for:
    - Code block highlighting with syntax colors
    - Mathematical equation rendering
    - Diagram animations (flowcharts, architecture)
-   - Data visualization (charts, graphs)
 
-3. **Create web interface** - Simple UI for uploading documents and
-   generating videos without CLI
+6. **Create web interface** - Simple UI for uploading documents
 
-4. **Cloud deployment** - Deploy to cloud infrastructure with:
-   - Docker/Kubernetes setup
-   - Queue-based video processing
-   - Storage for generated videos
-
-5. **Support more input formats** - Add parsers for:
-   - PDF documents
-   - URL scraping
-   - Jupyter notebooks
+7. **Cloud deployment** - Docker/Kubernetes for production
 
 ---
 
@@ -264,8 +300,9 @@ python generate_video.py --source path/to/document.md
 | Dec 2024 | 41ceadc | Complete Phase 2: First real explainer video generated |
 | Dec 2024 | 50dbc3f | Refactor pipeline: remove one-off scripts, use config-based providers |
 | Dec 2024 | - | Phase 3: Remotion integration for automated animation rendering |
+| Dec 2024 | - | Phase 3.5: Storyboard system, quality focus, hand-crafted demo |
 
 ---
 
 *Last Updated: December 2024*
-*Session: Phase 3 Complete - Remotion integration for programmatic video generation*
+*Session: Phase 3.5 - Storyboard-first workflow, 169 tests passing*

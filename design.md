@@ -717,17 +717,19 @@ video_explainer/
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Animation Library | Motion Canvas | TypeScript-based, modern, easier LLM code generation |
+| Animation Library | Remotion (React) | Headless rendering, programmatic, actively maintained |
+| Previous Choice | Motion Canvas | Moved away - no native headless rendering support |
 | Review Interface | CLI-based (initially) | Simple, fast to implement, sufficient for single user |
 | Visual Style | Dark technical (see Style Guide) | Suits LLM inference topic, professional look |
 | First Test Topic | LLM Inference (Prefill/Decode/KV Cache) | Author-written content, easy to verify, visual potential |
-| Voice | TBD (any standard TTS initially) | Will clone author's voice in future |
+| Voice | ElevenLabs (or Mock for dev) | High quality, will clone author's voice in future |
+| Animation Approach | Hand-crafted storyboards | Quality over automation, build patterns first |
 
 ## Open Questions
 
-1. **TTS Provider**: ElevenLabs vs OpenAI TTS? (Cost vs quality tradeoff)
-2. **Motion Canvas Rendering**: Local vs cloud rendering pipeline?
-3. **LLM for Code Gen**: Claude vs GPT-4 for Motion Canvas code generation?
+1. **Storyboard Automation**: When/how to introduce LLM-assisted storyboard generation?
+2. **Component Reusability**: What patterns emerge from hand-crafted animations?
+3. **Visual Metaphor Library**: How to catalog effective visual metaphors for reuse?
 
 ---
 
@@ -743,5 +745,165 @@ video_explainer/
 
 ---
 
-*Document Version: 1.1*
+---
+
+## Evolved Approach: Quality-First Animation (December 2024)
+
+After initial implementation, we identified that **video quality is the critical success factor**. The templated, text-heavy approach doesn't produce engaging content. This section documents our evolved approach.
+
+### The Problem with Automated Animation
+
+The initial approach tried to map generic "visual cues" to generic components (title cards, text reveals). This produces:
+- Too much text on screen
+- Generic animations that don't explain concepts
+- No visual storytelling—just information display
+
+### The Solution: Storyboard-First, Hand-Crafted Animations
+
+**Full Pipeline:**
+
+```
+Document
+    ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  Content Understanding → Script Generation                      │
+│  (existing modules)                                             │
+└─────────────────────────────────────────────────────────────────┘
+    ↓
+Script (narrative + voiceover text per scene)
+    │
+    ├──────────────────────────────────┐
+    ↓                                  ↓
+┌─────────────────────┐    ┌─────────────────────────────────────┐
+│  TTS Generation     │    │  Storyboard Generator               │
+│  - Audio files      │    │  - Takes script + audio timing      │
+│  - Word timestamps  │───→│  - Outputs structured JSON          │
+│  (ElevenLabs)       │    │  - Hand-crafted initially           │
+└─────────────────────┘    │  - LLM-assisted eventually          │
+                           └─────────────────────────────────────┘
+                                       ↓
+                           Storyboard (JSON)
+                           - Beat-by-beat timing
+                           - Component references
+                           - Sync points to audio
+                                       ↓
+                           ┌─────────────────────────────────────┐
+                           │  Scene Assembler                    │
+                           │  - Resolves component references    │
+                           │  - Generates Remotion scenes        │
+                           └─────────────────────────────────────┘
+                                       ↓
+                           Animation (Remotion)
+                                       ↓
+                           ┌─────────────────────────────────────┐
+                           │  Composer                           │
+                           │  - Combines audio + video           │
+                           │  - Final encoding                   │
+                           └─────────────────────────────────────┘
+                                       ↓
+                           Final Video (MP4)
+```
+
+**Key Insight**: TTS must happen BEFORE storyboard generation because we need audio timing (word-level timestamps) to sync visuals precisely to narration.
+
+**Key Principles:**
+
+1. **Storyboard before animation**: Every scene needs frame-by-frame visual planning synchronized to voiceover. No more vague "visual cues."
+
+2. **Hand-craft animations for each topic**: Each concept needs custom-designed visuals that actually demonstrate the concept, not generic templates.
+
+3. **Quality over automation**: It's okay to be slow. The focus is producing genuinely good explainer content.
+
+4. **Build reusable primitives**: As we hand-craft animations, identify patterns that can become reusable components.
+
+5. **Eventually LLM-assisted**: Once we understand what good storyboards look like, we can train/prompt LLMs to generate them.
+
+### Storyboard Format
+
+Storyboards are structured JSON files that define exactly what happens and when. See `/storyboards/schema/` for the formal schema and `/storyboards/examples/` for references.
+
+**Schema location**: `storyboards/schema/storyboard.schema.json`
+
+**Key elements**:
+- **Beats**: Time-based segments with start/end times
+- **Elements**: Component instances with props and animations
+- **Sync points**: Audio triggers that fire visual actions
+- **Transitions**: How elements enter/exit
+
+**Example structure**:
+```json
+{
+  "id": "prefill_vs_decode",
+  "title": "Prefill vs Decode",
+  "duration_seconds": 60,
+  "audio": {
+    "file": "prefill_vs_decode.mp3",
+    "duration_seconds": 58.5
+  },
+  "beats": [
+    {
+      "id": "setup",
+      "start_seconds": 0,
+      "end_seconds": 5,
+      "voiceover": "When you send a prompt to an LLM, two very different things happen.",
+      "elements": [...]
+    }
+  ]
+}
+```
+
+See `/storyboards/prefill_vs_decode.md` for the human-readable design document.
+See `/storyboards/examples/prefill_vs_decode.json` for the machine-readable storyboard.
+
+### Animation Component Library
+
+Components are reusable Remotion React components referenced by storyboards. Each component has a defined interface (props) that the storyboard can configure.
+
+**Component Registry** (`remotion/src/components/registry.ts`):
+```typescript
+const componentRegistry = {
+  // Core components (reusable across topics)
+  "prompt_input": PromptInput,
+  "text_reveal": TextReveal,
+  "comparison_layout": ComparisonLayout,
+
+  // LLM Inference components
+  "token": Token,
+  "token_row": TokenRow,
+  "gpu_gauge": GPUGauge,
+
+  // Future topics will add more...
+};
+```
+
+**Current Components** (LLM Inference):
+
+| Component | Props | Description |
+|-----------|-------|-------------|
+| `token` | `text`, `isActive`, `activateAt` | Single token with glow animation |
+| `token_row` | `tokens[]`, `mode: "prefill"\|"decode"`, `activateAt` | Row with parallel or sequential activation |
+| `gpu_gauge` | `utilization`, `status: "compute"\|"memory"`, `animateAt` | Utilization bar with status label |
+
+**Adding New Components**:
+1. Create component in `remotion/src/components/`
+2. Define clear props interface
+3. Add to component registry
+4. Document in this section
+
+Components should be:
+- **Configurable**: Props control appearance and behavior
+- **Animatable**: Accept timing props (`activateAt`, `duration`)
+- **Composable**: Work well with other components
+
+### What Success Looks Like
+
+A successful scene should:
+1. **Explain through visuals**, not text labels
+2. **Create "aha moments"** where the viewer understands *why*
+3. **Be watchable without sound** (visuals carry meaning)
+4. **Feel intentional** - every animation has a purpose
+
+---
+
+*Document Version: 1.2*
 *Last Updated: December 2024*

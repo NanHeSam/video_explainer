@@ -1,0 +1,397 @@
+{
+  "$schema": "../schema/storyboard.schema.json",
+  "id": "prefill_vs_decode",
+  "title": "Prefill vs Decode",
+  "description": "Explains the two phases of LLM inference and their different computational characteristics",
+  "duration_seconds": 60,
+  "audio": {
+    "file": "prefill_vs_decode.mp3",
+    "duration_seconds": 58.5,
+    "word_timestamps": [
+      {"word": "When", "start": 0.0, "end": 0.2},
+      {"word": "you", "start": 0.2, "end": 0.3},
+      {"word": "send", "start": 0.3, "end": 0.5},
+      {"word": "a", "start": 0.5, "end": 0.55},
+      {"word": "prompt", "start": 0.55, "end": 0.9},
+      {"word": "simultaneously", "start": 8.0, "end": 8.8},
+      {"word": "full", "start": 15.5, "end": 15.7},
+      {"word": "capacity", "start": 15.7, "end": 16.2},
+      {"word": "one", "start": 30.0, "end": 30.2},
+      {"word": "by", "start": 30.3, "end": 30.4},
+      {"word": "one", "start": 30.5, "end": 30.7},
+      {"word": "memory-limited", "start": 42.0, "end": 42.8}
+    ]
+  },
+  "style": {
+    "background_color": "#0f0f1a",
+    "primary_color": "#00d9ff",
+    "secondary_color": "#ff6b35"
+  },
+  "beats": [
+    {
+      "id": "setup",
+      "start_seconds": 0,
+      "end_seconds": 5,
+      "voiceover": "When you send a prompt to an LLM, two very different things happen.",
+      "elements": [
+        {
+          "id": "prompt",
+          "component": "prompt_input",
+          "props": {
+            "text": "Explain quantum computing"
+          },
+          "position": {
+            "x": "center",
+            "y": "center"
+          },
+          "enter": {
+            "type": "none"
+          },
+          "animations": [
+            {
+              "action": "type_in",
+              "at_seconds": 0,
+              "duration_seconds": 2,
+              "params": {
+                "characters_per_second": 12
+              }
+            },
+            {
+              "action": "move",
+              "at_seconds": 4,
+              "duration_seconds": 0.5,
+              "easing": "ease-in-out",
+              "params": {
+                "to": {"x": "center", "y": 60},
+                "scale": 0.6
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prefill_intro",
+      "start_seconds": 5,
+      "end_seconds": 15,
+      "voiceover": "First, the model processes your entire prompt at once. This is called prefill. All your input tokens are processed in parallel—simultaneously.",
+      "elements": [
+        {
+          "id": "prefill_tokens",
+          "component": "token_row",
+          "props": {
+            "tokens": ["Explain", "quantum", "computing"],
+            "mode": "prefill",
+            "label": "PREFILL"
+          },
+          "position": {
+            "x": "center",
+            "y": "center"
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5
+          },
+          "animations": [
+            {
+              "action": "show_tokens",
+              "at_seconds": 5.5,
+              "duration_seconds": 1.5,
+              "params": {
+                "stagger": 0.1
+              }
+            },
+            {
+              "action": "activate_all",
+              "at_seconds": 8,
+              "duration_seconds": 0.3,
+              "params": {
+                "glow": true
+              }
+            }
+          ]
+        }
+      ],
+      "sync_points": [
+        {
+          "trigger_word": "simultaneously",
+          "trigger_seconds": 8.0,
+          "target": "prefill_tokens",
+          "action": "activate_all"
+        }
+      ]
+    },
+    {
+      "id": "gpu_prefill",
+      "start_seconds": 15,
+      "end_seconds": 22,
+      "voiceover": "During prefill, your GPU is working at full capacity. All those tensor cores are crunching numbers.",
+      "elements": [
+        {
+          "id": "prefill_tokens",
+          "component": "token_row",
+          "props": {
+            "tokens": ["Explain", "quantum", "computing"],
+            "mode": "prefill",
+            "label": "PREFILL"
+          },
+          "position": {
+            "x": "center",
+            "y": 300
+          }
+        },
+        {
+          "id": "gpu_gauge_prefill",
+          "component": "gpu_gauge",
+          "props": {
+            "utilization": 100,
+            "status": "compute",
+            "label": "GPU Utilization"
+          },
+          "position": {
+            "x": "center",
+            "y": 550
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5
+          },
+          "animations": [
+            {
+              "action": "fill",
+              "at_seconds": 16,
+              "duration_seconds": 1.5,
+              "easing": "ease-out"
+            },
+            {
+              "action": "show_status",
+              "at_seconds": 18,
+              "duration_seconds": 0.3
+            }
+          ]
+        }
+      ],
+      "sync_points": [
+        {
+          "trigger_word": "full capacity",
+          "trigger_seconds": 15.7,
+          "target": "gpu_gauge_prefill",
+          "action": "fill"
+        }
+      ]
+    },
+    {
+      "id": "transition",
+      "start_seconds": 22,
+      "end_seconds": 27,
+      "voiceover": "But then comes decode—generating the response, one token at a time.",
+      "elements": [
+        {
+          "id": "prefill_section",
+          "component": "container",
+          "props": {},
+          "position": {
+            "x": 480,
+            "y": "center"
+          },
+          "animations": [
+            {
+              "action": "move",
+              "at_seconds": 22,
+              "duration_seconds": 0.8,
+              "easing": "ease-in-out",
+              "params": {
+                "from": {"x": "center"},
+                "to": {"x": 480},
+                "scale": 0.85,
+                "opacity": 0.7
+              }
+            }
+          ]
+        },
+        {
+          "id": "divider",
+          "component": "divider",
+          "props": {
+            "orientation": "vertical",
+            "height": "60%"
+          },
+          "position": {
+            "x": "center",
+            "y": "center"
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5,
+            "delay_seconds": 0.5
+          }
+        },
+        {
+          "id": "decode_section",
+          "component": "container",
+          "props": {},
+          "position": {
+            "x": 1440,
+            "y": "center"
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5,
+            "delay_seconds": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "decode_sequential",
+      "start_seconds": 27,
+      "end_seconds": 38,
+      "voiceover": "Each new token depends on all the previous ones. So we generate them one... by... one. And for each token, we need to load the entire model from memory.",
+      "elements": [
+        {
+          "id": "decode_tokens",
+          "component": "token_row",
+          "props": {
+            "tokens": ["Quantum", "computing", "is", "a", "type", "of"],
+            "mode": "decode",
+            "label": "DECODE"
+          },
+          "position": {
+            "x": 1440,
+            "y": 300
+          },
+          "animations": [
+            {
+              "action": "activate_sequential",
+              "at_seconds": 27,
+              "duration_seconds": 10,
+              "params": {
+                "delay_between": 1.5
+              }
+            }
+          ]
+        }
+      ],
+      "sync_points": [
+        {
+          "trigger_word": "one",
+          "trigger_seconds": 30.0,
+          "target": "decode_tokens",
+          "action": "activate_next"
+        },
+        {
+          "trigger_word": "one",
+          "trigger_seconds": 30.5,
+          "target": "decode_tokens",
+          "action": "activate_next"
+        }
+      ]
+    },
+    {
+      "id": "gpu_decode",
+      "start_seconds": 38,
+      "end_seconds": 48,
+      "voiceover": "And here's the problem: all those tensor cores? Mostly sitting idle. The GPU isn't compute-limited—it's memory-limited. It's waiting for data.",
+      "elements": [
+        {
+          "id": "gpu_gauge_decode",
+          "component": "gpu_gauge",
+          "props": {
+            "utilization": 5,
+            "status": "memory",
+            "label": "GPU Utilization"
+          },
+          "position": {
+            "x": 1440,
+            "y": 550
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5
+          },
+          "animations": [
+            {
+              "action": "fill",
+              "at_seconds": 39,
+              "duration_seconds": 1.5,
+              "easing": "ease-out"
+            },
+            {
+              "action": "show_status",
+              "at_seconds": 42,
+              "duration_seconds": 0.3
+            }
+          ]
+        }
+      ],
+      "sync_points": [
+        {
+          "trigger_word": "memory-limited",
+          "trigger_seconds": 42.0,
+          "target": "gpu_gauge_decode",
+          "action": "show_status"
+        }
+      ]
+    },
+    {
+      "id": "comparison",
+      "start_seconds": 48,
+      "end_seconds": 55,
+      "voiceover": "Prefill: compute-bound, GPU at full blast. Decode: memory-bound, GPU starved for data. Two phases, completely different bottlenecks.",
+      "elements": [
+        {
+          "id": "comparison_highlight",
+          "component": "highlight_overlay",
+          "props": {},
+          "animations": [
+            {
+              "action": "pulse_left",
+              "at_seconds": 48,
+              "duration_seconds": 2
+            },
+            {
+              "action": "pulse_right",
+              "at_seconds": 50,
+              "duration_seconds": 2
+            }
+          ]
+        },
+        {
+          "id": "summary_text",
+          "component": "text_reveal",
+          "props": {
+            "text": "Two phases, completely different bottlenecks",
+            "fontSize": 24
+          },
+          "position": {
+            "x": "center",
+            "y": 950
+          },
+          "enter": {
+            "type": "fade",
+            "duration_seconds": 0.5,
+            "delay_seconds": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "implication",
+      "start_seconds": 55,
+      "end_seconds": 60,
+      "voiceover": "This is why generating long responses is so much slower than you'd expect. And why optimizing decode is where the real wins are.",
+      "elements": [
+        {
+          "id": "all_content",
+          "component": "container",
+          "props": {},
+          "exit": {
+            "type": "fade",
+            "duration_seconds": 1,
+            "delay_seconds": 3
+          }
+        }
+      ]
+    }
+  ]
+}
