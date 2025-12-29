@@ -15,19 +15,21 @@ interface ProgressBarProps {
  * Animated progress/utilization bar with label.
  */
 export const ProgressBar: React.FC<ProgressBarProps> = ({
-  label,
-  value,
-  color,
+  label = "",
+  value = 0,
+  color = "#00d9ff",
   backgroundColor = "#333",
   width = 800,
   height = 40,
   showPercentage = true,
 }) => {
+  // Ensure value is a number
+  const safeValue = typeof value === "number" ? value : 0;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   // Animate the bar filling
-  const animatedValue = interpolate(frame, [0, fps * 2], [0, value], {
+  const animatedValue = interpolate(frame, [0, fps * 2], [0, safeValue], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });

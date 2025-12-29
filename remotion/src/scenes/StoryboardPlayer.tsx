@@ -155,11 +155,27 @@ const ElementRenderer: React.FC<ElementRendererProps> = ({
     fps
   );
 
+  // Build style object from storyboard global style
+  const style = storyboard.style
+    ? {
+        backgroundColor: storyboard.style.background_color || "#0f0f1a",
+        primaryColor: storyboard.style.primary_color || "#00d9ff",
+        secondaryColor: storyboard.style.secondary_color || "#ff6b35",
+        fontFamily: storyboard.style.font_family || "Inter, sans-serif",
+      }
+    : {
+        backgroundColor: "#0f0f1a",
+        primaryColor: "#00d9ff",
+        secondaryColor: "#ff6b35",
+        fontFamily: "Inter, sans-serif",
+      };
+
   // Merge all props
   const finalProps = {
     ...element.props,
     ...animationProps,
     ...syncProps,
+    style, // Pass global style to all components
   };
 
   return (

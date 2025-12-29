@@ -3,6 +3,7 @@
 from .tts import (
     TTSProvider,
     ElevenLabsTTS,
+    EdgeTTS,
     MockTTS,
     TTSResult,
     WordTimestamp,
@@ -12,6 +13,7 @@ from .tts import (
 __all__ = [
     "TTSProvider",
     "ElevenLabsTTS",
+    "EdgeTTS",
     "MockTTS",
     "TTSResult",
     "WordTimestamp",

@@ -383,3 +383,400 @@ In summary, this is how the concept works.
 
         # Should have at least started
         assert len(result.stages_completed) >= 1
+
+
+class TestTrueEndToEnd:
+    """True end-to-end tests covering voiceover, storyboard, and video rendering.
+
+    These tests verify the complete pipeline works together, including:
+    1. Voiceover generation with word timestamps
+    2. Storyboard generation from script + audio timing
+    3. Video rendering via Remotion
+    """
+
+    @pytest.fixture
+    def mock_config(self):
+        """Create mock config for testing."""
+        config = Config()
+        config.llm.provider = "mock"
+        config.tts.provider = "mock"
+        return config
+
+    @pytest.fixture
+    def sample_narrations(self):
+        """Create sample narrations for testing."""
+        from src.voiceover.narration import SceneNarration
+
+        return [
+            SceneNarration(
+                scene_id="test_intro",
+                title="Introduction",
+                duration_seconds=5.0,
+                narration="This is a test introduction for our video.",
+            ),
+            SceneNarration(
+                scene_id="test_main",
+                title="Main Content",
+                duration_seconds=8.0,
+                narration="Here we explain the main concept with detailed information.",
+            ),
+            SceneNarration(
+                scene_id="test_conclusion",
+                title="Conclusion",
+                duration_seconds=5.0,
+                narration="And that concludes our explanation.",
+            ),
+        ]
+
+    def test_voiceover_generation_with_timestamps(self, mock_config, sample_narrations, tmp_path):
+        """Test that voiceover generation produces audio with word timestamps."""
+        from src.voiceover.generator import VoiceoverGenerator, VoiceoverResult
+        from src.config import TTSConfig
+        from src.audio.tts import MockTTS
+
+        # Create a generator with mock TTS
+        tts_config = TTSConfig(provider="mock")
+        tts = MockTTS(tts_config)
+
+        # Generate voiceover for each narration
+        voiceovers = []
+        output_dir = tmp_path / "voiceover"
+        output_dir.mkdir()
+
+        for narration in sample_narrations:
+            result = tts.generate_with_timestamps(
+                narration.narration,
+                output_dir / f"{narration.scene_id}.mp3"
+            )
+            voiceovers.append(result)
+
+            # Verify audio file created
+            assert result.audio_path.exists()
+            # Verify word timestamps generated
+            assert len(result.word_timestamps) > 0
+            # Verify duration is positive
+            assert result.duration_seconds > 0
+
+        # Verify we got voiceovers for all scenes
+        assert len(voiceovers) == len(sample_narrations)
+
+        # Total duration should be reasonable
+        total_duration = sum(v.duration_seconds for v in voiceovers)
+        assert total_duration > 0
+
+    def test_voiceover_manifest_serialization(self, tmp_path, sample_narrations):
+        """Test that voiceover results can be serialized and loaded."""
+        from src.voiceover.generator import SceneVoiceover, VoiceoverResult
+        from src.audio.tts import WordTimestamp
+
+        # Create mock scene voiceovers
+        scenes = []
+        for narration in sample_narrations:
+            audio_path = tmp_path / f"{narration.scene_id}.mp3"
+            audio_path.write_bytes(b"fake audio data")
+
+            scenes.append(SceneVoiceover(
+                scene_id=narration.scene_id,
+                audio_path=audio_path,
+                duration_seconds=narration.duration_seconds,
+                word_timestamps=[
+                    WordTimestamp(word="test", start_seconds=0.0, end_seconds=0.5),
+                    WordTimestamp(word="word", start_seconds=0.6, end_seconds=1.0),
+                ],
+            ))
+
+        # Create result and save manifest
+        result = VoiceoverResult(
+            scenes=scenes,
+            total_duration_seconds=sum(s.duration_seconds for s in scenes),
+            output_dir=tmp_path,
+        )
+
+        manifest_path = result.save_manifest()
+        assert manifest_path.exists()
+
+        # Load manifest and verify
+        loaded = VoiceoverResult.load_manifest(manifest_path)
+        assert len(loaded.scenes) == len(scenes)
+        assert loaded.total_duration_seconds == result.total_duration_seconds
+
+    def test_storyboard_from_tts_results(self, mock_config, tmp_path):
+        """Test storyboard generation from script + TTS results."""
+        from src.storyboard.generator import StoryboardGenerator
+        from src.audio.tts import TTSResult, WordTimestamp
+        from src.models import Script, ScriptScene, VisualCue
+
+        # Create a simple script
+        script = Script(
+            title="Test Video",
+            source_document="test.md",
+            total_duration_seconds=18.0,
+            target_audience="developers",
+            scenes=[
+                ScriptScene(
+                    scene_id="1",
+                    scene_type="hook",
+                    title="Introduction",
+                    duration_seconds=6.0,
+                    voiceover="This is the introduction to our video.",
+                    visual_cue=VisualCue(
+                        visual_type="animation",
+                        description="Title card with fade in",
+                        duration_seconds=6.0,
+                    ),
+                ),
+                ScriptScene(
+                    scene_id="2",
+                    scene_type="explanation",
+                    title="Main Point",
+                    duration_seconds=8.0,
+                    voiceover="Here we explain the main concept.",
+                    visual_cue=VisualCue(
+                        visual_type="diagram",
+                        description="Diagram showing concept",
+                        duration_seconds=8.0,
+                    ),
+                ),
+                ScriptScene(
+                    scene_id="3",
+                    scene_type="conclusion",
+                    title="Wrap Up",
+                    duration_seconds=4.0,
+                    voiceover="That's the conclusion.",
+                    visual_cue=VisualCue(
+                        visual_type="animation",
+                        description="Outro animation",
+                        duration_seconds=4.0,
+                    ),
+                ),
+            ],
+        )
+
+        # Create mock TTS results with word timestamps
+        tts_results = [
+            TTSResult(
+                audio_path=tmp_path / "scene1.mp3",
+                duration_seconds=6.0,
+                word_timestamps=[
+                    WordTimestamp(word="This", start_seconds=0.0, end_seconds=0.3),
+                    WordTimestamp(word="is", start_seconds=0.4, end_seconds=0.5),
+                    WordTimestamp(word="introduction", start_seconds=0.6, end_seconds=1.2),
+                ],
+            ),
+            TTSResult(
+                audio_path=tmp_path / "scene2.mp3",
+                duration_seconds=8.0,
+                word_timestamps=[
+                    WordTimestamp(word="Here", start_seconds=0.0, end_seconds=0.3),
+                    WordTimestamp(word="explain", start_seconds=0.4, end_seconds=0.8),
+                    WordTimestamp(word="concept", start_seconds=0.9, end_seconds=1.4),
+                ],
+            ),
+            TTSResult(
+                audio_path=tmp_path / "scene3.mp3",
+                duration_seconds=4.0,
+                word_timestamps=[
+                    WordTimestamp(word="That's", start_seconds=0.0, end_seconds=0.3),
+                    WordTimestamp(word="conclusion", start_seconds=0.4, end_seconds=1.0),
+                ],
+            ),
+        ]
+
+        # Create audio files
+        for result in tts_results:
+            result.audio_path.write_bytes(b"fake audio")
+
+        # Generate storyboard
+        generator = StoryboardGenerator(config=mock_config)
+        storyboard = generator.generate(script, tts_results)
+
+        # Verify storyboard structure
+        assert storyboard.title == "Test Video"
+        assert storyboard.duration_seconds == 18.0
+        assert len(storyboard.beats) > 0
+
+    @pytest.fixture
+    def mock_remotion_render(self, tmp_path):
+        """Mock Remotion rendering process."""
+        with patch("subprocess.run") as mock_run:
+            def side_effect(*args, **kwargs):
+                result = MagicMock()
+                result.returncode = 0
+                result.stdout = ""
+                result.stderr = ""
+
+                # Check if this is a render command
+                cmd = args[0] if args else kwargs.get("args", [])
+                cmd_str = " ".join(str(c) for c in cmd)
+
+                # Create output file for render commands
+                if "render.mjs" in cmd_str or "remotion" in cmd_str.lower():
+                    for i, arg in enumerate(cmd):
+                        if str(arg) == "--output" and i + 1 < len(cmd):
+                            output_file = Path(cmd[i + 1])
+                            output_file.parent.mkdir(parents=True, exist_ok=True)
+                            output_file.write_bytes(b"fake video content")
+
+                return result
+
+            mock_run.side_effect = side_effect
+            yield mock_run
+
+    def test_full_pipeline_voiceover_to_video(
+        self, mock_config, sample_narrations, mock_remotion_render, tmp_path
+    ):
+        """Test the complete pipeline from voiceover generation to video rendering.
+
+        This test verifies that:
+        1. Voiceovers can be generated with timestamps
+        2. A manifest file is created
+        3. Storyboard props can be generated
+        4. Video can be rendered (mocked)
+        """
+        from src.voiceover.generator import SceneVoiceover, VoiceoverResult
+        from src.audio.tts import MockTTS, WordTimestamp
+        from src.config import TTSConfig
+        import json
+
+        # Step 1: Generate voiceovers
+        output_dir = tmp_path / "voiceover"
+        output_dir.mkdir()
+
+        tts_config = TTSConfig(provider="mock")
+        tts = MockTTS(tts_config)
+
+        scenes = []
+        for narration in sample_narrations:
+            result = tts.generate_with_timestamps(
+                narration.narration,
+                output_dir / f"{narration.scene_id}.mp3"
+            )
+            scenes.append(SceneVoiceover(
+                scene_id=narration.scene_id,
+                audio_path=result.audio_path,
+                duration_seconds=result.duration_seconds,
+                word_timestamps=result.word_timestamps,
+            ))
+
+        # Step 2: Create and save manifest
+        voiceover_result = VoiceoverResult(
+            scenes=scenes,
+            total_duration_seconds=sum(s.duration_seconds for s in scenes),
+            output_dir=output_dir,
+        )
+        manifest_path = voiceover_result.save_manifest()
+        assert manifest_path.exists()
+
+        # Step 3: Create storyboard props for Remotion
+        storyboard_props = {
+            "storyboard": {
+                "id": "test_video",
+                "title": "Test Video",
+                "duration_seconds": voiceover_result.total_duration_seconds,
+                "beats": [
+                    {
+                        "id": f"beat_{scene.scene_id}",
+                        "start_seconds": sum(
+                            s.duration_seconds for s in scenes[:i]
+                        ),
+                        "end_seconds": sum(
+                            s.duration_seconds for s in scenes[:i+1]
+                        ),
+                        "voiceover": sample_narrations[i].narration,
+                        "elements": [
+                            {
+                                "id": f"title_{scene.scene_id}",
+                                "component": "title_card",
+                                "props": {"heading": sample_narrations[i].title},
+                                "position": {"x": "center", "y": "center"},
+                            }
+                        ],
+                    }
+                    for i, scene in enumerate(scenes)
+                ],
+                "style": {
+                    "background_color": "#0f0f1a",
+                    "primary_color": "#00d9ff",
+                },
+            },
+            "voiceover": {
+                "scenes": [s.to_dict() for s in scenes],
+            },
+        }
+
+        props_path = tmp_path / "storyboard_props.json"
+        with open(props_path, "w") as f:
+            json.dump(storyboard_props, f, indent=2)
+
+        assert props_path.exists()
+
+        # Step 4: Mock render video
+        output_video = tmp_path / "output.mp4"
+        render_cmd = [
+            "node",
+            "remotion/scripts/render.mjs",
+            "--composition", "StoryboardPlayer",
+            "--props", str(props_path),
+            "--output", str(output_video),
+        ]
+
+        subprocess.run(render_cmd)
+
+        # Verify render was called
+        assert mock_remotion_render.called
+
+        # Verify output video was created (by mock)
+        assert output_video.exists()
+
+    def test_llm_inference_narrations_structure(self):
+        """Test that the LLM inference narrations are properly structured."""
+        from src.voiceover.narration import (
+            LLM_INFERENCE_NARRATIONS,
+            get_narration_for_scene,
+            get_full_script,
+        )
+
+        # Should have 8 scenes
+        assert len(LLM_INFERENCE_NARRATIONS) == 8
+
+        # All scenes should have required fields
+        for narration in LLM_INFERENCE_NARRATIONS:
+            assert narration.scene_id
+            assert narration.title
+            assert narration.narration
+            assert narration.duration_seconds > 0
+
+        # Scene IDs should be unique
+        scene_ids = [n.scene_id for n in LLM_INFERENCE_NARRATIONS]
+        assert len(scene_ids) == len(set(scene_ids))
+
+        # Should be able to get specific scenes
+        hook = get_narration_for_scene("scene1_hook")
+        assert hook is not None
+        assert "Speed" in hook.title or "hook" in hook.scene_id
+
+        # Full script should contain content from all scenes
+        full_script = get_full_script()
+        assert len(full_script) > 1000  # Should be substantial
+
+    def test_word_timestamp_coverage(self, tmp_path):
+        """Test that word timestamps cover the entire narration."""
+        from src.audio.tts import MockTTS, WordTimestamp
+        from src.config import TTSConfig
+
+        test_text = "This is a test sentence with multiple words to verify timestamps."
+
+        tts = MockTTS(TTSConfig(provider="mock"))
+        result = tts.generate_with_timestamps(test_text, tmp_path / "test.mp3")
+
+        # Should have timestamps for most words
+        words_in_text = len(test_text.split())
+        # Mock TTS may clean punctuation, so allow some variance
+        assert len(result.word_timestamps) >= words_in_text * 0.8
+
+        # Timestamps should be sequential
+        prev_end = 0.0
+        for ts in result.word_timestamps:
+            assert ts.start_seconds >= prev_end - 0.01  # Allow small overlap
+            assert ts.end_seconds > ts.start_seconds
+            prev_end = ts.end_seconds

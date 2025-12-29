@@ -1,8 +1,10 @@
 """Text-to-Speech providers for voiceover generation."""
 
+import asyncio
 import base64
 import os
 import re
+import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -301,6 +303,204 @@ class ElevenLabsTTS(TTSProvider):
         return len(text) * cost_per_char
 
 
+class EdgeTTS(TTSProvider):
+    """Microsoft Edge TTS provider - free, high-quality voices."""
+
+    # Popular natural-sounding voices
+    DEFAULT_VOICES = {
+        "male": "en-US-GuyNeural",
+        "female": "en-US-AriaNeural",
+        "british_male": "en-GB-RyanNeural",
+        "british_female": "en-GB-SoniaNeural",
+    }
+
+    def __init__(self, config: TTSConfig, voice: str | None = None):
+        """Initialize Edge TTS.
+
+        Args:
+            config: TTS configuration
+            voice: Voice name (e.g., 'en-US-GuyNeural'). Defaults to en-US-GuyNeural.
+        """
+        super().__init__(config)
+        self.voice = voice or config.voice_id or self.DEFAULT_VOICES["male"]
+
+    def _run_async(self, coro):
+        """Run an async coroutine synchronously."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # We're in an async context, create a new thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return asyncio.run(coro)
+
+    def generate(self, text: str, output_path: str | Path) -> Path:
+        """Generate speech from text and save to file."""
+        try:
+            import edge_tts
+        except ImportError:
+            raise ImportError(
+                "edge-tts is required for EdgeTTS provider. "
+                "Install it with: pip install edge-tts"
+            )
+
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        async def _generate():
+            communicate = edge_tts.Communicate(text, self.voice)
+            await communicate.save(str(output_path))
+
+        self._run_async(_generate())
+        return output_path
+
+    def generate_with_timestamps(
+        self, text: str, output_path: str | Path
+    ) -> TTSResult:
+        """Generate speech with word-level timestamps."""
+        try:
+            import edge_tts
+        except ImportError:
+            raise ImportError(
+                "edge-tts is required for EdgeTTS provider. "
+                "Install it with: pip install edge-tts"
+            )
+
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        word_timestamps = []
+        audio_data = b""
+
+        async def _generate_with_timestamps():
+            nonlocal audio_data, word_timestamps
+
+            # Use boundary='WordBoundary' to get word-level timestamps
+            communicate = edge_tts.Communicate(text, self.voice, boundary="WordBoundary")
+
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data += chunk["data"]
+                elif chunk["type"] == "WordBoundary":
+                    # Edge TTS provides word boundaries with offset and duration in 100-nanosecond units
+                    offset_100ns = chunk["offset"]
+                    duration_100ns = chunk["duration"]
+                    start_seconds = offset_100ns / 10_000_000  # Convert 100ns to seconds
+                    end_seconds = (offset_100ns + duration_100ns) / 10_000_000
+
+                    word_timestamps.append(
+                        WordTimestamp(
+                            word=chunk["text"],
+                            start_seconds=start_seconds,
+                            end_seconds=end_seconds,
+                        )
+                    )
+
+        self._run_async(_generate_with_timestamps())
+
+        # Save audio to file
+        with open(output_path, "wb") as f:
+            f.write(audio_data)
+
+        # Calculate duration from last word timestamp or audio analysis
+        duration = 0.0
+        if word_timestamps:
+            duration = word_timestamps[-1].end_seconds
+        else:
+            # Fallback: estimate from audio file using ffprobe
+            duration = self._get_audio_duration(output_path)
+
+        return TTSResult(
+            audio_path=output_path,
+            duration_seconds=duration,
+            word_timestamps=word_timestamps,
+        )
+
+    def _get_audio_duration(self, audio_path: Path) -> float:
+        """Get audio duration using ffprobe."""
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    str(audio_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                return float(result.stdout.strip())
+        except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+            pass
+        return 0.0
+
+    def generate_stream(self, text: str) -> Iterator[bytes]:
+        """Generate speech from text as a stream."""
+        try:
+            import edge_tts
+        except ImportError:
+            raise ImportError(
+                "edge-tts is required for EdgeTTS provider. "
+                "Install it with: pip install edge-tts"
+            )
+
+        chunks = []
+
+        async def _stream():
+            communicate = edge_tts.Communicate(text, self.voice)
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    chunks.append(chunk["data"])
+
+        self._run_async(_stream())
+
+        for chunk in chunks:
+            yield chunk
+
+    def get_available_voices(self) -> list[dict]:
+        """Get list of available voices."""
+        try:
+            import edge_tts
+        except ImportError:
+            raise ImportError(
+                "edge-tts is required for EdgeTTS provider. "
+                "Install it with: pip install edge-tts"
+            )
+
+        async def _get_voices():
+            voices = await edge_tts.list_voices()
+            return voices
+
+        voices = self._run_async(_get_voices())
+
+        return [
+            {
+                "voice_id": v["ShortName"],
+                "name": v["FriendlyName"],
+                "category": v.get("VoiceTag", {}).get("VoicePersonalities", ["unknown"])[0]
+                if v.get("VoiceTag") else "unknown",
+                "description": f"{v['Locale']} - {v['Gender']}",
+                "locale": v["Locale"],
+                "gender": v["Gender"],
+            }
+            for v in voices
+        ]
+
+    def get_english_voices(self) -> list[dict]:
+        """Get list of English voices only."""
+        all_voices = self.get_available_voices()
+        return [v for v in all_voices if v["locale"].startswith("en-")]
+
+
 class MockTTS(TTSProvider):
     """Mock TTS provider for testing."""
 
@@ -416,6 +616,11 @@ def get_tts_provider(config: Config | None = None) -> TTSProvider:
 
     Returns:
         A TTS provider instance
+
+    Supported providers:
+        - elevenlabs: High-quality, paid service (requires API key)
+        - edge: Microsoft Edge TTS, free, good quality
+        - mock: Silent audio for testing
     """
     if config is None:
         config = load_config()
@@ -424,7 +629,12 @@ def get_tts_provider(config: Config | None = None) -> TTSProvider:
 
     if provider_name == "elevenlabs":
         return ElevenLabsTTS(config.tts)
+    elif provider_name == "edge":
+        return EdgeTTS(config.tts)
     elif provider_name == "mock":
         return MockTTS(config.tts)
     else:
-        raise ValueError(f"Unknown TTS provider: {provider_name}")
+        raise ValueError(
+            f"Unknown TTS provider: {provider_name}. "
+            f"Supported providers: elevenlabs, edge, mock"
+        )

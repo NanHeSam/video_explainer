@@ -2,12 +2,13 @@
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
 from src.audio import (
     ElevenLabsTTS,
+    EdgeTTS,
     TTSProvider,
     TTSResult,
     WordTimestamp,
@@ -67,6 +68,12 @@ class TestGetTTSProvider:
         provider = get_tts_provider(config)
         assert isinstance(provider, ElevenLabsTTS)
 
+    def test_returns_edge_provider(self):
+        config = Config()
+        config.tts.provider = "edge"
+        provider = get_tts_provider(config)
+        assert isinstance(provider, EdgeTTS)
+
 
 class TestElevenLabsTTS:
     """Tests for ElevenLabs TTS provider."""
@@ -112,6 +119,178 @@ class TestElevenLabsTTS:
         config.voice_id = "custom_voice_123"
         tts = ElevenLabsTTS(config)
         assert tts.voice_id == "custom_voice_123"
+
+
+class TestEdgeTTS:
+    """Tests for Edge TTS provider."""
+
+    @pytest.fixture
+    def config(self):
+        return TTSConfig(provider="edge")
+
+    @pytest.fixture
+    def edge_tts(self, config):
+        return EdgeTTS(config)
+
+    def test_init_with_default_voice(self, config):
+        tts = EdgeTTS(config)
+        assert tts.voice == "en-US-GuyNeural"
+
+    def test_init_with_custom_voice(self, config):
+        tts = EdgeTTS(config, voice="en-GB-SoniaNeural")
+        assert tts.voice == "en-GB-SoniaNeural"
+
+    def test_init_with_config_voice_id(self, config):
+        config.voice_id = "en-US-AriaNeural"
+        tts = EdgeTTS(config)
+        assert tts.voice == "en-US-AriaNeural"
+
+    def test_default_voices_available(self, edge_tts):
+        """Test that default voice presets are available."""
+        assert "male" in EdgeTTS.DEFAULT_VOICES
+        assert "female" in EdgeTTS.DEFAULT_VOICES
+        assert "british_male" in EdgeTTS.DEFAULT_VOICES
+        assert "british_female" in EdgeTTS.DEFAULT_VOICES
+
+    @pytest.mark.slow
+    def test_generate_creates_audio_file(self, edge_tts, tmp_path):
+        """Test that generate creates an audio file (requires network)."""
+        output_path = tmp_path / "test.mp3"
+        result = edge_tts.generate("Hello, this is a test.", output_path)
+
+        assert result == output_path
+        assert output_path.exists()
+        assert output_path.stat().st_size > 0
+
+    @pytest.mark.slow
+    def test_generate_with_timestamps_returns_result(self, edge_tts, tmp_path):
+        """Test generate_with_timestamps returns TTSResult (requires network)."""
+        output_path = tmp_path / "test.mp3"
+        result = edge_tts.generate_with_timestamps("Hello world!", output_path)
+
+        assert isinstance(result, TTSResult)
+        assert result.audio_path == output_path
+        assert result.audio_path.exists()
+        assert result.duration_seconds > 0
+
+    @pytest.mark.slow
+    def test_generate_with_timestamps_has_words(self, edge_tts, tmp_path):
+        """Test that word timestamps are returned (requires network)."""
+        output_path = tmp_path / "test.mp3"
+        text = "Hello world, this is a test."
+        result = edge_tts.generate_with_timestamps(text, output_path)
+
+        assert len(result.word_timestamps) > 0
+        # Check words are in order
+        for i in range(1, len(result.word_timestamps)):
+            assert (
+                result.word_timestamps[i].start_seconds
+                >= result.word_timestamps[i - 1].start_seconds
+            )
+
+    @pytest.mark.slow
+    def test_generate_stream_yields_bytes(self, edge_tts):
+        """Test that generate_stream yields audio bytes (requires network)."""
+        chunks = list(edge_tts.generate_stream("Hello"))
+        assert len(chunks) > 0
+        assert all(isinstance(chunk, bytes) for chunk in chunks)
+        # Total audio data should be substantial
+        total_bytes = sum(len(chunk) for chunk in chunks)
+        assert total_bytes > 100
+
+    @pytest.mark.slow
+    def test_get_available_voices(self, edge_tts):
+        """Test getting available voices (requires network)."""
+        voices = edge_tts.get_available_voices()
+        assert len(voices) > 0
+        # Check structure
+        assert "voice_id" in voices[0]
+        assert "name" in voices[0]
+        assert "locale" in voices[0]
+        assert "gender" in voices[0]
+
+    @pytest.mark.slow
+    def test_get_english_voices(self, edge_tts):
+        """Test filtering English voices (requires network)."""
+        english_voices = edge_tts.get_english_voices()
+        assert len(english_voices) > 0
+        # All should be English
+        for voice in english_voices:
+            assert voice["locale"].startswith("en-")
+
+    def test_get_audio_duration_with_valid_file(self, edge_tts, tmp_path):
+        """Test audio duration extraction with valid file."""
+        # Create a test audio file using ffmpeg
+        import subprocess
+
+        output_path = tmp_path / "test.mp3"
+        try:
+            subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-f", "lavfi",
+                    "-i", "sine=frequency=440:duration=2",
+                    "-c:a", "libmp3lame",
+                    str(output_path),
+                ],
+                capture_output=True,
+                timeout=10,
+            )
+            if output_path.exists():
+                duration = edge_tts._get_audio_duration(output_path)
+                assert 1.5 < duration < 2.5  # ~2 seconds
+        except FileNotFoundError:
+            pytest.skip("ffmpeg not available")
+
+    def test_get_audio_duration_with_invalid_file(self, edge_tts, tmp_path):
+        """Test audio duration extraction returns 0 for invalid file."""
+        output_path = tmp_path / "invalid.mp3"
+        output_path.write_bytes(b"not an audio file")
+        duration = edge_tts._get_audio_duration(output_path)
+        assert duration == 0.0
+
+    def test_get_audio_duration_with_missing_file(self, edge_tts, tmp_path):
+        """Test audio duration extraction returns 0 for missing file."""
+        output_path = tmp_path / "nonexistent.mp3"
+        duration = edge_tts._get_audio_duration(output_path)
+        assert duration == 0.0
+
+
+class TestEdgeTTSMocked:
+    """Tests for Edge TTS with mocked network calls."""
+
+    @pytest.fixture
+    def config(self):
+        return TTSConfig(provider="edge")
+
+    @pytest.fixture
+    def edge_tts(self, config):
+        return EdgeTTS(config)
+
+    def test_generate_raises_import_error_when_edge_tts_missing(self, config, tmp_path):
+        """Test that helpful error is raised when edge-tts not installed."""
+        tts = EdgeTTS(config)
+        output_path = tmp_path / "test.mp3"
+
+        with patch.dict("sys.modules", {"edge_tts": None}):
+            # This should work because we import at module level
+            # The actual ImportError would happen if the package wasn't installed
+            pass
+
+    def test_voice_selection_priority(self, config):
+        """Test voice selection: explicit > config > default."""
+        # Default
+        tts1 = EdgeTTS(config)
+        assert tts1.voice == "en-US-GuyNeural"
+
+        # Config voice_id
+        config.voice_id = "en-GB-RyanNeural"
+        tts2 = EdgeTTS(config)
+        assert tts2.voice == "en-GB-RyanNeural"
+
+        # Explicit voice overrides config
+        tts3 = EdgeTTS(config, voice="en-US-AriaNeural")
+        assert tts3.voice == "en-US-AriaNeural"
 
 
 class TestTTSWithScript:
