@@ -1,0 +1,7 @@
+# Ignore large output files in projects
+*/output/*.mp4
+*/output/preview/*.mp4
+
+# Keep the output directory structure
+!*/output/.gitkeep
+!*/output/preview/.gitkeep

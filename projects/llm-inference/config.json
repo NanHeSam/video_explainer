@@ -1,0 +1,44 @@
+{
+  "id": "llm-inference",
+  "title": "LLM Inference: How KV Caching Makes AI Fast",
+  "description": "An explainer video about KV caching and LLM inference optimization",
+  "version": "1.0.0",
+
+  "source": {
+    "document": "input/source.md",
+    "type": "markdown"
+  },
+
+  "video": {
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "fps": 30,
+    "target_duration_seconds": 200
+  },
+
+  "tts": {
+    "provider": "elevenlabs",
+    "voice_id": "pNInz6obpgDQGcFmaJgB"
+  },
+
+  "style": {
+    "background_color": "#0f0f1a",
+    "primary_color": "#00d9ff",
+    "secondary_color": "#ff6b35",
+    "font_family": "Inter"
+  },
+
+  "paths": {
+    "script": "script/script.json",
+    "narration": "narration/narrations.json",
+    "voiceover": "voiceover/",
+    "voiceover_manifest": "voiceover/manifest.json",
+    "storyboard": "storyboard/storyboard.json",
+    "remotion_scenes": "remotion/scenes/",
+    "remotion_props": "remotion/props.json",
+    "output": "output/",
+    "final_video": "output/final.mp4"
+  }
+}

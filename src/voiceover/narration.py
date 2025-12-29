@@ -1,6 +1,14 @@
-"""Narration scripts for the LLM Inference explainer video."""
+"""Narration scripts for video explainer projects.
 
+This module provides:
+1. SceneNarration dataclass for representing narrations
+2. Functions to load narrations from project JSON files
+3. Legacy support for the LLM inference narrations (deprecated)
+"""
+
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -13,7 +21,68 @@ class SceneNarration:
     narration: str
 
 
+def load_narrations_from_file(path: str | Path) -> list[SceneNarration]:
+    """Load narrations from a JSON file.
+
+    Args:
+        path: Path to the narrations JSON file.
+
+    Returns:
+        List of SceneNarration objects.
+
+    The JSON file should have this format:
+    {
+        "scenes": [
+            {
+                "scene_id": "scene1",
+                "title": "Scene Title",
+                "duration_seconds": 15,
+                "narration": "The narration text..."
+            },
+            ...
+        ]
+    }
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"Narration file not found: {path}")
+
+    with open(path) as f:
+        data = json.load(f)
+
+    return [
+        SceneNarration(
+            scene_id=scene["scene_id"],
+            title=scene["title"],
+            duration_seconds=scene["duration_seconds"],
+            narration=scene["narration"],
+        )
+        for scene in data.get("scenes", [])
+    ]
+
+
+def load_narrations_from_project(project_path: str | Path) -> list[SceneNarration]:
+    """Load narrations from a project directory.
+
+    Args:
+        project_path: Path to the project directory.
+
+    Returns:
+        List of SceneNarration objects.
+    """
+    project_path = Path(project_path)
+    narration_path = project_path / "narration" / "narrations.json"
+    return load_narrations_from_file(narration_path)
+
+
+# =============================================================================
+# DEPRECATED: Legacy LLM Inference Narrations
+# These are kept for backward compatibility but should not be used for new code.
+# Use load_narrations_from_project("projects/llm-inference") instead.
+# =============================================================================
+
 # Narration scripts for each scene of the LLM Inference video
+# DEPRECATED: Use projects/llm-inference/narration/narrations.json instead
 LLM_INFERENCE_NARRATIONS = [
     SceneNarration(
         scene_id="scene1_hook",
@@ -124,7 +193,10 @@ LLM_INFERENCE_NARRATIONS = [
 
 
 def get_narration_for_scene(scene_id: str) -> SceneNarration | None:
-    """Get narration for a specific scene."""
+    """Get narration for a specific scene.
+
+    DEPRECATED: Use load_narrations_from_project() instead.
+    """
     for narration in LLM_INFERENCE_NARRATIONS:
         if narration.scene_id == scene_id:
             return narration
@@ -132,12 +204,18 @@ def get_narration_for_scene(scene_id: str) -> SceneNarration | None:
 
 
 def get_all_narrations() -> list[SceneNarration]:
-    """Get all narration scripts."""
+    """Get all narration scripts.
+
+    DEPRECATED: Use load_narrations_from_project() instead.
+    """
     return LLM_INFERENCE_NARRATIONS
 
 
 def get_full_script() -> str:
-    """Get the complete narration script as a single string."""
+    """Get the complete narration script as a single string.
+
+    DEPRECATED: Use load_narrations_from_project() instead.
+    """
     return "\n\n".join(
         f"[{n.title}]\n{n.narration}" for n in LLM_INFERENCE_NARRATIONS
     )

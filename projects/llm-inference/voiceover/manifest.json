@@ -1,0 +1,2072 @@
+{
+  "scenes": [
+    {
+      "scene_id": "scene1_hook",
+      "audio_path": "output/voiceover/scene1_hook.mp3",
+      "duration_seconds": 21.1625,
+      "word_timestamps": [
+        {
+          "word": "Every",
+          "start_seconds": 0.1,
+          "end_seconds": 0.3625
+        },
+        {
+          "word": "time",
+          "start_seconds": 0.3875,
+          "end_seconds": 0.5875
+        },
+        {
+          "word": "you",
+          "start_seconds": 0.6125,
+          "end_seconds": 0.7
+        },
+        {
+          "word": "chat",
+          "start_seconds": 0.725,
+          "end_seconds": 1.0
+        },
+        {
+          "word": "with",
+          "start_seconds": 1.0125,
+          "end_seconds": 1.15
+        },
+        {
+          "word": "an",
+          "start_seconds": 1.175,
+          "end_seconds": 1.275
+        },
+        {
+          "word": "AI",
+          "start_seconds": 1.3,
+          "end_seconds": 1.75
+        },
+        {
+          "word": "something",
+          "start_seconds": 2.0,
+          "end_seconds": 2.325
+        },
+        {
+          "word": "remarkable",
+          "start_seconds": 2.3375,
+          "end_seconds": 2.8875
+        },
+        {
+          "word": "happens",
+          "start_seconds": 2.9,
+          "end_seconds": 3.425
+        },
+        {
+          "word": "A",
+          "start_seconds": 4.3,
+          "end_seconds": 4.4125
+        },
+        {
+          "word": "neural",
+          "start_seconds": 4.425,
+          "end_seconds": 4.775
+        },
+        {
+          "word": "network",
+          "start_seconds": 4.7875,
+          "end_seconds": 5.1625
+        },
+        {
+          "word": "generates",
+          "start_seconds": 5.175,
+          "end_seconds": 5.725
+        },
+        {
+          "word": "your",
+          "start_seconds": 5.7375,
+          "end_seconds": 5.875
+        },
+        {
+          "word": "response",
+          "start_seconds": 5.8875,
+          "end_seconds": 6.4625
+        },
+        {
+          "word": "one",
+          "start_seconds": 6.65,
+          "end_seconds": 6.8625
+        },
+        {
+          "word": "word",
+          "start_seconds": 6.8875,
+          "end_seconds": 7.1125
+        },
+        {
+          "word": "at",
+          "start_seconds": 7.125,
+          "end_seconds": 7.2125
+        },
+        {
+          "word": "a",
+          "start_seconds": 7.2375,
+          "end_seconds": 7.2875
+        },
+        {
+          "word": "time",
+          "start_seconds": 7.3125,
+          "end_seconds": 7.7
+        },
+        {
+          "word": "The",
+          "start_seconds": 8.575,
+          "end_seconds": 8.7125
+        },
+        {
+          "word": "naive",
+          "start_seconds": 8.7375,
+          "end_seconds": 9.1625
+        },
+        {
+          "word": "approach",
+          "start_seconds": 9.1875,
+          "end_seconds": 9.7875
+        },
+        {
+          "word": "Forty",
+          "start_seconds": 10.6625,
+          "end_seconds": 11.0875
+        },
+        {
+          "word": "tokens",
+          "start_seconds": 11.1125,
+          "end_seconds": 11.575
+        },
+        {
+          "word": "per",
+          "start_seconds": 11.6,
+          "end_seconds": 11.775
+        },
+        {
+          "word": "second",
+          "start_seconds": 11.8,
+          "end_seconds": 12.3125
+        },
+        {
+          "word": "The",
+          "start_seconds": 13.2,
+          "end_seconds": 13.3625
+        },
+        {
+          "word": "best",
+          "start_seconds": 13.3875,
+          "end_seconds": 13.6875
+        },
+        {
+          "word": "systems",
+          "start_seconds": 13.7125,
+          "end_seconds": 14.3375
+        },
+        {
+          "word": "Over",
+          "start_seconds": 15.2125,
+          "end_seconds": 15.575
+        },
+        {
+          "word": "three",
+          "start_seconds": 15.6,
+          "end_seconds": 15.8375
+        },
+        {
+          "word": "thousand",
+          "start_seconds": 15.85,
+          "end_seconds": 16.4375
+        },
+        {
+          "word": "That's",
+          "start_seconds": 17.3125,
+          "end_seconds": 17.5625
+        },
+        {
+          "word": "eighty-seven",
+          "start_seconds": 17.575,
+          "end_seconds": 18.2375
+        },
+        {
+          "word": "times",
+          "start_seconds": 18.2625,
+          "end_seconds": 18.6
+        },
+        {
+          "word": "faster",
+          "start_seconds": 18.625,
+          "end_seconds": 19.15
+        },
+        {
+          "word": "Here's",
+          "start_seconds": 20.025,
+          "end_seconds": 20.375
+        },
+        {
+          "word": "how",
+          "start_seconds": 20.4,
+          "end_seconds": 20.575
+        },
+        {
+          "word": "they",
+          "start_seconds": 20.5875,
+          "end_seconds": 20.725
+        },
+        {
+          "word": "do",
+          "start_seconds": 20.7375,
+          "end_seconds": 20.9375
+        },
+        {
+          "word": "it",
+          "start_seconds": 20.95,
+          "end_seconds": 21.1625
+        }
+      ]
+    },
+    {
+      "scene_id": "scene2_phases",
+      "audio_path": "output/voiceover/scene2_phases.mp3",
+      "duration_seconds": 21.6125,
+      "word_timestamps": [
+        {
+          "word": "LLM",
+          "start_seconds": 0.1,
+          "end_seconds": 0.5875
+        },
+        {
+          "word": "inference",
+          "start_seconds": 0.6125,
+          "end_seconds": 1.0
+        },
+        {
+          "word": "has",
+          "start_seconds": 1.025,
+          "end_seconds": 1.2125
+        },
+        {
+          "word": "two",
+          "start_seconds": 1.2375,
+          "end_seconds": 1.425
+        },
+        {
+          "word": "distinct",
+          "start_seconds": 1.45,
+          "end_seconds": 1.9125
+        },
+        {
+          "word": "phases",
+          "start_seconds": 1.9375,
+          "end_seconds": 2.4875
+        },
+        {
+          "word": "First",
+          "start_seconds": 3.375,
+          "end_seconds": 3.8
+        },
+        {
+          "word": "the",
+          "start_seconds": 4.0,
+          "end_seconds": 4.1125
+        },
+        {
+          "word": "prefill",
+          "start_seconds": 4.1375,
+          "end_seconds": 4.5625
+        },
+        {
+          "word": "phase",
+          "start_seconds": 4.575,
+          "end_seconds": 4.875
+        },
+        {
+          "word": "processes",
+          "start_seconds": 4.9,
+          "end_seconds": 5.45
+        },
+        {
+          "word": "your",
+          "start_seconds": 5.475,
+          "end_seconds": 5.6125
+        },
+        {
+          "word": "entire",
+          "start_seconds": 5.6375,
+          "end_seconds": 6.0625
+        },
+        {
+          "word": "prompt",
+          "start_seconds": 6.075,
+          "end_seconds": 6.425
+        },
+        {
+          "word": "in",
+          "start_seconds": 6.45,
+          "end_seconds": 6.55
+        },
+        {
+          "word": "parallel",
+          "start_seconds": 6.5625,
+          "end_seconds": 7.1125
+        },
+        {
+          "word": "The",
+          "start_seconds": 7.9875,
+          "end_seconds": 8.125
+        },
+        {
+          "word": "GPU",
+          "start_seconds": 8.15,
+          "end_seconds": 8.65
+        },
+        {
+          "word": "loves",
+          "start_seconds": 8.675,
+          "end_seconds": 8.925
+        },
+        {
+          "word": "this",
+          "start_seconds": 8.95,
+          "end_seconds": 9.175
+        },
+        {
+          "word": "it",
+          "start_seconds": 9.275,
+          "end_seconds": 9.3625
+        },
+        {
+          "word": "can",
+          "start_seconds": 9.3875,
+          "end_seconds": 9.55
+        },
+        {
+          "word": "crunch",
+          "start_seconds": 9.575,
+          "end_seconds": 9.9
+        },
+        {
+          "word": "all",
+          "start_seconds": 9.9125,
+          "end_seconds": 10.1
+        },
+        {
+          "word": "tokens",
+          "start_seconds": 10.125,
+          "end_seconds": 10.575
+        },
+        {
+          "word": "at",
+          "start_seconds": 10.6,
+          "end_seconds": 10.6875
+        },
+        {
+          "word": "once",
+          "start_seconds": 10.7125,
+          "end_seconds": 11.15
+        },
+        {
+          "word": "Then",
+          "start_seconds": 12.025,
+          "end_seconds": 12.2875
+        },
+        {
+          "word": "comes",
+          "start_seconds": 12.3125,
+          "end_seconds": 12.575
+        },
+        {
+          "word": "the",
+          "start_seconds": 12.6,
+          "end_seconds": 12.7
+        },
+        {
+          "word": "decode",
+          "start_seconds": 12.725,
+          "end_seconds": 13.15
+        },
+        {
+          "word": "phase",
+          "start_seconds": 13.175,
+          "end_seconds": 13.5625
+        },
+        {
+          "word": "generating",
+          "start_seconds": 13.7875,
+          "end_seconds": 14.375
+        },
+        {
+          "word": "one",
+          "start_seconds": 14.4,
+          "end_seconds": 14.5875
+        },
+        {
+          "word": "token",
+          "start_seconds": 14.6125,
+          "end_seconds": 15.0
+        },
+        {
+          "word": "at",
+          "start_seconds": 15.025,
+          "end_seconds": 15.125
+        },
+        {
+          "word": "a",
+          "start_seconds": 15.1375,
+          "end_seconds": 15.1875
+        },
+        {
+          "word": "time",
+          "start_seconds": 15.2125,
+          "end_seconds": 15.6
+        },
+        {
+          "word": "Each",
+          "start_seconds": 16.4875,
+          "end_seconds": 16.75
+        },
+        {
+          "word": "new",
+          "start_seconds": 16.7625,
+          "end_seconds": 16.925
+        },
+        {
+          "word": "token",
+          "start_seconds": 16.95,
+          "end_seconds": 17.3375
+        },
+        {
+          "word": "depends",
+          "start_seconds": 17.3625,
+          "end_seconds": 17.8125
+        },
+        {
+          "word": "on",
+          "start_seconds": 17.8375,
+          "end_seconds": 17.9375
+        },
+        {
+          "word": "the",
+          "start_seconds": 17.95,
+          "end_seconds": 18.05
+        },
+        {
+          "word": "previous",
+          "start_seconds": 18.075,
+          "end_seconds": 18.55
+        },
+        {
+          "word": "one",
+          "start_seconds": 18.575,
+          "end_seconds": 18.925
+        },
+        {
+          "word": "This",
+          "start_seconds": 19.8125,
+          "end_seconds": 20.075
+        },
+        {
+          "word": "is",
+          "start_seconds": 20.0875,
+          "end_seconds": 20.2125
+        },
+        {
+          "word": "where",
+          "start_seconds": 20.2375,
+          "end_seconds": 20.4375
+        },
+        {
+          "word": "the",
+          "start_seconds": 20.45,
+          "end_seconds": 20.5625
+        },
+        {
+          "word": "bottleneck",
+          "start_seconds": 20.575,
+          "end_seconds": 21.1
+        },
+        {
+          "word": "hides",
+          "start_seconds": 21.125,
+          "end_seconds": 21.6125
+        }
+      ]
+    },
+    {
+      "scene_id": "scene3_bottleneck",
+      "audio_path": "output/voiceover/scene3_bottleneck.mp3",
+      "duration_seconds": 24.3,
+      "word_timestamps": [
+        {
+          "word": "During",
+          "start_seconds": 0.1,
+          "end_seconds": 0.4125
+        },
+        {
+          "word": "decode",
+          "start_seconds": 0.4375,
+          "end_seconds": 0.9
+        },
+        {
+          "word": "something",
+          "start_seconds": 1.125,
+          "end_seconds": 1.4875
+        },
+        {
+          "word": "surprising",
+          "start_seconds": 1.5125,
+          "end_seconds": 2.1125
+        },
+        {
+          "word": "happens",
+          "start_seconds": 2.1375,
+          "end_seconds": 2.6625
+        },
+        {
+          "word": "The",
+          "start_seconds": 3.5375,
+          "end_seconds": 3.6625
+        },
+        {
+          "word": "GPU",
+          "start_seconds": 3.6875,
+          "end_seconds": 4.25
+        },
+        {
+          "word": "sits",
+          "start_seconds": 4.275,
+          "end_seconds": 4.5375
+        },
+        {
+          "word": "mostly",
+          "start_seconds": 4.55,
+          "end_seconds": 4.9625
+        },
+        {
+          "word": "idle",
+          "start_seconds": 4.9875,
+          "end_seconds": 5.325
+        },
+        {
+          "word": "waiting",
+          "start_seconds": 5.5625,
+          "end_seconds": 5.8875
+        },
+        {
+          "word": "for",
+          "start_seconds": 5.9125,
+          "end_seconds": 6.0625
+        },
+        {
+          "word": "data",
+          "start_seconds": 6.075,
+          "end_seconds": 6.5
+        },
+        {
+          "word": "Why",
+          "start_seconds": 7.3875,
+          "end_seconds": 7.9
+        },
+        {
+          "word": "Because",
+          "start_seconds": 8.775,
+          "end_seconds": 9.1125
+        },
+        {
+          "word": "we're",
+          "start_seconds": 9.1375,
+          "end_seconds": 9.275
+        },
+        {
+          "word": "not",
+          "start_seconds": 9.3,
+          "end_seconds": 9.5375
+        },
+        {
+          "word": "limited",
+          "start_seconds": 9.55,
+          "end_seconds": 9.9875
+        },
+        {
+          "word": "by",
+          "start_seconds": 10.0125,
+          "end_seconds": 10.15
+        },
+        {
+          "word": "compute",
+          "start_seconds": 10.175,
+          "end_seconds": 10.625
+        },
+        {
+          "word": "power",
+          "start_seconds": 10.65,
+          "end_seconds": 11.125
+        },
+        {
+          "word": "We're",
+          "start_seconds": 12.0125,
+          "end_seconds": 12.2125
+        },
+        {
+          "word": "limited",
+          "start_seconds": 12.2375,
+          "end_seconds": 12.675
+        },
+        {
+          "word": "by",
+          "start_seconds": 12.7,
+          "end_seconds": 12.8375
+        },
+        {
+          "word": "memory",
+          "start_seconds": 12.85,
+          "end_seconds": 13.2875
+        },
+        {
+          "word": "bandwidth",
+          "start_seconds": 13.3125,
+          "end_seconds": 13.975
+        },
+        {
+          "word": "The",
+          "start_seconds": 14.8375,
+          "end_seconds": 14.9625
+        },
+        {
+          "word": "model",
+          "start_seconds": 14.975,
+          "end_seconds": 15.325
+        },
+        {
+          "word": "weights",
+          "start_seconds": 15.35,
+          "end_seconds": 15.625
+        },
+        {
+          "word": "are",
+          "start_seconds": 15.6375,
+          "end_seconds": 15.75
+        },
+        {
+          "word": "massive",
+          "start_seconds": 15.775,
+          "end_seconds": 16.2
+        },
+        {
+          "word": "billions",
+          "start_seconds": 16.3,
+          "end_seconds": 16.7375
+        },
+        {
+          "word": "of",
+          "start_seconds": 16.7625,
+          "end_seconds": 16.85
+        },
+        {
+          "word": "parameters",
+          "start_seconds": 16.875,
+          "end_seconds": 17.625
+        },
+        {
+          "word": "Moving",
+          "start_seconds": 18.5,
+          "end_seconds": 18.8875
+        },
+        {
+          "word": "them",
+          "start_seconds": 18.9125,
+          "end_seconds": 19.075
+        },
+        {
+          "word": "from",
+          "start_seconds": 19.1,
+          "end_seconds": 19.2875
+        },
+        {
+          "word": "memory",
+          "start_seconds": 19.3125,
+          "end_seconds": 19.6875
+        },
+        {
+          "word": "to",
+          "start_seconds": 19.7125,
+          "end_seconds": 19.8375
+        },
+        {
+          "word": "GPU",
+          "start_seconds": 19.8625,
+          "end_seconds": 20.525
+        },
+        {
+          "word": "takes",
+          "start_seconds": 20.55,
+          "end_seconds": 20.8125
+        },
+        {
+          "word": "time",
+          "start_seconds": 20.8375,
+          "end_seconds": 21.225
+        },
+        {
+          "word": "And",
+          "start_seconds": 22.1125,
+          "end_seconds": 22.3125
+        },
+        {
+          "word": "we",
+          "start_seconds": 22.3375,
+          "end_seconds": 22.4625
+        },
+        {
+          "word": "do",
+          "start_seconds": 22.4875,
+          "end_seconds": 22.675
+        },
+        {
+          "word": "this",
+          "start_seconds": 22.7,
+          "end_seconds": 22.925
+        },
+        {
+          "word": "for",
+          "start_seconds": 22.95,
+          "end_seconds": 23.15
+        },
+        {
+          "word": "every",
+          "start_seconds": 23.1625,
+          "end_seconds": 23.4125
+        },
+        {
+          "word": "single",
+          "start_seconds": 23.4375,
+          "end_seconds": 23.8
+        },
+        {
+          "word": "token",
+          "start_seconds": 23.825,
+          "end_seconds": 24.3
+        }
+      ]
+    },
+    {
+      "scene_id": "scene4_attention",
+      "audio_path": "output/voiceover/scene4_attention.mp3",
+      "duration_seconds": 22.475,
+      "word_timestamps": [
+        {
+          "word": "To",
+          "start_seconds": 0.1,
+          "end_seconds": 0.2625
+        },
+        {
+          "word": "understand",
+          "start_seconds": 0.275,
+          "end_seconds": 0.825
+        },
+        {
+          "word": "the",
+          "start_seconds": 0.8375,
+          "end_seconds": 0.925
+        },
+        {
+          "word": "solution",
+          "start_seconds": 0.9375,
+          "end_seconds": 1.425
+        },
+        {
+          "word": "we",
+          "start_seconds": 1.6625,
+          "end_seconds": 1.775
+        },
+        {
+          "word": "need",
+          "start_seconds": 1.8,
+          "end_seconds": 2.0
+        },
+        {
+          "word": "to",
+          "start_seconds": 2.0125,
+          "end_seconds": 2.125
+        },
+        {
+          "word": "understand",
+          "start_seconds": 2.15,
+          "end_seconds": 2.7125
+        },
+        {
+          "word": "attention",
+          "start_seconds": 2.7375,
+          "end_seconds": 3.275
+        },
+        {
+          "word": "For",
+          "start_seconds": 4.1625,
+          "end_seconds": 4.375
+        },
+        {
+          "word": "each",
+          "start_seconds": 4.4,
+          "end_seconds": 4.5625
+        },
+        {
+          "word": "token",
+          "start_seconds": 4.5875,
+          "end_seconds": 4.95
+        },
+        {
+          "word": "we",
+          "start_seconds": 5.1625,
+          "end_seconds": 5.2875
+        },
+        {
+          "word": "compute",
+          "start_seconds": 5.3125,
+          "end_seconds": 5.6875
+        },
+        {
+          "word": "three",
+          "start_seconds": 5.7,
+          "end_seconds": 5.9125
+        },
+        {
+          "word": "vectors",
+          "start_seconds": 5.9375,
+          "end_seconds": 6.4125
+        },
+        {
+          "word": "Query",
+          "start_seconds": 6.6,
+          "end_seconds": 7.025
+        },
+        {
+          "word": "Key",
+          "start_seconds": 7.175,
+          "end_seconds": 7.5125
+        },
+        {
+          "word": "and",
+          "start_seconds": 7.7,
+          "end_seconds": 7.85
+        },
+        {
+          "word": "Value",
+          "start_seconds": 7.875,
+          "end_seconds": 8.325
+        },
+        {
+          "word": "The",
+          "start_seconds": 9.2,
+          "end_seconds": 9.3375
+        },
+        {
+          "word": "Query",
+          "start_seconds": 9.3625,
+          "end_seconds": 9.725
+        },
+        {
+          "word": "asks",
+          "start_seconds": 9.75,
+          "end_seconds": 10.1625
+        },
+        {
+          "word": "what",
+          "start_seconds": 10.3625,
+          "end_seconds": 10.5
+        },
+        {
+          "word": "am",
+          "start_seconds": 10.525,
+          "end_seconds": 10.6125
+        },
+        {
+          "word": "I",
+          "start_seconds": 10.6375,
+          "end_seconds": 10.7
+        },
+        {
+          "word": "looking",
+          "start_seconds": 10.725,
+          "end_seconds": 11.1
+        },
+        {
+          "word": "for",
+          "start_seconds": 11.125,
+          "end_seconds": 11.5125
+        },
+        {
+          "word": "Keys",
+          "start_seconds": 12.4,
+          "end_seconds": 12.6625
+        },
+        {
+          "word": "answer",
+          "start_seconds": 12.6875,
+          "end_seconds": 13.025
+        },
+        {
+          "word": "what",
+          "start_seconds": 13.25,
+          "end_seconds": 13.4125
+        },
+        {
+          "word": "information",
+          "start_seconds": 13.4375,
+          "end_seconds": 13.9875
+        },
+        {
+          "word": "do",
+          "start_seconds": 14.0125,
+          "end_seconds": 14.15
+        },
+        {
+          "word": "I",
+          "start_seconds": 14.175,
+          "end_seconds": 14.2625
+        },
+        {
+          "word": "have",
+          "start_seconds": 14.2875,
+          "end_seconds": 14.675
+        },
+        {
+          "word": "Values",
+          "start_seconds": 15.55,
+          "end_seconds": 16.075
+        },
+        {
+          "word": "hold",
+          "start_seconds": 16.1,
+          "end_seconds": 16.3375
+        },
+        {
+          "word": "the",
+          "start_seconds": 16.3625,
+          "end_seconds": 16.4625
+        },
+        {
+          "word": "actual",
+          "start_seconds": 16.475,
+          "end_seconds": 16.95
+        },
+        {
+          "word": "content",
+          "start_seconds": 16.975,
+          "end_seconds": 17.5875
+        },
+        {
+          "word": "Attention",
+          "start_seconds": 18.4625,
+          "end_seconds": 19.025
+        },
+        {
+          "word": "scores",
+          "start_seconds": 19.05,
+          "end_seconds": 19.4125
+        },
+        {
+          "word": "tell",
+          "start_seconds": 19.4375,
+          "end_seconds": 19.6375
+        },
+        {
+          "word": "us",
+          "start_seconds": 19.6625,
+          "end_seconds": 19.7875
+        },
+        {
+          "word": "which",
+          "start_seconds": 19.8125,
+          "end_seconds": 20.0
+        },
+        {
+          "word": "past",
+          "start_seconds": 20.0125,
+          "end_seconds": 20.3125
+        },
+        {
+          "word": "tokens",
+          "start_seconds": 20.3375,
+          "end_seconds": 20.7375
+        },
+        {
+          "word": "matter",
+          "start_seconds": 20.7625,
+          "end_seconds": 21.0375
+        },
+        {
+          "word": "most",
+          "start_seconds": 21.05,
+          "end_seconds": 21.325
+        },
+        {
+          "word": "for",
+          "start_seconds": 21.3375,
+          "end_seconds": 21.45
+        },
+        {
+          "word": "the",
+          "start_seconds": 21.4625,
+          "end_seconds": 21.575
+        },
+        {
+          "word": "current",
+          "start_seconds": 21.5875,
+          "end_seconds": 21.9125
+        },
+        {
+          "word": "prediction",
+          "start_seconds": 21.925,
+          "end_seconds": 22.475
+        }
+      ]
+    },
+    {
+      "scene_id": "scene5_redundancy",
+      "audio_path": "output/voiceover/scene5_redundancy.mp3",
+      "duration_seconds": 29.625,
+      "word_timestamps": [
+        {
+          "word": "Here's",
+          "start_seconds": 0.1,
+          "end_seconds": 0.4
+        },
+        {
+          "word": "the",
+          "start_seconds": 0.425,
+          "end_seconds": 0.55
+        },
+        {
+          "word": "problem",
+          "start_seconds": 0.5625,
+          "end_seconds": 0.9625
+        },
+        {
+          "word": "with",
+          "start_seconds": 0.9875,
+          "end_seconds": 1.15
+        },
+        {
+          "word": "naive",
+          "start_seconds": 1.175,
+          "end_seconds": 1.575
+        },
+        {
+          "word": "decoding",
+          "start_seconds": 1.6,
+          "end_seconds": 2.1875
+        },
+        {
+          "word": "For",
+          "start_seconds": 3.075,
+          "end_seconds": 3.2875
+        },
+        {
+          "word": "each",
+          "start_seconds": 3.3125,
+          "end_seconds": 3.475
+        },
+        {
+          "word": "new",
+          "start_seconds": 3.5,
+          "end_seconds": 3.65
+        },
+        {
+          "word": "token",
+          "start_seconds": 3.6625,
+          "end_seconds": 4.0625
+        },
+        {
+          "word": "we",
+          "start_seconds": 4.3,
+          "end_seconds": 4.4375
+        },
+        {
+          "word": "recompute",
+          "start_seconds": 4.4625,
+          "end_seconds": 4.9875
+        },
+        {
+          "word": "Keys",
+          "start_seconds": 5.0125,
+          "end_seconds": 5.3
+        },
+        {
+          "word": "and",
+          "start_seconds": 5.325,
+          "end_seconds": 5.425
+        },
+        {
+          "word": "Values",
+          "start_seconds": 5.45,
+          "end_seconds": 5.875
+        },
+        {
+          "word": "for",
+          "start_seconds": 5.9,
+          "end_seconds": 6.075
+        },
+        {
+          "word": "ALL",
+          "start_seconds": 6.1,
+          "end_seconds": 6.2375
+        },
+        {
+          "word": "previous",
+          "start_seconds": 6.2625,
+          "end_seconds": 6.7125
+        },
+        {
+          "word": "tokens",
+          "start_seconds": 6.7375,
+          "end_seconds": 7.275
+        },
+        {
+          "word": "Token",
+          "start_seconds": 8.1625,
+          "end_seconds": 8.575
+        },
+        {
+          "word": "one",
+          "start_seconds": 8.6,
+          "end_seconds": 8.95
+        },
+        {
+          "word": "Compute",
+          "start_seconds": 9.825,
+          "end_seconds": 10.35
+        },
+        {
+          "word": "once",
+          "start_seconds": 10.375,
+          "end_seconds": 10.8875
+        },
+        {
+          "word": "Token",
+          "start_seconds": 11.75,
+          "end_seconds": 12.1625
+        },
+        {
+          "word": "two",
+          "start_seconds": 12.1875,
+          "end_seconds": 12.55
+        },
+        {
+          "word": "Compute",
+          "start_seconds": 13.425,
+          "end_seconds": 13.925
+        },
+        {
+          "word": "everything",
+          "start_seconds": 13.9375,
+          "end_seconds": 14.375
+        },
+        {
+          "word": "twice",
+          "start_seconds": 14.3875,
+          "end_seconds": 14.9125
+        },
+        {
+          "word": "Token",
+          "start_seconds": 15.8,
+          "end_seconds": 16.2
+        },
+        {
+          "word": "ten",
+          "start_seconds": 16.225,
+          "end_seconds": 16.6625
+        },
+        {
+          "word": "Ten",
+          "start_seconds": 17.5375,
+          "end_seconds": 17.8
+        },
+        {
+          "word": "times",
+          "start_seconds": 17.825,
+          "end_seconds": 18.1625
+        },
+        {
+          "word": "the",
+          "start_seconds": 18.1875,
+          "end_seconds": 18.2875
+        },
+        {
+          "word": "work",
+          "start_seconds": 18.3125,
+          "end_seconds": 18.6875
+        },
+        {
+          "word": "Token",
+          "start_seconds": 19.5625,
+          "end_seconds": 19.9625
+        },
+        {
+          "word": "one",
+          "start_seconds": 19.9875,
+          "end_seconds": 20.175
+        },
+        {
+          "word": "hundred",
+          "start_seconds": 20.2,
+          "end_seconds": 20.675
+        },
+        {
+          "word": "You",
+          "start_seconds": 21.55,
+          "end_seconds": 21.8
+        },
+        {
+          "word": "see",
+          "start_seconds": 21.825,
+          "end_seconds": 22.1
+        },
+        {
+          "word": "the",
+          "start_seconds": 22.125,
+          "end_seconds": 22.25
+        },
+        {
+          "word": "pattern",
+          "start_seconds": 22.2625,
+          "end_seconds": 22.8125
+        },
+        {
+          "word": "This",
+          "start_seconds": 23.6875,
+          "end_seconds": 23.925
+        },
+        {
+          "word": "is",
+          "start_seconds": 23.9375,
+          "end_seconds": 24.1
+        },
+        {
+          "word": "O",
+          "start_seconds": 24.125,
+          "end_seconds": 24.3
+        },
+        {
+          "word": "of",
+          "start_seconds": 24.325,
+          "end_seconds": 24.45
+        },
+        {
+          "word": "n",
+          "start_seconds": 24.475,
+          "end_seconds": 24.625
+        },
+        {
+          "word": "squared",
+          "start_seconds": 24.65,
+          "end_seconds": 25.0625
+        },
+        {
+          "word": "complexity",
+          "start_seconds": 25.0875,
+          "end_seconds": 25.8875
+        },
+        {
+          "word": "Most",
+          "start_seconds": 26.775,
+          "end_seconds": 27.175
+        },
+        {
+          "word": "of",
+          "start_seconds": 27.2,
+          "end_seconds": 27.275
+        },
+        {
+          "word": "this",
+          "start_seconds": 27.3,
+          "end_seconds": 27.475
+        },
+        {
+          "word": "computation",
+          "start_seconds": 27.4875,
+          "end_seconds": 28.25
+        },
+        {
+          "word": "is",
+          "start_seconds": 28.275,
+          "end_seconds": 28.4
+        },
+        {
+          "word": "completely",
+          "start_seconds": 28.425,
+          "end_seconds": 28.9625
+        },
+        {
+          "word": "redundant",
+          "start_seconds": 28.975,
+          "end_seconds": 29.625
+        }
+      ]
+    },
+    {
+      "scene_id": "scene6_kvcache",
+      "audio_path": "output/voiceover/scene6_kvcache.mp3",
+      "duration_seconds": 22.4125,
+      "word_timestamps": [
+        {
+          "word": "The",
+          "start_seconds": 0.1,
+          "end_seconds": 0.25
+        },
+        {
+          "word": "solution",
+          "start_seconds": 0.275,
+          "end_seconds": 0.7625
+        },
+        {
+          "word": "is",
+          "start_seconds": 0.7875,
+          "end_seconds": 0.925
+        },
+        {
+          "word": "elegant",
+          "start_seconds": 0.9375,
+          "end_seconds": 1.35
+        },
+        {
+          "word": "the",
+          "start_seconds": 1.5375,
+          "end_seconds": 1.65
+        },
+        {
+          "word": "KV",
+          "start_seconds": 1.675,
+          "end_seconds": 2.025
+        },
+        {
+          "word": "Cache",
+          "start_seconds": 2.05,
+          "end_seconds": 2.5375
+        },
+        {
+          "word": "Compute",
+          "start_seconds": 3.425,
+          "end_seconds": 3.8
+        },
+        {
+          "word": "each",
+          "start_seconds": 3.8125,
+          "end_seconds": 4.0125
+        },
+        {
+          "word": "Key",
+          "start_seconds": 4.0375,
+          "end_seconds": 4.2625
+        },
+        {
+          "word": "and",
+          "start_seconds": 4.2875,
+          "end_seconds": 4.3875
+        },
+        {
+          "word": "Value",
+          "start_seconds": 4.4125,
+          "end_seconds": 4.775
+        },
+        {
+          "word": "exactly",
+          "start_seconds": 4.7875,
+          "end_seconds": 5.2875
+        },
+        {
+          "word": "once",
+          "start_seconds": 5.3125,
+          "end_seconds": 5.7
+        },
+        {
+          "word": "then",
+          "start_seconds": 5.875,
+          "end_seconds": 6.05
+        },
+        {
+          "word": "store",
+          "start_seconds": 6.075,
+          "end_seconds": 6.35
+        },
+        {
+          "word": "them",
+          "start_seconds": 6.3625,
+          "end_seconds": 6.6
+        },
+        {
+          "word": "When",
+          "start_seconds": 7.4875,
+          "end_seconds": 7.6875
+        },
+        {
+          "word": "generating",
+          "start_seconds": 7.7125,
+          "end_seconds": 8.3
+        },
+        {
+          "word": "the",
+          "start_seconds": 8.325,
+          "end_seconds": 8.4125
+        },
+        {
+          "word": "next",
+          "start_seconds": 8.4375,
+          "end_seconds": 8.7125
+        },
+        {
+          "word": "token",
+          "start_seconds": 8.7375,
+          "end_seconds": 9.1125
+        },
+        {
+          "word": "just",
+          "start_seconds": 9.275,
+          "end_seconds": 9.525
+        },
+        {
+          "word": "look",
+          "start_seconds": 9.55,
+          "end_seconds": 9.7125
+        },
+        {
+          "word": "up",
+          "start_seconds": 9.725,
+          "end_seconds": 9.8625
+        },
+        {
+          "word": "what",
+          "start_seconds": 9.8875,
+          "end_seconds": 10.0125
+        },
+        {
+          "word": "you've",
+          "start_seconds": 10.0375,
+          "end_seconds": 10.2
+        },
+        {
+          "word": "already",
+          "start_seconds": 10.225,
+          "end_seconds": 10.6625
+        },
+        {
+          "word": "computed",
+          "start_seconds": 10.6875,
+          "end_seconds": 11.25
+        },
+        {
+          "word": "No",
+          "start_seconds": 12.1375,
+          "end_seconds": 12.45
+        },
+        {
+          "word": "redundant",
+          "start_seconds": 12.4625,
+          "end_seconds": 12.9875
+        },
+        {
+          "word": "calculations",
+          "start_seconds": 13.0,
+          "end_seconds": 13.9375
+        },
+        {
+          "word": "No",
+          "start_seconds": 14.8125,
+          "end_seconds": 15.125
+        },
+        {
+          "word": "wasted",
+          "start_seconds": 15.1375,
+          "end_seconds": 15.5625
+        },
+        {
+          "word": "work",
+          "start_seconds": 15.5875,
+          "end_seconds": 15.9625
+        },
+        {
+          "word": "We",
+          "start_seconds": 16.825,
+          "end_seconds": 17.0125
+        },
+        {
+          "word": "trade",
+          "start_seconds": 17.0375,
+          "end_seconds": 17.3375
+        },
+        {
+          "word": "memory",
+          "start_seconds": 17.3625,
+          "end_seconds": 17.7125
+        },
+        {
+          "word": "for",
+          "start_seconds": 17.7375,
+          "end_seconds": 17.9125
+        },
+        {
+          "word": "speed",
+          "start_seconds": 17.9375,
+          "end_seconds": 18.4
+        },
+        {
+          "word": "Compute",
+          "start_seconds": 19.275,
+          "end_seconds": 19.8
+        },
+        {
+          "word": "once",
+          "start_seconds": 19.825,
+          "end_seconds": 20.3375
+        },
+        {
+          "word": "Remember",
+          "start_seconds": 21.2,
+          "end_seconds": 21.775
+        },
+        {
+          "word": "forever",
+          "start_seconds": 21.8,
+          "end_seconds": 22.4125
+        }
+      ]
+    },
+    {
+      "scene_id": "scene7_mechanics",
+      "audio_path": "output/voiceover/scene7_mechanics.mp3",
+      "duration_seconds": 20.4,
+      "word_timestamps": [
+        {
+          "word": "Here's",
+          "start_seconds": 0.1,
+          "end_seconds": 0.45
+        },
+        {
+          "word": "how",
+          "start_seconds": 0.475,
+          "end_seconds": 0.6375
+        },
+        {
+          "word": "it",
+          "start_seconds": 0.65,
+          "end_seconds": 0.7375
+        },
+        {
+          "word": "works",
+          "start_seconds": 0.7625,
+          "end_seconds": 1.0625
+        },
+        {
+          "word": "in",
+          "start_seconds": 1.0875,
+          "end_seconds": 1.2125
+        },
+        {
+          "word": "practice",
+          "start_seconds": 1.2375,
+          "end_seconds": 1.85
+        },
+        {
+          "word": "The",
+          "start_seconds": 2.7125,
+          "end_seconds": 2.8125
+        },
+        {
+          "word": "new",
+          "start_seconds": 2.825,
+          "end_seconds": 2.975
+        },
+        {
+          "word": "token's",
+          "start_seconds": 2.9875,
+          "end_seconds": 3.425
+        },
+        {
+          "word": "Query",
+          "start_seconds": 3.4375,
+          "end_seconds": 3.7625
+        },
+        {
+          "word": "looks",
+          "start_seconds": 3.7875,
+          "end_seconds": 4.025
+        },
+        {
+          "word": "up",
+          "start_seconds": 4.05,
+          "end_seconds": 4.1875
+        },
+        {
+          "word": "against",
+          "start_seconds": 4.2,
+          "end_seconds": 4.5375
+        },
+        {
+          "word": "the",
+          "start_seconds": 4.5625,
+          "end_seconds": 4.65
+        },
+        {
+          "word": "cached",
+          "start_seconds": 4.675,
+          "end_seconds": 5.025
+        },
+        {
+          "word": "Keys",
+          "start_seconds": 5.05,
+          "end_seconds": 5.5125
+        },
+        {
+          "word": "This",
+          "start_seconds": 6.4,
+          "end_seconds": 6.6625
+        },
+        {
+          "word": "gives",
+          "start_seconds": 6.6875,
+          "end_seconds": 6.9125
+        },
+        {
+          "word": "us",
+          "start_seconds": 6.9375,
+          "end_seconds": 7.0625
+        },
+        {
+          "word": "attention",
+          "start_seconds": 7.0875,
+          "end_seconds": 7.6
+        },
+        {
+          "word": "weights",
+          "start_seconds": 7.6125,
+          "end_seconds": 8.05
+        },
+        {
+          "word": "Those",
+          "start_seconds": 8.9125,
+          "end_seconds": 9.2125
+        },
+        {
+          "word": "weights",
+          "start_seconds": 9.2375,
+          "end_seconds": 9.525
+        },
+        {
+          "word": "select",
+          "start_seconds": 9.55,
+          "end_seconds": 9.9125
+        },
+        {
+          "word": "from",
+          "start_seconds": 9.9375,
+          "end_seconds": 10.125
+        },
+        {
+          "word": "cached",
+          "start_seconds": 10.15,
+          "end_seconds": 10.475
+        },
+        {
+          "word": "Values",
+          "start_seconds": 10.5,
+          "end_seconds": 11.0625
+        },
+        {
+          "word": "The",
+          "start_seconds": 11.9375,
+          "end_seconds": 12.125
+        },
+        {
+          "word": "result",
+          "start_seconds": 12.15,
+          "end_seconds": 12.7625
+        },
+        {
+          "word": "Same",
+          "start_seconds": 13.6375,
+          "end_seconds": 14.0
+        },
+        {
+          "word": "output",
+          "start_seconds": 14.025,
+          "end_seconds": 14.45
+        },
+        {
+          "word": "fraction",
+          "start_seconds": 14.675,
+          "end_seconds": 15.125
+        },
+        {
+          "word": "of",
+          "start_seconds": 15.15,
+          "end_seconds": 15.2375
+        },
+        {
+          "word": "the",
+          "start_seconds": 15.2625,
+          "end_seconds": 15.35
+        },
+        {
+          "word": "compute",
+          "start_seconds": 15.375,
+          "end_seconds": 15.9125
+        },
+        {
+          "word": "Each",
+          "start_seconds": 16.7875,
+          "end_seconds": 17.0125
+        },
+        {
+          "word": "new",
+          "start_seconds": 17.025,
+          "end_seconds": 17.175
+        },
+        {
+          "word": "token",
+          "start_seconds": 17.2,
+          "end_seconds": 17.6
+        },
+        {
+          "word": "only",
+          "start_seconds": 17.625,
+          "end_seconds": 17.8375
+        },
+        {
+          "word": "needs",
+          "start_seconds": 17.85,
+          "end_seconds": 18.0875
+        },
+        {
+          "word": "one",
+          "start_seconds": 18.1125,
+          "end_seconds": 18.35
+        },
+        {
+          "word": "new",
+          "start_seconds": 18.375,
+          "end_seconds": 18.525
+        },
+        {
+          "word": "Key-Value",
+          "start_seconds": 18.55,
+          "end_seconds": 19.1
+        },
+        {
+          "word": "pair",
+          "start_seconds": 19.125,
+          "end_seconds": 19.3875
+        },
+        {
+          "word": "added",
+          "start_seconds": 19.4125,
+          "end_seconds": 19.6625
+        },
+        {
+          "word": "to",
+          "start_seconds": 19.675,
+          "end_seconds": 19.775
+        },
+        {
+          "word": "the",
+          "start_seconds": 19.7875,
+          "end_seconds": 19.8875
+        },
+        {
+          "word": "cache",
+          "start_seconds": 19.9125,
+          "end_seconds": 20.4
+        }
+      ]
+    },
+    {
+      "scene_id": "scene8_impact",
+      "audio_path": "output/voiceover/scene8_impact.mp3",
+      "duration_seconds": 31.3,
+      "word_timestamps": [
+        {
+          "word": "The",
+          "start_seconds": 0.1,
+          "end_seconds": 0.2625
+        },
+        {
+          "word": "impact",
+          "start_seconds": 0.2875,
+          "end_seconds": 0.8
+        },
+        {
+          "word": "is",
+          "start_seconds": 0.8125,
+          "end_seconds": 0.9375
+        },
+        {
+          "word": "massive",
+          "start_seconds": 0.95,
+          "end_seconds": 1.5
+        },
+        {
+          "word": "Eighty-seven",
+          "start_seconds": 2.3625,
+          "end_seconds": 3.0375
+        },
+        {
+          "word": "times",
+          "start_seconds": 3.0625,
+          "end_seconds": 3.4125
+        },
+        {
+          "word": "faster",
+          "start_seconds": 3.4375,
+          "end_seconds": 3.875
+        },
+        {
+          "word": "inference",
+          "start_seconds": 3.9,
+          "end_seconds": 4.4625
+        },
+        {
+          "word": "The",
+          "start_seconds": 5.35,
+          "end_seconds": 5.5
+        },
+        {
+          "word": "tradeoff",
+          "start_seconds": 5.525,
+          "end_seconds": 6.2
+        },
+        {
+          "word": "Memory",
+          "start_seconds": 7.075,
+          "end_seconds": 7.85
+        },
+        {
+          "word": "A",
+          "start_seconds": 8.7125,
+          "end_seconds": 8.825
+        },
+        {
+          "word": "seventy",
+          "start_seconds": 8.85,
+          "end_seconds": 9.275
+        },
+        {
+          "word": "billion",
+          "start_seconds": 9.3,
+          "end_seconds": 9.65
+        },
+        {
+          "word": "parameter",
+          "start_seconds": 9.6625,
+          "end_seconds": 10.15
+        },
+        {
+          "word": "model",
+          "start_seconds": 10.175,
+          "end_seconds": 10.5
+        },
+        {
+          "word": "needs",
+          "start_seconds": 10.525,
+          "end_seconds": 10.7375
+        },
+        {
+          "word": "about",
+          "start_seconds": 10.7625,
+          "end_seconds": 11.0125
+        },
+        {
+          "word": "thirty-two",
+          "start_seconds": 11.0375,
+          "end_seconds": 11.575
+        },
+        {
+          "word": "gigabytes",
+          "start_seconds": 11.6,
+          "end_seconds": 12.1625
+        },
+        {
+          "word": "just",
+          "start_seconds": 12.1875,
+          "end_seconds": 12.425
+        },
+        {
+          "word": "for",
+          "start_seconds": 12.45,
+          "end_seconds": 12.55
+        },
+        {
+          "word": "the",
+          "start_seconds": 12.575,
+          "end_seconds": 12.6625
+        },
+        {
+          "word": "cache",
+          "start_seconds": 12.6875,
+          "end_seconds": 13.1875
+        },
+        {
+          "word": "But",
+          "start_seconds": 14.0625,
+          "end_seconds": 14.225
+        },
+        {
+          "word": "it's",
+          "start_seconds": 14.25,
+          "end_seconds": 14.4
+        },
+        {
+          "word": "worth",
+          "start_seconds": 14.4125,
+          "end_seconds": 14.725
+        },
+        {
+          "word": "it",
+          "start_seconds": 14.75,
+          "end_seconds": 14.975
+        },
+        {
+          "word": "Every",
+          "start_seconds": 15.8375,
+          "end_seconds": 16.1375
+        },
+        {
+          "word": "major",
+          "start_seconds": 16.15,
+          "end_seconds": 16.525
+        },
+        {
+          "word": "LLM",
+          "start_seconds": 16.55,
+          "end_seconds": 17.05
+        },
+        {
+          "word": "uses",
+          "start_seconds": 17.075,
+          "end_seconds": 17.4125
+        },
+        {
+          "word": "this",
+          "start_seconds": 17.4375,
+          "end_seconds": 17.6125
+        },
+        {
+          "word": "technique",
+          "start_seconds": 17.625,
+          "end_seconds": 18.175
+        },
+        {
+          "word": "GPT-4",
+          "start_seconds": 19.0625,
+          "end_seconds": 20.1375
+        },
+        {
+          "word": "Claude",
+          "start_seconds": 20.2875,
+          "end_seconds": 20.675
+        },
+        {
+          "word": "Gemini",
+          "start_seconds": 20.8375,
+          "end_seconds": 21.35
+        },
+        {
+          "word": "LLaMA",
+          "start_seconds": 21.55,
+          "end_seconds": 21.9875
+        },
+        {
+          "word": "KV",
+          "start_seconds": 22.875,
+          "end_seconds": 23.225
+        },
+        {
+          "word": "caching",
+          "start_seconds": 23.25,
+          "end_seconds": 23.6875
+        },
+        {
+          "word": "is",
+          "start_seconds": 23.7,
+          "end_seconds": 23.8125
+        },
+        {
+          "word": "the",
+          "start_seconds": 23.8375,
+          "end_seconds": 23.95
+        },
+        {
+          "word": "foundation",
+          "start_seconds": 23.9625,
+          "end_seconds": 24.5375
+        },
+        {
+          "word": "of",
+          "start_seconds": 24.5625,
+          "end_seconds": 24.65
+        },
+        {
+          "word": "fast",
+          "start_seconds": 24.675,
+          "end_seconds": 25.025
+        },
+        {
+          "word": "LLM",
+          "start_seconds": 25.05,
+          "end_seconds": 25.4375
+        },
+        {
+          "word": "inference",
+          "start_seconds": 25.4625,
+          "end_seconds": 25.975
+        },
+        {
+          "word": "Trade",
+          "start_seconds": 26.85,
+          "end_seconds": 27.175
+        },
+        {
+          "word": "memory",
+          "start_seconds": 27.2,
+          "end_seconds": 27.5625
+        },
+        {
+          "word": "for",
+          "start_seconds": 27.5875,
+          "end_seconds": 27.7625
+        },
+        {
+          "word": "speed",
+          "start_seconds": 27.7875,
+          "end_seconds": 28.2375
+        },
+        {
+          "word": "Never",
+          "start_seconds": 29.1125,
+          "end_seconds": 29.5125
+        },
+        {
+          "word": "recompute",
+          "start_seconds": 29.5375,
+          "end_seconds": 30.15
+        },
+        {
+          "word": "what",
+          "start_seconds": 30.175,
+          "end_seconds": 30.35
+        },
+        {
+          "word": "you",
+          "start_seconds": 30.375,
+          "end_seconds": 30.5
+        },
+        {
+          "word": "can",
+          "start_seconds": 30.525,
+          "end_seconds": 30.6875
+        },
+        {
+          "word": "remember",
+          "start_seconds": 30.7125,
+          "end_seconds": 31.3
+        }
+      ]
+    }
+  ],
+  "total_duration_seconds": 193.28750000000002,
+  "output_dir": "output/voiceover"
+}
