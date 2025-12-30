@@ -209,6 +209,16 @@ def cmd_storyboard(args: argparse.Namespace) -> int:
     return 0
 
 
+# Resolution presets
+RESOLUTION_PRESETS = {
+    "4k": (3840, 2160),
+    "1440p": (2560, 1440),
+    "1080p": (1920, 1080),
+    "720p": (1280, 720),
+    "480p": (854, 480),
+}
+
+
 def cmd_render(args: argparse.Namespace) -> int:
     """Render video for a project."""
     import subprocess
@@ -242,11 +252,23 @@ def cmd_render(args: argparse.Namespace) -> int:
     voiceover_files = list(project.voiceover_dir.glob("*.mp3"))
     print(f"Found {len(voiceover_files)} voiceover files")
 
+    # Determine resolution
+    resolution_name = args.resolution or "1080p"
+    if resolution_name not in RESOLUTION_PRESETS:
+        print(f"Error: Unknown resolution '{resolution_name}'", file=sys.stderr)
+        print(f"Available: {', '.join(RESOLUTION_PRESETS.keys())}", file=sys.stderr)
+        return 1
+    width, height = RESOLUTION_PRESETS[resolution_name]
+
     # Determine output path
     if args.preview:
         output_path = project.output_dir / "preview" / "preview.mp4"
     else:
-        output_path = project.get_path("final_video")
+        # Include resolution in filename for non-1080p renders
+        if resolution_name != "1080p":
+            output_path = project.output_dir / f"final-{resolution_name}.mp4"
+        else:
+            output_path = project.get_path("final_video")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -257,9 +279,12 @@ def cmd_render(args: argparse.Namespace) -> int:
         str(render_script),
         "--project", str(project.root_dir),
         "--output", str(output_path),
+        "--width", str(width),
+        "--height", str(height),
     ]
 
     print(f"Project: {project.root_dir}")
+    print(f"Resolution: {resolution_name} ({width}x{height})")
     print(f"Output: {output_path}")
     print(f"Running: {' '.join(cmd)}")
     print()
@@ -369,6 +394,12 @@ def main() -> int:
         "--preview",
         action="store_true",
         help="Quick preview render",
+    )
+    render_parser.add_argument(
+        "--resolution", "-r",
+        choices=["4k", "1440p", "1080p", "720p", "480p"],
+        default="1080p",
+        help="Output resolution (default: 1080p)",
     )
     render_parser.set_defaults(func=cmd_render)
 

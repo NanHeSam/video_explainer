@@ -3,12 +3,16 @@
  * Render script for programmatic video generation.
  *
  * Usage:
- *   node scripts/render.mjs --composition ScenePlayer --storyboard ./projects/llm-inference/storyboard/storyboard.json --output ./output.mp4
  *   node scripts/render.mjs --project ../projects/llm-inference --output ./output.mp4
- *   node scripts/render.mjs --props ./props.json --output ./output.mp4
+ *   node scripts/render.mjs --project ../projects/llm-inference --output ./output-4k.mp4 --width 3840 --height 2160
+ *   node scripts/render.mjs --composition ScenePlayer --storyboard ./storyboard.json --output ./output.mp4
  *
  * The --project flag automatically finds storyboard.json and uses the project's
  * voiceover directory for audio files.
+ *
+ * Resolution options:
+ *   --width <number>   Output width (default: 1920)
+ *   --height <number>  Output height (default: 1080)
  */
 
 import { bundle } from "@remotion/bundler";
@@ -31,6 +35,8 @@ async function main() {
   let outputPath = "./output.mp4";
   let compositionId = "ScenePlayer";
   let voiceoverBasePath = "voiceover";
+  let width = null;
+  let height = null;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--props" && args[i + 1]) {
@@ -50,6 +56,12 @@ async function main() {
       i++;
     } else if (args[i] === "--voiceover-path" && args[i + 1]) {
       voiceoverBasePath = args[i + 1];
+      i++;
+    } else if (args[i] === "--width" && args[i + 1]) {
+      width = parseInt(args[i + 1], 10);
+      i++;
+    } else if (args[i] === "--height" && args[i + 1]) {
+      height = parseInt(args[i + 1], 10);
       i++;
     }
   }
@@ -155,14 +167,22 @@ async function main() {
     inputProps: props,
   });
 
+  // Override dimensions if specified
+  const finalWidth = width || composition.width;
+  const finalHeight = height || composition.height;
+
   console.log(`Composition: ${composition.id}`);
   console.log(`Duration: ${composition.durationInFrames} frames @ ${composition.fps}fps`);
-  console.log(`Resolution: ${composition.width}x${composition.height}`);
+  console.log(`Resolution: ${finalWidth}x${finalHeight}${width ? " (custom)" : ""}`);
 
   // Render the video
   console.log(`\nRendering to ${outputPath}...`);
   await renderMedia({
-    composition,
+    composition: {
+      ...composition,
+      width: finalWidth,
+      height: finalHeight,
+    },
     serveUrl: bundleLocation,
     codec: "h264",
     outputLocation: outputPath,
