@@ -1,7 +1,6 @@
 """Feedback processor for analyzing and applying feedback."""
 
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -25,18 +24,18 @@ class FeedbackProcessor:
         self,
         project: Project,
         dry_run: bool = False,
-        create_branch: bool = True,
+        verbose: bool = False,
     ):
         """Initialize the feedback processor.
 
         Args:
             project: The project to apply feedback to
             dry_run: If True, analyze but don't apply changes
-            create_branch: If True, create a preview branch for changes
+            verbose: If True, print detailed progress information
         """
         self.project = project
         self.dry_run = dry_run
-        self.create_branch = create_branch
+        self.verbose = verbose
         self.store = FeedbackStore(project.root_dir, project.id)
 
         # Use repo root as working directory so Claude Code can access both:
@@ -44,15 +43,21 @@ class FeedbackProcessor:
         # - remotion/src/scenes/{project-id}/ (scene components)
         # Project root is like: /path/to/video_explainer/projects/llm-inference
         # Repo root is: /path/to/video_explainer
-        repo_root = project.root_dir.parent.parent  # Go up from projects/{project-id}
+        self.repo_root = project.root_dir.parent.parent  # Go up from projects/{project-id}
 
         # Initialize Claude Code provider with REPO root (using Opus 4.5 for best quality)
         llm_config = LLMConfig(provider="claude-code", model="claude-opus-4-5-20251101")
         self.llm = ClaudeCodeLLMProvider(
             llm_config,
-            working_dir=repo_root,
+            working_dir=self.repo_root,
             timeout=600,  # 10 minutes for complex changes with Opus
         )
+
+    def _log(self, message: str, indent: int = 0) -> None:
+        """Print a message if verbose mode is enabled."""
+        if self.verbose:
+            prefix = "  " * indent
+            print(f"{prefix}{message}")
 
     def process_feedback(self, feedback_text: str) -> FeedbackItem:
         """Process a feedback item from start to finish.
@@ -66,38 +71,50 @@ class FeedbackProcessor:
         # Add feedback to store
         item = self.store.add_feedback(feedback_text)
         item.status = FeedbackStatus.PROCESSING
+        self._log(f"Processing feedback: {item.id}")
+        self._log(f"Feedback text: {feedback_text}")
 
         try:
             # Step 1: Analyze the feedback
+            self._log("Step 1: Analyzing feedback...")
             item = self._analyze_feedback(item)
+            self._log(f"Scope: {item.scope.value if item.scope else 'unknown'}")
+            self._log(f"Affected scenes: {item.affected_scenes}")
+            self._log(f"Interpretation: {item.interpretation}")
+            if item.suggested_changes:
+                self._log("Suggested changes:")
+                self._log(json.dumps(item.suggested_changes, indent=2), indent=1)
 
             if self.dry_run:
                 # In dry run mode, just return the analysis
+                self._log("Dry run mode - skipping changes")
                 item.status = FeedbackStatus.PENDING
                 self.store.update_item(item)
                 return item
 
-            # Step 2: Create preview branch if requested
-            if self.create_branch:
-                branch_name = self._create_preview_branch(item)
-                item.preview_branch = branch_name
-
-            # Step 3: Apply the changes
+            # Step 2: Apply the changes
+            self._log("Step 2: Applying changes with Claude Code...")
             item = self._apply_changes(item)
 
-            # Step 4: Update status
+            # Step 3: Update status
             if item.files_modified:
                 item.status = FeedbackStatus.APPLIED
+                self._log(f"Success! Modified {len(item.files_modified)} file(s):")
+                for f in item.files_modified:
+                    self._log(f"  - {f}")
             elif item.error_message:
                 # Keep existing error message from apply step
                 item.status = FeedbackStatus.FAILED
+                self._log(f"Failed: {item.error_message}")
             else:
                 item.status = FeedbackStatus.FAILED
                 item.error_message = "No files were modified"
+                self._log("Failed: No files were modified")
 
         except Exception as e:
             item.status = FeedbackStatus.FAILED
             item.error_message = str(e)
+            self._log(f"Error: {str(e)}")
 
         self.store.update_item(item)
         return item
@@ -158,44 +175,6 @@ class FeedbackProcessor:
 
         return item
 
-    def _create_preview_branch(self, item: FeedbackItem) -> str:
-        """Create a git branch for preview changes.
-
-        Args:
-            item: The feedback item
-
-        Returns:
-            The branch name
-        """
-        branch_name = f"feedback/{item.id}"
-
-        try:
-            # Check if we're in a git repo
-            result = subprocess.run(
-                ["git", "rev-parse", "--git-dir"],
-                cwd=str(self.project.root_dir),
-                capture_output=True,
-                text=True,
-            )
-
-            if result.returncode != 0:
-                # Not in a git repo, skip branch creation
-                return ""
-
-            # Create and checkout new branch
-            subprocess.run(
-                ["git", "checkout", "-b", branch_name],
-                cwd=str(self.project.root_dir),
-                capture_output=True,
-                check=True,
-            )
-
-            return branch_name
-
-        except subprocess.CalledProcessError:
-            # Branch creation failed, continue without it
-            return ""
-
     def _apply_changes(self, item: FeedbackItem) -> FeedbackItem:
         """Apply the feedback changes using Claude Code.
 
@@ -249,7 +228,7 @@ def process_feedback(
     project: Project,
     feedback_text: str,
     dry_run: bool = False,
-    create_branch: bool = True,
+    verbose: bool = False,
 ) -> FeedbackItem:
     """Convenience function to process feedback.
 
@@ -257,7 +236,7 @@ def process_feedback(
         project: The project to apply feedback to
         feedback_text: The user's feedback
         dry_run: If True, analyze but don't apply changes
-        create_branch: If True, create a preview branch for changes
+        verbose: If True, print detailed progress information
 
     Returns:
         The processed FeedbackItem
@@ -265,6 +244,6 @@ def process_feedback(
     processor = FeedbackProcessor(
         project,
         dry_run=dry_run,
-        create_branch=create_branch,
+        verbose=verbose,
     )
     return processor.process_feedback(feedback_text)

@@ -341,16 +341,16 @@ class TestFeedbackProcessor:
 
         assert processor.project == mock_project
         assert processor.dry_run is True
-        assert processor.create_branch is True
+        assert processor.verbose is False
         assert processor.store is not None
         assert processor.llm is not None
 
-    def test_processor_init_no_branch(self, mock_project):
-        """Test processor with branch creation disabled."""
+    def test_processor_init_verbose(self, mock_project):
+        """Test processor with verbose mode enabled."""
         processor = FeedbackProcessor(
-            mock_project, dry_run=True, create_branch=False
+            mock_project, dry_run=True, verbose=True
         )
-        assert processor.create_branch is False
+        assert processor.verbose is True
 
     def test_get_scene_list(self, mock_project):
         """Test getting scene list from project."""
@@ -409,9 +409,7 @@ class TestFeedbackProcessor:
         )
         mock_llm_class.return_value = mock_llm
 
-        processor = FeedbackProcessor(
-            mock_project, dry_run=False, create_branch=False
-        )
+        processor = FeedbackProcessor(mock_project, dry_run=False)
         item = processor.process_feedback("Make text larger")
 
         assert item.status == FeedbackStatus.APPLIED
@@ -435,9 +433,7 @@ class TestFeedbackProcessor:
         )
         mock_llm_class.return_value = mock_llm
 
-        processor = FeedbackProcessor(
-            mock_project, dry_run=False, create_branch=False
-        )
+        processor = FeedbackProcessor(mock_project, dry_run=False)
         item = processor.process_feedback("Invalid feedback")
 
         assert item.status == FeedbackStatus.FAILED

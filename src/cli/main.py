@@ -556,7 +556,7 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         processor = FeedbackProcessor(
             project,
             dry_run=args.dry_run,
-            create_branch=not args.no_branch,
+            verbose=True,  # Always show detailed progress
         )
 
         print(f"Processing feedback for {project.id}...")
@@ -589,12 +589,6 @@ def cmd_feedback(args: argparse.Namespace) -> int:
             files = item.suggested_changes.get("files_to_modify", [])
             if files:
                 print(f"  Files: {', '.join(files)}")
-
-        if item.preview_branch:
-            print(f"\nPreview branch: {item.preview_branch}")
-            print("  To review: git diff main")
-            print("  To merge: git checkout main && git merge " + item.preview_branch)
-            print("  To discard: git checkout main && git branch -D " + item.preview_branch)
 
         if item.files_modified:
             print(f"\nFiles modified:")
@@ -667,9 +661,6 @@ def cmd_feedback(args: argparse.Namespace) -> int:
             print("Suggested changes:")
             print(json.dumps(item.suggested_changes, indent=2))
             print()
-
-        if item.preview_branch:
-            print(f"Preview branch: {item.preview_branch}")
 
         if item.files_modified:
             print("Files modified:")
@@ -853,11 +844,6 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Analyze feedback without applying changes",
-    )
-    feedback_add_parser.add_argument(
-        "--no-branch",
-        action="store_true",
-        help="Don't create a preview branch",
     )
 
     # feedback list
