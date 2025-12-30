@@ -2,6 +2,8 @@
 */output/*.mp4
 */output/preview/*.mp4
 
+**/manual_recordings/*
+
 # Keep the output directory structure
 !*/output/.gitkeep
 !*/output/preview/.gitkeep

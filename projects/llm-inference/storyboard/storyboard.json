@@ -3,139 +3,134 @@
   "description": "An explainer video about KV caching and LLM inference optimization",
   "version": "2.0.0",
   "project": "llm-inference",
-
   "video": {
     "width": 1920,
     "height": 1080,
     "fps": 30
   },
-
   "style": {
     "background_color": "#0f0f1a",
     "primary_color": "#00d9ff",
     "secondary_color": "#ff6b35",
     "font_family": "Inter"
   },
-
   "scenes": [
     {
       "id": "scene1_hook",
       "type": "llm-inference/hook",
       "title": "The Speed Problem",
       "audio_file": "scene1_hook.mp3",
-      "audio_duration_seconds": 21.16
+      "audio_duration_seconds": 18.52
     },
     {
       "id": "scene2_phases",
       "type": "llm-inference/phases",
       "title": "The Two Phases",
       "audio_file": "scene2_phases.mp3",
-      "audio_duration_seconds": 21.61
+      "audio_duration_seconds": 22.24
     },
     {
       "id": "scene3_bottleneck",
       "type": "llm-inference/bottleneck",
       "title": "The Decode Bottleneck",
       "audio_file": "scene3_bottleneck.mp3",
-      "audio_duration_seconds": 24.30
+      "audio_duration_seconds": 23.06
     },
     {
       "id": "scene4_attention",
       "type": "llm-inference/attention",
       "title": "Understanding Attention",
       "audio_file": "scene4_attention.mp3",
-      "audio_duration_seconds": 22.48
+      "audio_duration_seconds": 36.14
     },
     {
       "id": "scene5_redundancy",
       "type": "llm-inference/redundancy",
       "title": "The Redundancy Problem",
       "audio_file": "scene5_redundancy.mp3",
-      "audio_duration_seconds": 26.36
+      "audio_duration_seconds": 23.88
     },
     {
       "id": "scene6_static_batching",
       "type": "llm-inference/static_batching",
       "title": "The Static Batching Problem",
       "audio_file": "scene6_static_batching.mp3",
-      "audio_duration_seconds": 23.48
+      "audio_duration_seconds": 25.7
     },
     {
       "id": "scene7_memory_fragmentation",
       "type": "llm-inference/memory_fragmentation",
       "title": "Memory Fragmentation",
       "audio_file": "scene7_memory_fragmentation.mp3",
-      "audio_duration_seconds": 22.88
+      "audio_duration_seconds": 24.96
     },
     {
       "id": "scene8_kvcache",
       "type": "llm-inference/kvcache",
       "title": "The KV Cache Solution",
       "audio_file": "scene8_kvcache.mp3",
-      "audio_duration_seconds": 24.75
+      "audio_duration_seconds": 36.0
     },
     {
       "id": "scene9_mechanics",
       "type": "llm-inference/mechanics",
       "title": "The Attention Computation",
       "audio_file": "scene9_mechanics.mp3",
-      "audio_duration_seconds": 20.40
+      "audio_duration_seconds": 24.04
     },
     {
       "id": "scene10_continuous_batching",
       "type": "llm-inference/continuous_batching",
       "title": "Continuous Batching",
       "audio_file": "scene10_continuous_batching.mp3",
-      "audio_duration_seconds": 23.00
+      "audio_duration_seconds": 39.44
     },
     {
       "id": "scene11_paged_attention",
       "type": "llm-inference/paged_attention",
       "title": "PagedAttention",
       "audio_file": "scene11_paged_attention.mp3",
-      "audio_duration_seconds": 27.11
+      "audio_duration_seconds": 27.96
     },
     {
       "id": "scene12_quantization",
       "type": "llm-inference/quantization",
       "title": "Quantization",
       "audio_file": "scene12_quantization.mp3",
-      "audio_duration_seconds": 24.26
+      "audio_duration_seconds": 26.12
     },
     {
       "id": "scene13_speculative_decoding",
       "type": "llm-inference/speculative_decoding",
       "title": "Speculative Decoding",
       "audio_file": "scene13_speculative_decoding.mp3",
-      "audio_duration_seconds": 23.79
+      "audio_duration_seconds": 25.32
     },
     {
       "id": "scene14_scaling",
       "type": "llm-inference/scaling",
       "title": "Scaling to Millions",
       "audio_file": "scene14_scaling.mp3",
-      "audio_duration_seconds": 25.26
+      "audio_duration_seconds": 26.02
     },
     {
       "id": "scene15_economics",
       "type": "llm-inference/economics",
       "title": "The Economics of Scale",
       "audio_file": "scene15_economics.mp3",
-      "audio_duration_seconds": 28.66
+      "audio_duration_seconds": 27.62
     },
     {
       "id": "scene16_conclusion",
       "type": "llm-inference/conclusion",
       "title": "The Full Picture",
       "audio_file": "scene16_conclusion.mp3",
-      "audio_duration_seconds": 38.84
+      "audio_duration_seconds": 37.94
     }
   ],
-
   "audio": {
     "voiceover_dir": "voiceover",
     "buffer_between_scenes_seconds": 1.0
   },
-
-  "total_duration_seconds": 414.34
+  "total_duration_seconds": 444.96
 }

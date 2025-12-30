@@ -258,6 +258,7 @@ class TestCmdVoiceover:
         args.export_script = False
         args.audio_dir = None
         args.whisper_model = "base"
+        args.no_sync = True
 
         result = cmd_voiceover(args)
         assert result == 0
@@ -283,6 +284,7 @@ class TestCmdVoiceover:
         args.export_script = False
         args.audio_dir = None
         args.whisper_model = "base"
+        args.no_sync = True
 
         result = cmd_voiceover(args)
         assert result == 1
@@ -307,6 +309,7 @@ class TestCmdVoiceover:
         args.export_script = False
         args.audio_dir = None
         args.whisper_model = "base"
+        args.no_sync = True
 
         result = cmd_voiceover(args)
         assert result == 1

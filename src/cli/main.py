@@ -232,7 +232,65 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
     print(f"Total duration: {total_duration:.2f}s ({total_duration/60:.1f} min)")
     print(f"Manifest saved to: {manifest_path}")
 
+    # Auto-sync storyboard durations with voiceover durations
+    if not args.no_sync:
+        sync_result = _sync_storyboard_durations(project, results)
+        if sync_result > 0:
+            print(f"\nSynced {sync_result} scene duration(s) in storyboard")
+
     return 0
+
+
+def _sync_storyboard_durations(project, voiceover_results: list[dict]) -> int:
+    """Sync storyboard scene durations with actual voiceover durations.
+
+    Args:
+        project: The project
+        voiceover_results: List of voiceover results with scene_id and duration_seconds
+
+    Returns:
+        Number of scenes updated
+    """
+    storyboard_path = project.get_path("storyboard")
+    if not storyboard_path.exists():
+        return 0
+
+    try:
+        with open(storyboard_path) as f:
+            storyboard = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return 0
+
+    # Create lookup for voiceover durations
+    vo_durations = {vo["scene_id"]: vo["duration_seconds"] for vo in voiceover_results}
+
+    # Update storyboard scene durations
+    updated_count = 0
+    for scene in storyboard.get("scenes", []):
+        scene_id = scene.get("id") or scene.get("scene_id")
+        if scene_id and scene_id in vo_durations:
+            old_dur = scene.get("audio_duration_seconds", 0)
+            # Add a small buffer (0.5s) to ensure voiceover fits comfortably
+            new_dur = round(vo_durations[scene_id] + 0.5, 2)
+
+            # Only update if difference is significant (> 0.5s)
+            if abs(new_dur - old_dur) > 0.5:
+                scene["audio_duration_seconds"] = new_dur
+                updated_count += 1
+
+    if updated_count > 0:
+        # Update total duration
+        total_duration = sum(
+            scene.get("audio_duration_seconds", 0)
+            for scene in storyboard.get("scenes", [])
+        )
+        storyboard["total_duration_seconds"] = round(total_duration, 2)
+
+        # Save updated storyboard
+        with open(storyboard_path, "w") as f:
+            json.dump(storyboard, f, indent=2)
+
+    return updated_count
 
 
 def _export_recording_script(project, narrations, args) -> int:
@@ -877,6 +935,11 @@ def main() -> int:
         choices=["tiny", "base", "small", "medium", "large"],
         default="base",
         help="Whisper model size for transcription (default: base)",
+    )
+    voiceover_parser.add_argument(
+        "--no-sync",
+        action="store_true",
+        help="Don't auto-sync storyboard durations with voiceover durations",
     )
     voiceover_parser.set_defaults(func=cmd_voiceover)
 
