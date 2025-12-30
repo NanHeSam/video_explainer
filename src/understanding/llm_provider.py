@@ -439,6 +439,10 @@ class ClaudeCodeLLMProvider(LLMProvider):
         """
         cmd = ["claude", "--print", "-p", prompt]
 
+        # Add model if specified in config
+        if self.config.model:
+            cmd.extend(["--model", self.config.model])
+
         if system_prompt:
             cmd.extend(["--system-prompt", system_prompt])
 
@@ -485,15 +489,34 @@ class ClaudeCodeLLMProvider(LLMProvider):
     def _extract_modified_files(self, output: str) -> list[str]:
         """Extract list of modified files from Claude Code output.
 
+        Uses git to detect actual file modifications, which is more reliable
+        than parsing CLI output.
+
         Args:
-            output: Raw CLI output
+            output: Raw CLI output (used as fallback)
 
         Returns:
             List of modified file paths
         """
         modified = []
 
-        # Look for common patterns indicating file modifications
+        # Primary method: Use git to detect modified files
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only"],
+                capture_output=True,
+                text=True,
+                cwd=str(self.working_dir),
+                timeout=10,
+            )
+            if result.returncode == 0:
+                git_modified = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
+                if git_modified:
+                    return git_modified
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass  # Fall back to output parsing
+
+        # Fallback: Look for common patterns in output
         patterns = [
             r"(?:Wrote|Created|Updated|Modified|Edited)\s+['\"]?([^\s'\"]+)['\"]?",
             r"Writing to\s+['\"]?([^\s'\"]+)['\"]?",

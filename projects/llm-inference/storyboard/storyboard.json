@@ -77,7 +77,7 @@
     {
       "id": "scene9_mechanics",
       "type": "llm-inference/mechanics",
-      "title": "How KV Cache Works",
+      "title": "The Attention Computation",
       "audio_file": "scene9_mechanics.mp3",
       "audio_duration_seconds": 20.40
     },

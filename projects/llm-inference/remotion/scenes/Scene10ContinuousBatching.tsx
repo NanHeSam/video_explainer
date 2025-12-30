@@ -24,7 +24,7 @@ import {
   spring,
 } from "remotion";
 
-interface ContinuousBatchingSceneProps {
+interface Scene10ContinuousBatchingProps {
   startFrame?: number;
 }
 
@@ -70,7 +70,7 @@ const TOTAL_STEPS = 12;
 const SLOT_WIDTH = 180;
 const SLOT_HEIGHT = 80;
 
-export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = ({
+export const Scene10ContinuousBatching: React.FC<Scene10ContinuousBatchingProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
@@ -655,4 +655,4 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
   );
 };
 
-export default ContinuousBatchingScene;
+export default Scene10ContinuousBatching;

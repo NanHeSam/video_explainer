@@ -369,6 +369,7 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
             alignItems: "center",
             padding: 24,
             boxShadow: `0 0 30px ${COLORS.memory}30`,
+            overflow: "hidden",
           }}
         >
           <div

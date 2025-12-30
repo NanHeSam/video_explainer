@@ -6,10 +6,11 @@
  *
  * Visual flow:
  * 1. Show tokens
- * 2. Each token produces Q, K, V vectors
+ * 2. Each token produces Q, K, V vectors (as matrices/tensors)
  * 3. Q asks "what am I looking for?", K says "what do I contain?"
- * 4. Attention matrix forms (Q × K^T)
- * 5. Values are weighted and combined
+ * 4. Attention matrix forms (Q × K^T / √d_k)
+ * 5. Arrows show flow: Q×K → attention scores → weighting V
+ * 6. Values are weighted and combined to produce output
  */
 
 import React from "react";
@@ -19,6 +20,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
   Easing,
+  spring,
 } from "remotion";
 
 interface AttentionSceneProps {
@@ -35,9 +37,181 @@ const COLORS = {
   textDim: "#888888",
   surface: "#1a1a2e",
   attention: "#9b59b6", // Purple for attention scores
+  output: "#ffd700", // Gold for weighted output
+  arrow: "#ffffff",
 };
 
 const TOKENS = ["The", "cat", "sat", "on"];
+
+// Matrix component for Q, K, V tensors
+const TensorMatrix: React.FC<{
+  label: string;
+  fullLabel: string;
+  color: string;
+  opacity: number;
+  values: number[][];
+  size?: "small" | "large";
+}> = ({ label, fullLabel, color, opacity, values, size = "small" }) => {
+  const cellSize = size === "large" ? 24 : 16;
+  const fontSize = size === "large" ? 11 : 9;
+
+  return (
+    <div
+      style={{
+        opacity,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+      }}
+    >
+      {/* Label badge with full name */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            width: size === "large" ? 36 : 28,
+            height: size === "large" ? 28 : 22,
+            backgroundColor: color,
+            borderRadius: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: size === "large" ? 16 : 13,
+            fontWeight: 700,
+            color: "#000",
+          }}
+        >
+          {label}
+        </div>
+        <span
+          style={{
+            fontSize: size === "large" ? 14 : 11,
+            fontWeight: 600,
+            color: color,
+          }}
+        >
+          {fullLabel}
+        </span>
+      </div>
+
+      {/* Matrix grid visualization */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${values[0]?.length || 4}, ${cellSize}px)`,
+          gap: 2,
+          padding: 4,
+          backgroundColor: `${color}15`,
+          borderRadius: 6,
+          border: `1px solid ${color}40`,
+        }}
+      >
+        {values.flat().map((val, idx) => (
+          <div
+            key={idx}
+            style={{
+              width: cellSize,
+              height: cellSize,
+              backgroundColor: `${color}${Math.floor(val * 99).toString(16).padStart(2, '0')}`,
+              borderRadius: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize,
+              color: val > 0.5 ? "#000" : color,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >
+            {val.toFixed(1)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Arrow component for showing computation flow
+const FlowArrow: React.FC<{
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  opacity: number;
+  color: string;
+  label?: string;
+  curved?: boolean;
+}> = ({ x1, y1, x2, y2, opacity, color, label, curved = false }) => {
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const curveOffset = curved ? 30 : 0;
+
+  const path = curved
+    ? `M ${x1} ${y1} Q ${midX} ${midY - curveOffset} ${x2} ${y2}`
+    : `M ${x1} ${y1} L ${x2} ${y2}`;
+
+  // Calculate arrow head angle
+  const angle = Math.atan2(y2 - (curved ? midY - curveOffset : y1), x2 - (curved ? midX : x1));
+  const arrowLength = 10;
+  const arrowAngle = Math.PI / 6;
+
+  return (
+    <g style={{ opacity }}>
+      <defs>
+        <marker
+          id={`arrowhead-${color.replace('#', '')}`}
+          markerWidth="10"
+          markerHeight="7"
+          refX="9"
+          refY="3.5"
+          orient="auto"
+        >
+          <polygon points="0 0, 10 3.5, 0 7" fill={color} />
+        </marker>
+      </defs>
+      <path
+        d={path}
+        stroke={color}
+        strokeWidth={2}
+        fill="none"
+        markerEnd={`url(#arrowhead-${color.replace('#', '')})`}
+        style={{
+          strokeDasharray: curved ? "5,3" : "none",
+        }}
+      />
+      {label && (
+        <text
+          x={midX}
+          y={midY - (curved ? curveOffset + 10 : 15)}
+          fill={color}
+          fontSize={12}
+          fontFamily="JetBrains Mono, monospace"
+          textAnchor="middle"
+        >
+          {label}
+        </text>
+      )}
+    </g>
+  );
+};
+
+// Sample matrix values for visualization
+const Q_MATRIX = [
+  [0.7, 0.4, 0.9, 0.5],
+  [0.3, 0.8, 0.2, 0.6],
+  [0.5, 0.6, 0.7, 0.4],
+];
+
+const K_MATRIX = [
+  [0.5, 0.8, 0.3, 0.6],
+  [0.4, 0.7, 0.5, 0.8],
+  [0.6, 0.3, 0.9, 0.2],
+];
+
+const V_MATRIX = [
+  [0.6, 0.5, 0.7, 0.4],
+  [0.8, 0.3, 0.6, 0.5],
+  [0.4, 0.9, 0.3, 0.7],
+];
 
 export const AttentionScene: React.FC<AttentionSceneProps> = ({
   startFrame = 0,
@@ -48,9 +222,9 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
 
   // Phase timings
   const phase1End = fps * 4; // Show tokens
-  const phase2End = fps * 10; // Show Q, K, V vectors
-  const phase3End = fps * 18; // Show attention matrix
-  const phase4End = fps * 25; // Show weighted output
+  const phase2End = fps * 10; // Show Q, K, V tensors/matrices
+  const phase3End = fps * 18; // Show attention matrix with arrows
+  const phase4End = fps * 25; // Show weighted output with V
 
   // ===== PHASE 1: Introduce tokens =====
   const tokensOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
@@ -94,6 +268,28 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
   const outputProgress = interpolate(
     localFrame,
     [phase3End, phase4End],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  // Arrow animations
+  const qkArrowOpacity = interpolate(
+    matrixProgress,
+    [0.2, 0.5],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const attentionVArrowOpacity = interpolate(
+    outputProgress,
+    [0, 0.4],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const outputVectorOpacity = interpolate(
+    outputProgress,
+    [0.3, 0.7],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -144,12 +340,12 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          top: 130,
+          top: 110,
           left: 0,
           right: 0,
           display: "flex",
           justifyContent: "center",
-          gap: 60,
+          gap: 50,
           opacity: tokensOpacity,
         }}
       >
@@ -165,11 +361,11 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
             {/* Token box */}
             <div
               style={{
-                padding: "12px 24px",
+                padding: "10px 20px",
                 backgroundColor: COLORS.surface,
                 borderRadius: 8,
                 border: "2px solid #444",
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: 600,
                 color: COLORS.text,
                 fontFamily: "JetBrains Mono, monospace",
@@ -177,177 +373,151 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
             >
               {token}
             </div>
-
-            {/* Q, K, V vectors */}
-            <div
-              style={{
-                marginTop: 20,
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-              }}
-            >
-              {/* Query vector */}
-              <div
-                style={{
-                  opacity: qOpacity,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 24,
-                    backgroundColor: COLORS.query,
-                    borderRadius: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#000",
-                  }}
-                >
-                  Q
-                </div>
-                {/* Vector bars */}
-                <div style={{ display: "flex", gap: 2 }}>
-                  {[0.7, 0.4, 0.9, 0.5].map((h, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        width: 8,
-                        height: 24 * h,
-                        backgroundColor: COLORS.query + "80",
-                        borderRadius: 2,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Key vector */}
-              <div
-                style={{
-                  opacity: kOpacity,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 24,
-                    backgroundColor: COLORS.key,
-                    borderRadius: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#000",
-                  }}
-                >
-                  K
-                </div>
-                <div style={{ display: "flex", gap: 2 }}>
-                  {[0.5, 0.8, 0.3, 0.6].map((h, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        width: 8,
-                        height: 24 * h,
-                        backgroundColor: COLORS.key + "80",
-                        borderRadius: 2,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Value vector */}
-              <div
-                style={{
-                  opacity: vOpacity,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 24,
-                    backgroundColor: COLORS.value,
-                    borderRadius: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#000",
-                  }}
-                >
-                  V
-                </div>
-                <div style={{ display: "flex", gap: 2 }}>
-                  {[0.6, 0.5, 0.7, 0.4].map((h, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        width: 8,
-                        height: 24 * h,
-                        backgroundColor: COLORS.value + "80",
-                        borderRadius: 2,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         ))}
       </div>
+
+      {/* Q, K, V Tensor/Matrix Visualizations */}
+      <div
+        style={{
+          position: "absolute",
+          top: 180,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          gap: 80,
+          paddingLeft: 60,
+          paddingRight: 60,
+        }}
+      >
+        {/* Query Matrix */}
+        <TensorMatrix
+          label="Q"
+          fullLabel="Query"
+          color={COLORS.query}
+          opacity={qOpacity}
+          values={Q_MATRIX}
+          size="large"
+        />
+
+        {/* Key Matrix */}
+        <TensorMatrix
+          label="K"
+          fullLabel="Key"
+          color={COLORS.key}
+          opacity={kOpacity}
+          values={K_MATRIX}
+          size="large"
+        />
+
+        {/* Value Matrix */}
+        <TensorMatrix
+          label="V"
+          fullLabel="Value"
+          color={COLORS.value}
+          opacity={vOpacity}
+          values={V_MATRIX}
+          size="large"
+        />
+      </div>
+
+      {/* Computation Flow Arrows (SVG overlay) */}
+      <svg
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+        }}
+      >
+        {/* Arrow from Q and K to Attention Matrix */}
+        <FlowArrow
+          x1={480}
+          y1={320}
+          x2={600}
+          y2={420}
+          opacity={qkArrowOpacity}
+          color={COLORS.query}
+          curved
+        />
+        <FlowArrow
+          x1={680}
+          y1={320}
+          x2={620}
+          y2={420}
+          opacity={qkArrowOpacity}
+          color={COLORS.key}
+          curved
+        />
+
+        {/* Label for Q×K^T operation */}
+        {qkArrowOpacity > 0 && (
+          <text
+            x={580}
+            y={380}
+            fill={COLORS.text}
+            fontSize={14}
+            fontFamily="JetBrains Mono, monospace"
+            textAnchor="middle"
+            opacity={qkArrowOpacity}
+          >
+            Q × K<tspan baselineShift="super" fontSize={10}>T</tspan> / √d<tspan baselineShift="sub" fontSize={10}>k</tspan>
+          </text>
+        )}
+
+        {/* Arrow from Attention Matrix to V */}
+        <FlowArrow
+          x1={720}
+          y1={540}
+          x2={820}
+          y2={540}
+          opacity={attentionVArrowOpacity}
+          color={COLORS.attention}
+          label="weights"
+        />
+
+        {/* Arrow showing weighted output */}
+        <FlowArrow
+          x1={880}
+          y1={320}
+          x2={880}
+          y2={480}
+          opacity={attentionVArrowOpacity}
+          color={COLORS.value}
+        />
+      </svg>
 
       {/* Q, K, V explanations */}
       <div
         style={{
           position: "absolute",
-          top: 380,
+          top: 330,
           left: 100,
           right: 100,
           display: "flex",
-          justifyContent: "space-around",
+          justifyContent: "center",
+          gap: 100,
           opacity: interpolate(vectorsProgress, [0.3, 0.5], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }),
         }}
       >
-        <div style={{ textAlign: "center" }}>
-          <span style={{ color: COLORS.query, fontWeight: 700, fontSize: 20 }}>
-            Query
-          </span>
-          <div style={{ color: COLORS.textDim, fontSize: 16, marginTop: 4 }}>
+        <div style={{ textAlign: "center", opacity: qOpacity }}>
+          <div style={{ color: COLORS.textDim, fontSize: 14 }}>
             "What am I looking for?"
           </div>
         </div>
         <div style={{ textAlign: "center", opacity: kOpacity }}>
-          <span style={{ color: COLORS.key, fontWeight: 700, fontSize: 20 }}>
-            Key
-          </span>
-          <div style={{ color: COLORS.textDim, fontSize: 16, marginTop: 4 }}>
+          <div style={{ color: COLORS.textDim, fontSize: 14 }}>
             "What do I contain?"
           </div>
         </div>
         <div style={{ textAlign: "center", opacity: vOpacity }}>
-          <span style={{ color: COLORS.value, fontWeight: 700, fontSize: 20 }}>
-            Value
-          </span>
-          <div style={{ color: COLORS.textDim, fontSize: 16, marginTop: 4 }}>
+          <div style={{ color: COLORS.textDim, fontSize: 14 }}>
             "Here's my information"
           </div>
         </div>
@@ -357,7 +527,7 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          top: 480,
+          top: 400,
           left: "50%",
           transform: "translateX(-50%)",
           opacity: matrixProgress,
@@ -365,13 +535,13 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
       >
         <div
           style={{
-            fontSize: 18,
+            fontSize: 16,
             color: COLORS.textDim,
-            marginBottom: 16,
+            marginBottom: 12,
             textAlign: "center",
           }}
         >
-          Attention Matrix (Q × K<sup>T</sup>)
+          Attention Scores: softmax(Q × K<sup>T</sup> / √d<sub>k</sub>)
         </div>
 
         {/* Matrix grid */}
@@ -453,7 +623,7 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: 100,
+          bottom: 120,
           left: 0,
           right: 0,
           textAlign: "center",
@@ -472,21 +642,82 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
             padding: "16px 32px",
             borderRadius: 12,
             marginBottom: 16,
+            border: `1px solid ${COLORS.attention}40`,
           }}
         >
           <span
             style={{
-              fontSize: 24,
+              fontSize: 22,
               fontFamily: "JetBrains Mono, monospace",
               color: COLORS.text,
             }}
           >
-            Attention = softmax(
-            <span style={{ color: COLORS.query }}>Q</span> ×{" "}
+            Attention(<span style={{ color: COLORS.query }}>Q</span>,
+            <span style={{ color: COLORS.key }}>K</span>,
+            <span style={{ color: COLORS.value }}>V</span>) = softmax(
+            <span style={{ color: COLORS.query }}>Q</span>
             <span style={{ color: COLORS.key }}>K</span>
-            <sup>T</sup>) ×{" "}
+            <sup style={{ fontSize: 14 }}>T</sup>/√d<sub style={{ fontSize: 14 }}>k</sub>)
             <span style={{ color: COLORS.value }}>V</span>
           </span>
+        </div>
+      </div>
+
+      {/* Weighted Output visualization */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 160,
+          right: 120,
+          opacity: outputVectorOpacity,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 14,
+            color: COLORS.output,
+            fontWeight: 600,
+          }}
+        >
+          Weighted Output
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 3,
+            padding: "8px 12px",
+            backgroundColor: `${COLORS.output}20`,
+            borderRadius: 8,
+            border: `2px solid ${COLORS.output}`,
+          }}
+        >
+          {[0.65, 0.45, 0.72, 0.53].map((val, idx) => (
+            <div
+              key={idx}
+              style={{
+                width: 28,
+                height: 28,
+                backgroundColor: `${COLORS.output}${Math.floor(val * 99).toString(16).padStart(2, '0')}`,
+                borderRadius: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                fontWeight: 600,
+                color: val > 0.5 ? "#000" : COLORS.output,
+                fontFamily: "JetBrains Mono, monospace",
+              }}
+            >
+              {val.toFixed(1)}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: COLORS.textDim }}>
+          Σ(attention × V)
         </div>
       </div>
 
@@ -494,14 +725,14 @@ export const AttentionScene: React.FC<AttentionSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: 40,
+          bottom: 50,
           left: 0,
           right: 0,
           textAlign: "center",
           opacity: outputProgress,
         }}
       >
-        <span style={{ fontSize: 22, color: COLORS.text }}>
+        <span style={{ fontSize: 20, color: COLORS.text }}>
           Each token can "look at" every other token to understand context
         </span>
       </div>

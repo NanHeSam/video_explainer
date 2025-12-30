@@ -1,12 +1,11 @@
 /**
- * Scene 7: How KV Cache Works (Mechanics)
+ * Scene 7: The Attention Computation
  *
- * Technical details of the cache lookup operation:
- * 1. New token's Q vector is computed
- * 2. Q attends to ALL cached K vectors
- * 3. Attention weights computed via softmax(Q × K^T)
- * 4. Weighted sum of cached V vectors
- * 5. Result: contextualized representation without recomputation
+ * Now that we've seen how the cache grows, this scene focuses on
+ * the actual attention computation: Q × K^T → softmax → weighted V sum.
+ *
+ * This is a follow-up to the step-by-step cache example, showing
+ * how the cached K,V pairs are actually used in the attention formula.
  */
 
 import React from "react";
@@ -31,6 +30,7 @@ const COLORS = {
   textDim: "#888888",
   surface: "#1a1a2e",
   attention: "#f1c40f",
+  success: "#2ecc71",
 };
 
 export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
@@ -41,48 +41,41 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
   const localFrame = frame - startFrame;
 
   // Phase timings
-  const phase1End = fps * 4; // Show new token and Q
-  const phase2End = fps * 9; // Q queries K cache
-  const phase3End = fps * 14; // Attention weights
-  const phase4End = fps * 18; // V lookup
-  const phase5End = fps * 20; // Result
+  const phase1End = fps * 5; // Show formula components
+  const phase2End = fps * 10; // Q × K^T step
+  const phase3End = fps * 14; // softmax step
+  const phase4End = fps * 18; // × V step
 
-  // Animation progress
-  const qProgress = interpolate(localFrame, [0, phase1End], [0, 1], {
+  // Animation progress for each phase
+  const formulaProgress = interpolate(localFrame, [0, phase1End], [0, 1], {
     extrapolateRight: "clamp",
   });
 
-  const queryProgress = interpolate(
+  const dotProductProgress = interpolate(
     localFrame,
     [phase1End, phase2End],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const attentionProgress = interpolate(
+  const softmaxProgress = interpolate(
     localFrame,
     [phase2End, phase3End],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const vLookupProgress = interpolate(
+  const weightedSumProgress = interpolate(
     localFrame,
     [phase3End, phase4End],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const resultProgress = interpolate(
-    localFrame,
-    [phase4End, phase5End],
-    [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
-
-  // Simulated attention weights
-  const attentionWeights = [0.35, 0.25, 0.15, 0.25];
-  const cachedTokens = ["The", "cat", "sat", "on"];
+  // Simulated attention computation
+  const cachedTokens = ["The", "cat", "sat"];
+  const dotProducts = [2.1, 1.4, 0.8]; // Raw scores
+  const attentionWeights = [0.52, 0.31, 0.17]; // After softmax
 
   return (
     <AbsoluteFill
@@ -99,7 +92,7 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
           left: 0,
           right: 0,
           textAlign: "center",
-          opacity: qProgress,
+          opacity: formulaProgress,
         }}
       >
         <h1
@@ -110,69 +103,117 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
             margin: 0,
           }}
         >
-          How KV Cache Works
+          The Attention Computation
         </h1>
       </div>
 
-      {/* Main diagram */}
+      {/* Main formula at top */}
       <div
         style={{
           position: "absolute",
-          top: 120,
-          left: 80,
-          right: 80,
-          bottom: 100,
+          top: 110,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          opacity: formulaProgress,
         }}
       >
-        {/* New token section */}
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            top: 40,
-            width: 200,
-            opacity: qProgress,
+            display: "inline-block",
+            backgroundColor: COLORS.surface,
+            borderRadius: 16,
+            padding: "16px 40px",
+            border: `2px solid ${COLORS.text}30`,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 28,
+              fontFamily: "JetBrains Mono",
+              color: COLORS.text,
+            }}
+          >
+            Output = softmax(
+            <span style={{
+              color: COLORS.query,
+              textDecoration: dotProductProgress > 0.5 ? "underline" : "none",
+              textDecorationColor: COLORS.query,
+            }}>Q</span>
+            {" × "}
+            <span style={{
+              color: COLORS.key,
+              textDecoration: dotProductProgress > 0.5 ? "underline" : "none",
+              textDecorationColor: COLORS.key,
+            }}>K<sup>T</sup></span>
+            ) ×{" "}
+            <span style={{
+              color: COLORS.value,
+              textDecoration: weightedSumProgress > 0.5 ? "underline" : "none",
+              textDecorationColor: COLORS.value,
+            }}>V</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Visual breakdown */}
+      <div
+        style={{
+          position: "absolute",
+          top: 200,
+          left: 60,
+          right: 60,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 20,
+        }}
+      >
+        {/* Step 1: Q vector */}
+        <div
+          style={{
+            flex: 1,
+            opacity: formulaProgress,
           }}
         >
           <div
             style={{
               fontSize: 16,
-              color: COLORS.textDim,
+              color: COLORS.query,
+              fontWeight: 600,
               marginBottom: 12,
               textAlign: "center",
             }}
           >
-            New Token
+            New Token's Query
           </div>
           <div
             style={{
               backgroundColor: COLORS.surface,
               borderRadius: 12,
-              padding: 20,
+              padding: 16,
               border: `2px solid ${COLORS.query}`,
               textAlign: "center",
             }}
           >
             <div
               style={{
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: 700,
                 color: COLORS.query,
-                marginBottom: 16,
+                marginBottom: 12,
               }}
             >
-              "the"
+              "on"
             </div>
-
-            {/* Q vector */}
             <div
               style={{
                 backgroundColor: COLORS.query + "30",
                 borderRadius: 8,
-                padding: "12px 16px",
+                padding: "10px 16px",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                justifyContent: "center",
+                gap: 6,
               }}
             >
               <span
@@ -184,13 +225,13 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
               >
                 Q
               </span>
-              <div style={{ display: "flex", gap: 4 }}>
-                {[0.8, 0.3, 0.9, 0.5].map((h, i) => (
+              <div style={{ display: "flex", gap: 3 }}>
+                {[0.7, 0.4, 0.9, 0.5].map((h, i) => (
                   <div
                     key={i}
                     style={{
-                      width: 12,
-                      height: 40 * h,
+                      width: 10,
+                      height: 36 * h,
                       backgroundColor: COLORS.query,
                       borderRadius: 2,
                     }}
@@ -201,60 +242,11 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
           </div>
         </div>
 
-        {/* Query arrow */}
-        <svg
-          style={{
-            position: "absolute",
-            left: 200,
-            top: 140,
-            width: 150,
-            height: 60,
-            opacity: queryProgress,
-          }}
-        >
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill={COLORS.query}
-              />
-            </marker>
-          </defs>
-          <line
-            x1="10"
-            y1="30"
-            x2="130"
-            y2="30"
-            stroke={COLORS.query}
-            strokeWidth="3"
-            markerEnd="url(#arrowhead)"
-            strokeDasharray={queryProgress < 1 ? "10,5" : "none"}
-          />
-          <text
-            x="70"
-            y="20"
-            fill={COLORS.query}
-            fontSize="14"
-            textAnchor="middle"
-          >
-            queries
-          </text>
-        </svg>
-
-        {/* K Cache */}
+        {/* Step 2: Dot product with K cache */}
         <div
           style={{
-            position: "absolute",
-            left: 350,
-            top: 0,
-            width: 280,
+            flex: 1.5,
+            opacity: dotProductProgress,
           }}
         >
           <div
@@ -266,7 +258,7 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
               textAlign: "center",
             }}
           >
-            K Cache (Keys)
+            Q × K<sup>T</sup> (Dot Products)
           </div>
           <div
             style={{
@@ -277,7 +269,7 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
             }}
           >
             {cachedTokens.map((token, i) => {
-              const isHighlighted = queryProgress > (i + 1) / cachedTokens.length;
+              const animatedScore = dotProducts[i] * dotProductProgress;
               return (
                 <div
                   key={i}
@@ -285,13 +277,10 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
-                    marginBottom: i < cachedTokens.length - 1 ? 8 : 0,
+                    marginBottom: i < cachedTokens.length - 1 ? 10 : 0,
                     padding: 8,
-                    backgroundColor: isHighlighted
-                      ? COLORS.key + "20"
-                      : "transparent",
+                    backgroundColor: COLORS.key + "15",
                     borderRadius: 6,
-                    transition: "background-color 0.3s",
                   }}
                 >
                   <span
@@ -303,41 +292,57 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
                   >
                     {token}
                   </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: COLORS.key,
+                      fontFamily: "JetBrains Mono",
+                      fontWeight: 600,
+                      width: 30,
+                    }}
+                  >
+                    K{i + 1}
+                  </span>
                   <div
                     style={{
                       flex: 1,
-                      height: 20,
-                      backgroundColor: COLORS.key + "60",
+                      height: 16,
+                      backgroundColor: "#333",
                       borderRadius: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      paddingLeft: 8,
+                      overflow: "hidden",
                     }}
                   >
-                    <span
+                    <div
                       style={{
-                        fontSize: 12,
-                        color: COLORS.key,
-                        fontFamily: "JetBrains Mono",
+                        width: `${(animatedScore / 3) * 100}%`,
+                        height: "100%",
+                        backgroundColor: COLORS.key,
+                        borderRadius: 4,
                       }}
-                    >
-                      K{i + 1}
-                    </span>
+                    />
                   </div>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: COLORS.key,
+                      fontFamily: "JetBrains Mono",
+                      width: 40,
+                      textAlign: "right",
+                    }}
+                  >
+                    {animatedScore.toFixed(1)}
+                  </span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Attention weights */}
+        {/* Step 3: Softmax */}
         <div
           style={{
-            position: "absolute",
-            left: 650,
-            top: 0,
-            width: 150,
-            opacity: attentionProgress,
+            flex: 1,
+            opacity: softmaxProgress,
           }}
         >
           <div
@@ -349,7 +354,7 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
               textAlign: "center",
             }}
           >
-            Attention
+            softmax → Weights
           </div>
           <div
             style={{
@@ -359,58 +364,67 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
               border: `2px solid ${COLORS.attention}`,
             }}
           >
-            {attentionWeights.map((weight, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: i < attentionWeights.length - 1 ? 8 : 0,
-                }}
-              >
+            {cachedTokens.map((token, i) => {
+              const weight = attentionWeights[i] * softmaxProgress;
+              return (
                 <div
+                  key={i}
                   style={{
-                    flex: 1,
-                    height: 20,
-                    backgroundColor: "#333",
-                    borderRadius: 4,
-                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: i < cachedTokens.length - 1 ? 10 : 0,
                   }}
                 >
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: COLORS.textDim,
+                      width: 36,
+                    }}
+                  >
+                    {token}
+                  </span>
                   <div
                     style={{
-                      width: `${weight * 100 * attentionProgress}%`,
-                      height: "100%",
-                      backgroundColor: COLORS.attention,
+                      flex: 1,
+                      height: 18,
+                      backgroundColor: "#333",
                       borderRadius: 4,
+                      overflow: "hidden",
                     }}
-                  />
+                  >
+                    <div
+                      style={{
+                        width: `${weight * 100}%`,
+                        height: "100%",
+                        backgroundColor: COLORS.attention,
+                        borderRadius: 4,
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      color: COLORS.attention,
+                      fontFamily: "JetBrains Mono",
+                      width: 45,
+                      textAlign: "right",
+                    }}
+                  >
+                    {(weight * 100).toFixed(0)}%
+                  </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: 14,
-                    color: COLORS.attention,
-                    fontFamily: "JetBrains Mono",
-                    width: 45,
-                    textAlign: "right",
-                  }}
-                >
-                  {Math.round(weight * 100)}%
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* V Cache */}
+        {/* Step 4: Weighted sum of V */}
         <div
           style={{
-            position: "absolute",
-            left: 350,
-            top: 280,
-            width: 280,
-            opacity: vLookupProgress,
+            flex: 1.2,
+            opacity: weightedSumProgress,
           }}
         >
           <div
@@ -422,7 +436,7 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
               textAlign: "center",
             }}
           >
-            V Cache (Values)
+            × V (Weighted Sum)
           </div>
           <div
             style={{
@@ -440,151 +454,106 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
-                    marginBottom: i < cachedTokens.length - 1 ? 8 : 0,
+                    gap: 8,
+                    marginBottom: i < cachedTokens.length - 1 ? 10 : 0,
                     padding: 8,
-                    backgroundColor: `rgba(0, 255, 136, ${weight * 0.3})`,
+                    backgroundColor: `rgba(0, 255, 136, ${weight * 0.4 * weightedSumProgress})`,
                     borderRadius: 6,
                   }}
                 >
                   <span
                     style={{
                       fontSize: 14,
-                      color: COLORS.textDim,
-                      width: 40,
+                      color: COLORS.value,
+                      fontFamily: "JetBrains Mono",
+                      fontWeight: 600,
                     }}
                   >
-                    {token}
+                    V{i + 1}
                   </span>
-                  <div
+                  <span
                     style={{
-                      flex: 1,
-                      height: 20,
-                      backgroundColor: COLORS.value + "60",
-                      borderRadius: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      paddingLeft: 8,
+                      fontSize: 13,
+                      color: COLORS.textDim,
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: COLORS.value,
-                        fontFamily: "JetBrains Mono",
-                      }}
-                    >
-                      V{i + 1} × {Math.round(weight * 100)}%
-                    </span>
-                  </div>
+                    × {(weight * 100).toFixed(0)}%
+                  </span>
                 </div>
               );
             })}
-          </div>
-        </div>
 
-        {/* Result */}
-        <div
-          style={{
-            position: "absolute",
-            right: 80,
-            top: 200,
-            width: 200,
-            opacity: resultProgress,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 16,
-              color: COLORS.text,
-              fontWeight: 600,
-              marginBottom: 12,
-              textAlign: "center",
-            }}
-          >
-            Output
-          </div>
-          <div
-            style={{
-              backgroundColor: COLORS.surface,
-              borderRadius: 12,
-              padding: 20,
-              border: `2px solid ${COLORS.text}`,
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 14,
-                color: COLORS.textDim,
-                marginBottom: 8,
-              }}
-            >
-              Weighted sum of V's
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 4,
-              }}
-            >
-              {[0.7, 0.5, 0.8, 0.6].map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 16,
-                    height: 50 * h,
-                    background: `linear-gradient(to top, ${COLORS.value}, ${COLORS.query})`,
-                    borderRadius: 3,
-                  }}
-                />
-              ))}
-            </div>
+            {/* Result */}
             <div
               style={{
                 marginTop: 12,
-                fontSize: 12,
-                color: COLORS.textDim,
+                paddingTop: 12,
+                borderTop: `1px solid ${COLORS.value}40`,
+                textAlign: "center",
               }}
             >
-              Contextualized "the"
+              <div
+                style={{
+                  fontSize: 14,
+                  color: COLORS.textDim,
+                  marginBottom: 6,
+                }}
+              >
+                = Output
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 3,
+                }}
+              >
+                {[0.65, 0.45, 0.8, 0.55].map((h, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 12,
+                      height: 40 * h * weightedSumProgress,
+                      background: `linear-gradient(to top, ${COLORS.value}, ${COLORS.query})`,
+                      borderRadius: 2,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Formula */}
+      {/* Summary at bottom */}
       <div
         style={{
           position: "absolute",
-          bottom: 80,
+          bottom: 100,
           left: 0,
           right: 0,
           textAlign: "center",
-          opacity: attentionProgress,
+          opacity: weightedSumProgress,
         }}
       >
         <div
           style={{
             display: "inline-block",
-            backgroundColor: COLORS.surface,
+            backgroundColor: COLORS.success + "15",
+            border: `2px solid ${COLORS.success}`,
             borderRadius: 12,
-            padding: "12px 32px",
+            padding: "14px 28px",
           }}
         >
           <span
             style={{
-              fontSize: 20,
-              fontFamily: "JetBrains Mono",
+              fontSize: 22,
               color: COLORS.text,
             }}
           >
-            Output = softmax(
-            <span style={{ color: COLORS.query }}>Q</span> ×{" "}
-            <span style={{ color: COLORS.key }}>K<sub>cache</sub></span>
-            <sup>T</sup>) ×{" "}
-            <span style={{ color: COLORS.value }}>V<sub>cache</sub></span>
+            Each new token only computes <span style={{ color: COLORS.query, fontWeight: 600 }}>one Q</span>.
+            {" "}All <span style={{ color: COLORS.key, fontWeight: 600 }}>K</span>s and{" "}
+            <span style={{ color: COLORS.value, fontWeight: 600 }}>V</span>s come from the cache.
           </span>
         </div>
       </div>
@@ -593,16 +562,16 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: 30,
+          bottom: 40,
           left: 0,
           right: 0,
           textAlign: "center",
-          opacity: resultProgress,
+          opacity: weightedSumProgress,
         }}
       >
-        <span style={{ fontSize: 20, color: COLORS.textDim }}>
+        <span style={{ fontSize: 18, color: COLORS.textDim }}>
           Cache lookup is{" "}
-          <span style={{ color: COLORS.value, fontWeight: 600 }}>
+          <span style={{ color: COLORS.success, fontWeight: 600 }}>
             essentially free
           </span>{" "}
           — just matrix multiplies against tensors already in memory

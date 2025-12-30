@@ -45,20 +45,20 @@
     {
       "scene_id": "scene8_kvcache",
       "title": "The KV Cache Solution",
-      "duration_seconds": 22,
-      "narration": "The first solution is elegant: the KV Cache. Compute each Key and Value exactly once, then store them. When generating the next token, just look up what you've already computed. No redundant calculations. No wasted work. We trade memory for speed. Compute once, remember forever. This transforms O n squared into O n."
+      "duration_seconds": 26,
+      "narration": "Watch what happens with the KV cache. Token one generates Key-one and Value-one. These go straight into the cache. Now token two arrives. It generates Key-two and Value-two, but for attention, it reuses Key-one and Value-one from the cache. No recalculation. Token three? It reuses everything—Key-one, Value-one, Key-two, Value-two—all from the cache. Each token adds one new pair. The cache grows, but the work per token stays constant."
     },
     {
       "scene_id": "scene9_mechanics",
-      "title": "How KV Cache Works",
+      "title": "The Attention Computation",
       "duration_seconds": 18,
-      "narration": "Here's how it works in practice. The new token's Query looks up against the cached Keys. This gives us attention weights. Those weights select from cached Values. The result? Same output, fraction of the compute. Each new token only needs one new Key-Value pair added to the cache."
+      "narration": "Here's the math behind it. The new token's Query multiplies against all cached Keys. Softmax turns those into attention weights. Then we take a weighted sum of cached Values. The result? Same output as recomputing everything, but at a fraction of the cost. Just matrix multiplies against tensors already in memory."
     },
     {
       "scene_id": "scene10_continuous_batching",
       "title": "Continuous Batching",
       "duration_seconds": 25,
-      "narration": "The second solution: continuous batching. Instead of waiting for all requests to finish, we make scheduling decisions at every decode step. When a short request finishes, immediately fill its slot with a waiting request. Long requests don't block anyone. The GPU stays at maximum utilization. Every slot is always doing useful work."
+      "narration": "The second solution: continuous batching. First, what's a slot? A slot is a fixed memory allocation for one sequence in the GPU batch. Here we have four slots in our GPU. Watch what happens when Sequence A finishes. Its slot becomes available immediately, and a new sequence enters right away. This is the key innovation. Static batching waits for ALL sequences to finish before accepting new ones. Continuous batching fills empty slots immediately. New sequences enter available slots while others are still processing. The GPU stays at maximum utilization."
     },
     {
       "scene_id": "scene11_paged_attention",

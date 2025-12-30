@@ -2,7 +2,7 @@
  * LLM Inference Full Video
  *
  * Complete ~3 minute explainer video about LLM inference optimization.
- * Sequences all 8 scenes with transitions.
+ * Sequences all 9 scenes with transitions.
  *
  * Scene order:
  * 1. Hook - The dramatic speed difference (15s)
@@ -10,11 +10,12 @@
  * 3. Bottleneck - Memory bandwidth problem (25s)
  * 4. Attention - Understanding Q, K, V (25s)
  * 5. Redundancy - The O(n²) waste (25s)
- * 6. KV Cache - The solution (25s)
- * 7. Mechanics - How cache lookup works (20s)
- * 8. Impact - Real-world results (25s)
+ * 6. Static Batching - GPU waste from padding (23s)
+ * 7. KV Cache - The solution (25s)
+ * 8. Mechanics - How cache lookup works (20s)
+ * 9. Impact - Real-world results (25s)
  *
- * Total: 180 seconds = 3 minutes
+ * Total: 203 seconds = ~3.4 minutes
  */
 
 import React from "react";
@@ -31,9 +32,11 @@ import { Scene2Phases } from "./Scene2Phases";
 import { Scene3Bottleneck } from "./Scene3Bottleneck";
 import { Scene4Attention } from "./Scene4Attention";
 import { Scene5Redundancy } from "./Scene5Redundancy";
+import { Scene6StaticBatching } from "./Scene6StaticBatching";
 import { Scene6KVCache } from "./Scene6KVCache";
 import { Scene7Mechanics } from "./Scene7Mechanics";
 import { Scene8Impact } from "./Scene8Impact";
+import { Scene10ContinuousBatching } from "./Scene10ContinuousBatching";
 
 // Scene configuration with durations in seconds
 const SCENES = [
@@ -42,9 +45,11 @@ const SCENES = [
   { id: "bottleneck", component: Scene3Bottleneck, durationSeconds: 25 },
   { id: "attention", component: Scene4Attention, durationSeconds: 25 },
   { id: "redundancy", component: Scene5Redundancy, durationSeconds: 25 },
+  { id: "static_batching", component: Scene6StaticBatching, durationSeconds: 23 },
   { id: "kvcache", component: Scene6KVCache, durationSeconds: 25 },
   { id: "mechanics", component: Scene7Mechanics, durationSeconds: 20 },
   { id: "impact", component: Scene8Impact, durationSeconds: 25 },
+  { id: "continuous_batching", component: Scene10ContinuousBatching, durationSeconds: 23 },
 ] as const;
 
 // Transition duration in seconds

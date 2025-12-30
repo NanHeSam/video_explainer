@@ -55,7 +55,10 @@ class TestBuildCommand:
     def test_basic_command(self, provider):
         """Test basic command without system prompt or tools."""
         cmd = provider._build_command("Hello world", tools=[])
-        assert cmd == ["claude", "--print", "-p", "Hello world"]
+        assert cmd == [
+            "claude", "--print", "-p", "Hello world",
+            "--model", "claude-sonnet-4-20250514",
+        ]
 
     def test_command_with_system_prompt(self, provider):
         """Test command with system prompt."""
@@ -66,6 +69,7 @@ class TestBuildCommand:
         )
         assert cmd == [
             "claude", "--print", "-p", "Hello world",
+            "--model", "claude-sonnet-4-20250514",
             "--system-prompt", "You are helpful.",
         ]
 
@@ -320,11 +324,23 @@ class TestGenerateWithFileAccess:
     @patch("subprocess.run")
     def test_write_access(self, mock_run, provider):
         """Test file access with write mode."""
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="Wrote src/file.py successfully",
-            stderr="",
-        )
+        # Mock returns different results for different commands
+        def mock_subprocess(cmd, *args, **kwargs):
+            if cmd[0] == "git":
+                # Git diff returns modified file
+                return MagicMock(
+                    returncode=0,
+                    stdout="src/file.py\n",
+                    stderr="",
+                )
+            else:
+                # Claude command response
+                return MagicMock(
+                    returncode=0,
+                    stdout="Wrote src/file.py successfully",
+                    stderr="",
+                )
+        mock_run.side_effect = mock_subprocess
 
         result = provider.generate_with_file_access(
             "Modify files",
@@ -334,7 +350,10 @@ class TestGenerateWithFileAccess:
         assert result.success
         assert "src/file.py" in result.modified_files
 
-        call_args = mock_run.call_args[0][0]
+        # Find the claude call (not the git call)
+        claude_calls = [c for c in mock_run.call_args_list if c[0][0][0] == "claude"]
+        assert len(claude_calls) > 0
+        call_args = claude_calls[0][0][0]
         tools_idx = call_args.index("--allowedTools") + 1
         tools = call_args[tools_idx]
         assert "Write" in tools

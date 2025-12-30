@@ -21,7 +21,7 @@ import {
   useVideoConfig,
 } from "remotion";
 
-interface StaticBatchingSceneProps {
+interface Scene6StaticBatchingProps {
   startFrame?: number;
 }
 
@@ -89,7 +89,7 @@ const SLOT_WIDTH = 44;
 const SLOT_HEIGHT = 36;
 const SLOT_GAP = 4;
 
-export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
+export const Scene6StaticBatching: React.FC<Scene6StaticBatchingProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
@@ -664,4 +664,4 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
   );
 };
 
-export default StaticBatchingScene;
+export default Scene6StaticBatching;

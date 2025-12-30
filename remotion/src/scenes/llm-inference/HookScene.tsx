@@ -40,7 +40,17 @@ const COLORS = {
 const PROMPT = "Explain how transformers work";
 const RESPONSE_TOKENS = [
   "Transformers", "are", "neural", "networks", "that", "use",
-  "attention", "mechanisms", "to", "process", "sequences", "in", "parallel",
+  "attention", "mechanisms", "to", "process", "sequences", "in", "parallel,",
+  "enabling", "much", "faster", "training", "and", "inference", "compared",
+  "to", "recurrent", "neural", "networks.", "The", "key", "innovation",
+  "is", "the", "self-attention", "mechanism,", "which", "allows", "each",
+  "token", "to", "attend", "to", "every", "other", "token", "in", "the",
+  "sequence.", "This", "parallel", "processing", "capability", "makes",
+  "transformers", "ideal", "for", "modern", "hardware", "like", "GPUs",
+  "and", "TPUs,", "enabling", "massive", "speedups", "in", "both",
+  "training", "and", "inference", "workloads.", "Combined", "with",
+  "techniques", "like", "KV", "caching,", "batching,", "and", "quantization,",
+  "modern", "LLMs", "can", "achieve", "remarkable", "throughput.",
 ];
 
 export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
@@ -66,7 +76,7 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
   const slowTokenCount = Math.min(
     RESPONSE_TOKENS.length,
     Math.floor(
-      interpolate(localFrame, [phase1End, phase2End], [0, 6], {
+      interpolate(localFrame, [phase1End, phase2End], [0, 12], {
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
       })

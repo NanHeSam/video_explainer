@@ -18,9 +18,11 @@ export { Scene2Phases } from "./Scene2Phases";
 export { Scene3Bottleneck } from "./Scene3Bottleneck";
 export { Scene4Attention } from "./Scene4Attention";
 export { Scene5Redundancy } from "./Scene5Redundancy";
+export { Scene6StaticBatching } from "./Scene6StaticBatching";
 export { Scene6KVCache } from "./Scene6KVCache";
 export { Scene7Mechanics } from "./Scene7Mechanics";
 export { Scene8Impact } from "./Scene8Impact";
+export { Scene10ContinuousBatching } from "./Scene10ContinuousBatching";
 
 // Scene metadata for composition
 export const LLM_INFERENCE_SCENES = {
@@ -50,18 +52,28 @@ export const LLM_INFERENCE_SCENES = {
     durationSeconds: 25,
   },
   scene6: {
-    id: "Scene6KVCache",
+    id: "Scene6StaticBatching",
+    title: "The Static Batching Problem",
+    durationSeconds: 23,
+  },
+  scene7: {
+    id: "Scene7KVCache",
     title: "The KV Cache Solution",
     durationSeconds: 25,
   },
-  scene7: {
-    id: "Scene7Mechanics",
+  scene8: {
+    id: "Scene8Mechanics",
     title: "How KV Cache Works",
     durationSeconds: 20,
   },
-  scene8: {
-    id: "Scene8Impact",
+  scene9: {
+    id: "Scene9Impact",
     title: "The Impact",
     durationSeconds: 25,
+  },
+  scene10: {
+    id: "Scene10ContinuousBatching",
+    title: "Continuous Batching",
+    durationSeconds: 23,
   },
 } as const;

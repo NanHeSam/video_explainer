@@ -39,12 +39,12 @@ class FeedbackProcessor:
         self.create_branch = create_branch
         self.store = FeedbackStore(project.root_dir, project.id)
 
-        # Initialize Claude Code provider with project directory
-        llm_config = LLMConfig(provider="claude-code", model="claude-sonnet-4-20250514")
+        # Initialize Claude Code provider with project directory (using Opus 4.5 for best quality)
+        llm_config = LLMConfig(provider="claude-code", model="claude-opus-4-5-20251101")
         self.llm = ClaudeCodeLLMProvider(
             llm_config,
             working_dir=project.root_dir,
-            timeout=300,  # 5 minutes for complex changes
+            timeout=600,  # 10 minutes for complex changes with Opus
         )
 
     def process_feedback(self, feedback_text: str) -> FeedbackItem:

@@ -369,6 +369,7 @@ export const Scene3Bottleneck: React.FC<Scene3BottleneckProps> = ({
             alignItems: "center",
             padding: 24,
             boxShadow: `0 0 30px ${COLORS.memory}30`,
+            overflow: "hidden",
           }}
         >
           <div

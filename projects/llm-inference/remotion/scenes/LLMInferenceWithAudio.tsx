@@ -21,9 +21,11 @@ import { Scene2Phases } from "./Scene2Phases";
 import { Scene3Bottleneck } from "./Scene3Bottleneck";
 import { Scene4Attention } from "./Scene4Attention";
 import { Scene5Redundancy } from "./Scene5Redundancy";
+import { Scene6StaticBatching } from "./Scene6StaticBatching";
 import { Scene6KVCache } from "./Scene6KVCache";
 import { Scene7Mechanics } from "./Scene7Mechanics";
 import { Scene8Impact } from "./Scene8Impact";
+import { Scene10ContinuousBatching } from "./Scene10ContinuousBatching";
 
 // Scene configuration with audio durations (from voiceover manifest)
 // These are the actual audio durations - we add a small buffer for transitions
@@ -59,6 +61,12 @@ const SCENES_WITH_AUDIO = [
     audioDuration: 29.62,
   },
   {
+    id: "static_batching",
+    component: Scene6StaticBatching,
+    audioFile: "voiceover/scene6_static_batching.mp3",
+    audioDuration: 23.48,
+  },
+  {
     id: "kvcache",
     component: Scene6KVCache,
     audioFile: "voiceover/scene6_kvcache.mp3",
@@ -75,6 +83,12 @@ const SCENES_WITH_AUDIO = [
     component: Scene8Impact,
     audioFile: "voiceover/scene8_impact.mp3",
     audioDuration: 31.30,
+  },
+  {
+    id: "continuous_batching",
+    component: Scene10ContinuousBatching,
+    audioFile: "voiceover/scene10_continuous_batching.mp3",
+    audioDuration: 23.00,
   },
 ] as const;
 

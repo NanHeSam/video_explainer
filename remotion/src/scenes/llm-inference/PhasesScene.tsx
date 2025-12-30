@@ -59,11 +59,11 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  // GPU utilization during prefill
+  // GPU utilization during prefill (90% realistic max - not quite 100%)
   const prefillGPU = interpolate(
     localFrame,
     [phase1End, phase1End + fps],
-    [10, 100],
+    [10, 90],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
@@ -82,11 +82,11 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
     )
   );
 
-  // GPU utilization during decode (drops significantly)
+  // GPU utilization during decode (drops significantly from 90% to 15%)
   const decodeGPU = interpolate(
     localFrame,
     [phase3End, phase3End + fps],
-    [100, 15],
+    [90, 15],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
@@ -197,41 +197,88 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
             </div>
           </div>
 
-          {/* Input tokens */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 12,
-              marginBottom: 32,
-            }}
-          >
-            {INPUT_TOKENS.map((token, i) => {
-              const isActive = prefillProgress > 0;
-              return (
+          {/* Input tokens with parallel processing visualization */}
+          <div style={{ position: "relative" }}>
+            {/* Parallel processing indicator - all tokens connected */}
+            {prefillProgress > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: -30,
+                  left: 0,
+                  right: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
                 <div
-                  key={i}
                   style={{
-                    padding: "12px 20px",
-                    backgroundColor: isActive
-                      ? COLORS.prefill + "30"
-                      : COLORS.surface,
-                    border: `2px solid ${isActive ? COLORS.prefill : "#444"}`,
-                    borderRadius: 8,
-                    fontSize: 18,
-                    fontWeight: 500,
-                    color: isActive ? COLORS.prefill : COLORS.text,
-                    transform: isActive ? "scale(1.05)" : "scale(1)",
-                    transition: "all 0.2s",
-                    boxShadow: isActive
-                      ? `0 0 20px ${COLORS.prefill}40`
-                      : "none",
+                    height: 2,
+                    flex: 1,
+                    background: `linear-gradient(90deg, transparent, ${COLORS.prefill}, transparent)`,
+                    opacity: 0.8,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: COLORS.prefill,
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {token}
-                </div>
-              );
-            })}
+                  ALL AT ONCE
+                </span>
+                <div
+                  style={{
+                    height: 2,
+                    flex: 1,
+                    background: `linear-gradient(90deg, transparent, ${COLORS.prefill}, transparent)`,
+                    opacity: 0.8,
+                  }}
+                />
+              </div>
+            )}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 32,
+                marginTop: prefillProgress > 0 ? 8 : 0,
+              }}
+            >
+              {INPUT_TOKENS.map((token, i) => {
+                const isActive = prefillProgress > 0;
+                // Pulsing effect to show parallel processing
+                const pulseOffset = Math.sin(localFrame * 0.15) * 0.1;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "12px 20px",
+                      backgroundColor: isActive
+                        ? COLORS.prefill + "30"
+                        : COLORS.surface,
+                      border: `2px solid ${isActive ? COLORS.prefill : "#444"}`,
+                      borderRadius: 8,
+                      fontSize: 18,
+                      fontWeight: 500,
+                      color: isActive ? COLORS.prefill : COLORS.text,
+                      transform: isActive ? `scale(${1.05 + pulseOffset})` : "scale(1)",
+                      transition: "all 0.2s",
+                      boxShadow: isActive
+                        ? `0 0 20px ${COLORS.prefill}60, 0 0 40px ${COLORS.prefill}30`
+                        : "none",
+                    }}
+                  >
+                    {token}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Prefill description */}

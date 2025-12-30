@@ -1,0 +1,327 @@
+{
+  "project_id": "llm-inference",
+  "items": [
+    {
+      "id": "fb_0001_1767117484",
+      "timestamp": "2025-12-30T09:58:04.614498",
+      "feedback_text": "In the first scene (scene_01_hook), the generated text length animation is too small. We need to make the text longer to better illustrate the increase in generation speed over time.",
+      "status": "pending",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene1_hook"
+      ],
+      "interpretation": "The user wants to increase the length of the generated text animation in Scene 1 (Hook scene). Currently, the RESPONSE_TOKENS array contains only 13 tokens ('Transformers are neural networks that use attention mechanisms to process sequences in parallel'). The user wants more tokens/text to be displayed during the generation animation to better demonstrate the speed difference between naive (40 tok/s) and optimized (3,500 tok/s) approaches.",
+      "suggested_changes": {
+        "description": "Expand the RESPONSE_TOKENS array in Scene1Hook.tsx to include a longer text response. This will make the text generation animation more visually impactful and better illustrate the dramatic speed increase over time.",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+            "action": "modify",
+            "what": "Expand the RESPONSE_TOKENS array (line 41-44) to include significantly more tokens. For example, extend from 13 tokens to 30-40 tokens with a more complete explanation like 'Transformers are neural networks that revolutionized natural language processing. They use self-attention mechanisms to process entire sequences in parallel, allowing them to capture long-range dependencies efficiently. Unlike recurrent networks, transformers can attend to all positions simultaneously.'"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+            "action": "modify",
+            "what": "Potentially adjust phase2End timing (line 53) if the slow token animation needs more time to display additional tokens, and update the slow token interpolation range (line 69) from [0, 6] to accommodate showing more tokens during the slow demonstration phase"
+          }
+        ]
+      },
+      "files_modified": [],
+      "preview_branch": null,
+      "error_message": null
+    },
+    {
+      "id": "fb_0002_1767117547",
+      "timestamp": "2025-12-30T09:59:07.394891",
+      "feedback_text": "In the first scene (scene_01_hook), the generated text length animation is too small. We need to make the text longer to better illustrate the increase in generation speed over time.",
+      "status": "failed",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene1_hook"
+      ],
+      "interpretation": "The user wants to make the text animation longer in Scene 1 (Hook) to better demonstrate the generation speed differences between naive (slow) and optimized (fast) approaches. Currently, the RESPONSE_TOKENS array contains only 13 tokens ('Transformers are neural networks that use attention mechanisms to process sequences in parallel'), which is too short to effectively illustrate the dramatic 40 tok/s \u2192 3,500 tok/s speed difference.",
+      "suggested_changes": {
+        "description": "Extend the RESPONSE_TOKENS array with more tokens to make the text generation animation longer and more visually impactful. This will better demonstrate the contrast between the slow naive approach and the fast optimized approach.",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+            "action": "modify",
+            "what": "Expand the RESPONSE_TOKENS array (line 41-44) to include more tokens - extend the response text from 13 tokens to approximately 25-30 tokens to create a longer, more visually dramatic text generation animation. For example, continue the explanation with additional tokens like: '...in parallel, enabling much faster training and inference compared to recurrent neural networks. The key innovation is the self-attention mechanism.'"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+            "action": "modify",
+            "what": "May need to adjust the slowTokenCount interpolation (line 66-74) to show more tokens during the slow animation phase, updating the target from 6 to a higher number (e.g., 10-12) to display more of the extended text"
+          }
+        ]
+      },
+      "files_modified": [],
+      "preview_branch": null,
+      "error_message": "No files were modified"
+    },
+    {
+      "id": "fb_0003_1767117917",
+      "timestamp": "2025-12-30T10:05:17.317595",
+      "feedback_text": "Scene 3: Fix the squares/tokens that are coming out of the GPU memory box - they should stay contained within the box boundaries",
+      "status": "pending",
+      "scope": null,
+      "affected_scenes": [],
+      "interpretation": "",
+      "suggested_changes": {},
+      "files_modified": [],
+      "preview_branch": null,
+      "error_message": null
+    },
+    {
+      "id": "fb_0004_1767118042",
+      "timestamp": "2025-12-30T10:07:22.204134",
+      "feedback_text": "Scene 3 (Bottleneck): Fix the squares/tokens that are coming out of the GPU memory box - they should stay contained within the box boundaries. The visual shows data overflow which looks like a bug rather than intentional design.",
+      "status": "failed",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene3_bottleneck"
+      ],
+      "interpretation": "The user wants to fix a visual bug in Scene 3 (Bottleneck) where squares or tokens appear to overflow/escape from the GPU Memory box boundaries. The current animation shows data squares spilling outside the box container, which looks unintentional rather than a deliberate visual effect. The squares should remain visually contained within the GPU Memory box boundaries.",
+      "suggested_changes": {
+        "description": "Add overflow:hidden to the GPU Memory box container and potentially adjust the weight blocks grid to ensure all visual elements stay contained within the box boundaries",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene3Bottleneck.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene3Bottleneck.tsx",
+            "action": "modify",
+            "what": "Add 'overflow: hidden' to the GPU Memory box container (around line 360-373) to clip any content that extends beyond the box boundaries"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene3Bottleneck.tsx",
+            "action": "modify",
+            "what": "Review and potentially constrain the weight blocks grid container (lines 395-414) to ensure the 4x4 grid of squares stays within the parent box padding and doesn't overflow"
+          }
+        ]
+      },
+      "files_modified": [],
+      "preview_branch": "feedback/fb_0004_1767118042",
+      "error_message": "No files were modified"
+    },
+    {
+      "id": "fb_0005_1767120649",
+      "timestamp": "2025-12-30T10:50:49.140850",
+      "feedback_text": "Scene 4 (Attention): Show Q (Query), K (Key), and V (Value) tensors/matrices in the attention visualization. The current visualization should clearly label and show these three core components of the attention mechanism, with arrows showing how Q\u00d7K produces attention scores that weight V. Reference the standard attention formula: Attention(Q,K,V) = softmax(QK^T/\u221ad_k)V",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene4_attention"
+      ],
+      "interpretation": "The user wants to enhance Scene 4's visualization to more clearly show the Q (Query), K (Key), and V (Value) tensors/matrices in the attention mechanism. They want arrows showing the flow of Q\u00d7K producing attention scores that then weight V. They also want the standard attention formula displayed: Attention(Q,K,V) = softmax(QK^T/\u221ad_k)V",
+      "suggested_changes": {
+        "description": "Enhance the attention visualization in Scene 4 to clearly label and display Q, K, V tensors as matrices, add animated arrows showing the computation flow (Q\u00d7K \u2192 attention scores \u2192 weighting V), and update the formula to include the scaling factor \u221ad_k",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+            "action": "modify",
+            "what": "Update the attention formula from 'softmax(Q \u00d7 K^T) \u00d7 V' to 'softmax(QK^T/\u221ad_k)V' to match the standard attention formula"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+            "action": "modify",
+            "what": "Enhance Q, K, V vector displays to be represented as labeled matrices/tensors with clearer visual representation (currently shown as small bars, should be more prominent matrix visualizations)"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+            "action": "add",
+            "what": "Add animated arrows showing the computation flow: (1) arrow from Q and K matrices to the attention matrix showing Q\u00d7K^T operation, (2) arrow from attention matrix to V showing how attention scores weight the Values"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+            "action": "modify",
+            "what": "Make the Q, K, V labels more prominent with larger badges and add 'Query', 'Key', 'Value' text labels directly next to the tensor visualizations"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+            "action": "add",
+            "what": "Add a visual showing the final weighted output from combining attention scores with V values"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+        "projects/llm-inference/remotion/scenes/Scene2Phases.tsx",
+        "projects/llm-inference/remotion/scenes/Scene3Bottleneck.tsx",
+        "projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+        "src/feedback/processor.py",
+        "src/understanding/llm_provider.py",
+        "tests/test_claude_code_provider.py"
+      ],
+      "preview_branch": "feedback/fb_0005_1767120649",
+      "error_message": null
+    },
+    {
+      "id": "fb_0006_1767120937",
+      "timestamp": "2025-12-30T10:55:37.171133",
+      "feedback_text": "Scene 5 & 6 (Static Batching): These scenes about batching need to clearly show multiple sequences being processed in the SAME GPU simultaneously. Visualize 2-3 different prompts/sequences in one GPU box, each with different lengths. Show that shorter sequences finish early but their GPU slots are wasted (idle/padding). The 'waste' should be clearly labeled - show empty/gray padding slots where the GPU is doing nothing while waiting for longer sequences to complete. Use a timeline or progress indicator to show sequences finishing at different times.",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene6_static_batching"
+      ],
+      "interpretation": "The user wants to enhance scene 6 (Static Batching) to better visualize the GPU inefficiency problem. The scene should show: 1) A single GPU box containing 2-3 different prompts/sequences with varying lengths, 2) Sequences finishing at different times with a timeline/progress indicator, 3) Shorter sequences completing early but leaving their GPU slots idle, 4) Clearly labeled 'waste' areas showing gray/empty padding slots where the GPU is doing nothing while waiting for longer sequences to complete.",
+      "suggested_changes": {
+        "description": "Create or update the Static Batching scene to visualize multiple sequences of different lengths being processed simultaneously in one GPU, with clear visualization of padding waste and a timeline showing sequences finishing at different times",
+        "files_to_modify": [
+          "remotion/scenes/Scene6StaticBatching.tsx",
+          "remotion/scenes/LLMInferenceVideo.tsx",
+          "remotion/scenes/index.tsx"
+        ],
+        "changes": [
+          {
+            "file": "remotion/scenes/Scene6StaticBatching.tsx",
+            "action": "add",
+            "what": "Create new React component for Static Batching visualization with: 1) A GPU box containing 2-3 sequences with different lengths (e.g., 'What is 2+2?', 'Write a 500-word essay...', 'Hello'), 2) Progress bars/timeline showing each sequence's generation progress, 3) Clear visualization of sequences completing at different times, 4) Gray 'padding' or 'idle' slots labeled as 'WASTE' or 'IDLE' when shorter sequences finish but GPU slots remain occupied waiting for longer sequences, 5) Statistics showing wasted compute time"
+          },
+          {
+            "file": "remotion/scenes/LLMInferenceVideo.tsx",
+            "action": "modify",
+            "what": "Import and add Scene6StaticBatching component to the scene sequence between Scene5Redundancy and current Scene6KVCache (which should be renumbered)"
+          },
+          {
+            "file": "remotion/scenes/index.tsx",
+            "action": "modify",
+            "what": "Export the new Scene6StaticBatching component"
+          },
+          {
+            "file": "narration/narrations.json",
+            "action": "modify",
+            "what": "Optionally update scene6_static_batching narration to better emphasize the visual elements: multiple sequences in one GPU, different completion times, and wasted/idle padding slots"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/remotion/scenes/LLMInferenceVideo.tsx",
+        "projects/llm-inference/remotion/scenes/LLMInferenceWithAudio.tsx",
+        "projects/llm-inference/remotion/scenes/Scene1Hook.tsx",
+        "projects/llm-inference/remotion/scenes/Scene2Phases.tsx",
+        "projects/llm-inference/remotion/scenes/Scene3Bottleneck.tsx",
+        "projects/llm-inference/remotion/scenes/Scene4Attention.tsx",
+        "projects/llm-inference/remotion/scenes/index.tsx",
+        "src/feedback/processor.py",
+        "src/understanding/llm_provider.py",
+        "tests/test_claude_code_provider.py"
+      ],
+      "preview_branch": "feedback/fb_0006_1767120937",
+      "error_message": null
+    },
+    {
+      "id": "fb_0007_1767121298",
+      "timestamp": "2025-12-30T11:01:38.171586",
+      "feedback_text": "KV Cache scenes: The KV Cache scene needs to show the actual calculation - how keys and values are stored and reused. Show a concrete example: 1) First token generates K\u2081, V\u2081 -> store in cache, 2) Second token generates K\u2082, V\u2082 -> store, reuse K\u2081V\u2081 for attention, 3) Third token reuses K\u2081V\u2081K\u2082V\u2082 instead of recalculating. Visualize the cache as a growing memory box. Consider combining 'KV Cache Solution' and 'How KV Cache Works' scenes if they're redundant - they should flow naturally without repeating concepts.",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "8",
+        "9"
+      ],
+      "interpretation": "The user wants to improve the KV Cache visualization to show a concrete step-by-step example of how tokens generate and cache K,V pairs, then reuse them. They want: 1) A visual showing Token 1 generates K\u2081,V\u2081 and stores in cache, 2) Token 2 generates K\u2082,V\u2082 while reusing K\u2081V\u2081 for attention, 3) Token 3 reuses K\u2081V\u2081K\u2082V\u2082. The cache should be visualized as a growing memory box. They also suggest potentially combining Scene 8 (KV Cache Solution) and Scene 9 (How KV Cache Works) if redundant.",
+      "suggested_changes": {
+        "description": "Redesign Scene 8 and Scene 9 to show a concrete step-by-step KV cache calculation example with a growing memory box visualization. Scene 8 (KV Cache Solution) currently shows a side-by-side comparison of with/without cache. Scene 9 (Mechanics) shows the Q/K/V lookup process. The feedback suggests either: (A) combining these into one comprehensive scene with the step-by-step token example, or (B) modifying Scene 8 to show the step-by-step token generation process with growing cache, keeping Scene 9 for the attention mechanics.",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene6KVCache.tsx",
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene7Mechanics.tsx",
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/narration/narrations.json",
+          "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/storyboard/storyboard.json"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene6KVCache.tsx",
+            "action": "modify",
+            "what": "Redesign to show concrete step-by-step example: 1) First token generates K\u2081,V\u2081 \u2192 animate store to cache box, 2) Second token generates K\u2082,V\u2082 \u2192 store, show reusing K\u2081V\u2081 with attention lines, 3) Third token reuses K\u2081V\u2081K\u2082V\u2082. Add a visual 'growing memory box' that expands with each cached K,V pair. Replace abstract comparison with explicit token-by-token walkthrough."
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/remotion/scenes/Scene7Mechanics.tsx",
+            "action": "modify",
+            "what": "Either: (A) Remove this scene if content is combined into Scene6KVCache, or (B) Refocus to show only the attention computation details (Q\u00d7K^T\u2192softmax\u2192weighted V sum) as a follow-up to the step-by-step example, avoiding repetition of caching concept."
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/narration/narrations.json",
+            "action": "modify",
+            "what": "Update scene8_kvcache narration to walk through concrete example: 'Watch what happens. Token one generates Key-one and Value-one. These go straight into the cache. Now token two arrives. It generates Key-two and Value-two, but for attention, it reuses Key-one and Value-one from the cache. No recalculation. Token three? It reuses everything\u2014Key-one, Value-one, Key-two, Value-two\u2014all from the cache. Each token adds one new pair. The cache grows, but the work per token stays constant.' May need to update scene9_mechanics narration accordingly or remove if scenes are combined."
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/projects/llm-inference/storyboard/storyboard.json",
+            "action": "modify",
+            "what": "If scenes are combined: remove scene9_mechanics, update scene IDs and total duration. If kept separate: update audio_duration_seconds if narration lengths change."
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/feedback/feedback.json",
+        "projects/llm-inference/narration/narrations.json",
+        "projects/llm-inference/remotion/scenes/Scene6KVCache.tsx",
+        "projects/llm-inference/remotion/scenes/Scene7Mechanics.tsx",
+        "projects/llm-inference/storyboard/storyboard.json"
+      ],
+      "preview_branch": "feedback/fb_0007_1767121298",
+      "error_message": null
+    },
+    {
+      "id": "fb_0008_1767121629",
+      "timestamp": "2025-12-30T11:07:09.740178",
+      "feedback_text": "Continuous Batching scene: Clarify what a 'slot' is. A slot should be explicitly defined as a fixed memory allocation for one sequence in the GPU batch. Show 4 labeled slots (Slot 1, Slot 2, Slot 3, Slot 4) in the GPU. When a sequence finishes in one slot, that slot becomes available for a NEW sequence immediately - this is the key innovation. Contrast with static batching: 'Static batching waits for ALL sequences to finish before accepting new ones. Continuous batching fills empty slots immediately.' Show new sequences entering available slots while others are still processing.",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene10_continuous_batching"
+      ],
+      "interpretation": "The user wants to improve the Continuous Batching scene by: 1) Explicitly defining what a 'slot' is (fixed memory allocation for one sequence in GPU batch), 2) Showing 4 labeled slots (Slot 1-4) in the GPU visualization, 3) Demonstrating the key innovation - when a sequence finishes, that slot immediately becomes available for a NEW sequence, 4) Adding a contrast with static batching that explains static batching waits for ALL sequences to finish while continuous batching fills empty slots immediately, 5) Showing new sequences entering available slots while others are still processing",
+      "suggested_changes": {
+        "description": "Create/update the Continuous Batching scene to show 4 labeled GPU slots, define what a slot is, demonstrate immediate slot reuse when sequences finish, and contrast with static batching behavior",
+        "files_to_modify": [
+          "remotion/scenes/Scene10ContinuousBatching.tsx",
+          "narration/narrations.json",
+          "remotion/scenes/index.tsx",
+          "remotion/scenes/LLMInferenceVideo.tsx"
+        ],
+        "changes": [
+          {
+            "file": "remotion/scenes/Scene10ContinuousBatching.tsx",
+            "action": "add",
+            "what": "Create new scene component with: 1) GPU visualization containing 4 explicitly labeled slots (Slot 1, Slot 2, Slot 3, Slot 4), 2) Text definition explaining 'A slot is a fixed memory allocation for one sequence in the GPU batch', 3) Animation showing sequences completing and new sequences immediately entering available slots, 4) Contrast callout text: 'Static batching waits for ALL sequences to finish. Continuous batching fills empty slots immediately.', 5) Visual indication of new sequences entering freed slots while other sequences continue processing"
+          },
+          {
+            "file": "narration/narrations.json",
+            "action": "modify",
+            "what": "Update scene10_continuous_batching narration to include: explicit definition of a slot as 'a fixed memory allocation for one sequence in the GPU batch', mention of 4 slots, emphasis on immediate slot reuse as the key innovation, and explicit contrast with static batching"
+          },
+          {
+            "file": "remotion/scenes/index.tsx",
+            "action": "modify",
+            "what": "Add export for the new Scene10ContinuousBatching component"
+          },
+          {
+            "file": "remotion/scenes/LLMInferenceVideo.tsx",
+            "action": "modify",
+            "what": "Import and add Scene10ContinuousBatching to the SCENES array"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/feedback/feedback.json",
+        "projects/llm-inference/narration/narrations.json",
+        "projects/llm-inference/remotion/scenes/LLMInferenceVideo.tsx",
+        "projects/llm-inference/remotion/scenes/LLMInferenceWithAudio.tsx",
+        "projects/llm-inference/remotion/scenes/index.tsx"
+      ],
+      "preview_branch": "feedback/fb_0008_1767121629",
+      "error_message": null
+    }
+  ]
+}
