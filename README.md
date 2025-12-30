@@ -55,12 +55,28 @@ python -m src.cli voiceover llm-inference --mock
 # View storyboard
 python -m src.cli storyboard llm-inference --view
 
-# Render video
+# Render video (default 1080p)
 python -m src.cli render llm-inference
+
+# Render in 4K for YouTube upload
+python -m src.cli render llm-inference --resolution 4k
+
+# Render in lower resolution for faster development
+python -m src.cli render llm-inference -r 720p
 
 # Create a new project
 python -m src.cli create my-new-video --title "My New Video"
 ```
+
+### Resolution Options
+
+| Preset | Resolution | Use Case |
+|--------|------------|----------|
+| 4k     | 3840x2160  | YouTube/Final export |
+| 1440p  | 2560x1440  | High quality |
+| 1080p  | 1920x1080  | Default |
+| 720p   | 1280x720   | Development |
+| 480p   | 854x480    | Quick preview |
 
 ## Project Structure
 
@@ -107,7 +123,7 @@ video_explainer/
 │   └── schema/
 │       └── storyboard.schema.json
 │
-├── tests/                       # Test suite (241 tests)
+├── tests/                       # Test suite (277 Python tests + 45 JS tests)
 ├── config.yaml                  # Global configuration
 └── pyproject.toml               # Python package configuration
 ```
@@ -175,8 +191,12 @@ video:
 
 ## Testing
 
+The project includes 322 tests (277 Python + 45 JavaScript).
+
+### Python Tests
+
 ```bash
-# Run all tests
+# Run all Python tests
 pytest tests/ -v
 
 # Run without slow tests (no network required)
@@ -184,6 +204,21 @@ pytest tests/ -v -m "not slow"
 
 # Run specific test file
 pytest tests/test_project.py -v
+
+# Run CLI tests
+pytest tests/test_cli.py -v
+```
+
+### JavaScript Tests (Remotion)
+
+```bash
+cd remotion
+
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ## Development
@@ -250,6 +285,7 @@ Typography: Inter/SF Pro for text, JetBrains Mono for code
 - remotion - Video rendering
 - @remotion/renderer - Headless rendering
 - react - UI components
+- vitest - JavaScript testing framework
 
 ### System
 

@@ -17,94 +17,71 @@
 
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { readFileSync, existsSync } from "fs";
 
-const require = createRequire(import.meta.url);
+import {
+  parseArgs,
+  calculateDuration,
+  buildProps,
+  validateConfig,
+  deriveStoryboardPath,
+  deriveProjectDir,
+  getFinalResolution,
+} from "./render-utils.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function main() {
   // Parse command line arguments
-  const args = process.argv.slice(2);
-  let propsPath = null;
-  let storyboardPath = null;
-  let projectDir = null;
-  let outputPath = "./output.mp4";
-  let compositionId = "ScenePlayer";
-  let voiceoverBasePath = "voiceover";
-  let width = null;
-  let height = null;
+  const config = parseArgs(process.argv.slice(2));
 
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--props" && args[i + 1]) {
-      propsPath = args[i + 1];
-      i++;
-    } else if (args[i] === "--storyboard" && args[i + 1]) {
-      storyboardPath = args[i + 1];
-      i++;
-    } else if (args[i] === "--project" && args[i + 1]) {
-      projectDir = resolve(args[i + 1]);
-      i++;
-    } else if (args[i] === "--output" && args[i + 1]) {
-      outputPath = args[i + 1];
-      i++;
-    } else if (args[i] === "--composition" && args[i + 1]) {
-      compositionId = args[i + 1];
-      i++;
-    } else if (args[i] === "--voiceover-path" && args[i + 1]) {
-      voiceoverBasePath = args[i + 1];
-      i++;
-    } else if (args[i] === "--width" && args[i + 1]) {
-      width = parseInt(args[i + 1], 10);
-      i++;
-    } else if (args[i] === "--height" && args[i + 1]) {
-      height = parseInt(args[i + 1], 10);
-      i++;
-    }
+  // Resolve project directory path
+  if (config.projectDir) {
+    config.projectDir = resolve(config.projectDir);
   }
 
   // If project dir is specified, derive storyboard path from it
-  if (projectDir && !storyboardPath) {
-    storyboardPath = resolve(projectDir, "storyboard/storyboard.json");
+  if (config.projectDir && !config.storyboardPath) {
+    config.storyboardPath = resolve(config.projectDir, "storyboard/storyboard.json");
   }
 
   // Build props based on arguments
   let props;
+  let projectDir = config.projectDir;
 
-  if (storyboardPath) {
+  if (config.storyboardPath) {
     // Scene-based storyboard (new format)
-    if (!existsSync(storyboardPath)) {
-      console.error(`Storyboard file not found: ${storyboardPath}`);
+    if (!existsSync(config.storyboardPath)) {
+      console.error(`Storyboard file not found: ${config.storyboardPath}`);
       process.exit(1);
     }
 
-    const storyboard = JSON.parse(readFileSync(storyboardPath, "utf-8"));
-    props = { storyboard, voiceoverBasePath };
+    const storyboard = JSON.parse(readFileSync(config.storyboardPath, "utf-8"));
+    props = buildProps(storyboard, config.voiceoverBasePath);
 
     // Derive project directory from storyboard path if not specified
     if (!projectDir) {
-      // storyboard is at projects/<name>/storyboard/storyboard.json
-      projectDir = resolve(dirname(storyboardPath), "..");
+      projectDir = resolve(dirname(config.storyboardPath), "..");
     }
 
-    console.log(`Loaded storyboard from ${storyboardPath}`);
+    console.log(`Loaded storyboard from ${config.storyboardPath}`);
     console.log(`Project directory: ${projectDir}`);
     console.log(`Title: ${storyboard.title}`);
     console.log(`Scenes: ${storyboard.scenes.length}`);
-    console.log(`Composition: ${compositionId}`);
-  } else if (propsPath) {
+    console.log(`Composition: ${config.compositionId}`);
+  } else if (config.propsPath) {
     // Legacy props file
-    if (!existsSync(propsPath)) {
-      console.error(`Props file not found: ${propsPath}`);
+    if (!existsSync(config.propsPath)) {
+      console.error(`Props file not found: ${config.propsPath}`);
       process.exit(1);
     }
 
-    props = JSON.parse(readFileSync(propsPath, "utf-8"));
-    console.log(`Loaded props from ${propsPath}`);
-    console.log(`Composition: ${compositionId}`);
+    props = JSON.parse(readFileSync(config.propsPath, "utf-8"));
+    console.log(`Loaded props from ${config.propsPath}`);
+    console.log(`Composition: ${config.compositionId}`);
   } else {
     console.error("Usage:");
     console.error("  node scripts/render.mjs --composition ScenePlayer --storyboard <storyboard.json> --output <output.mp4>");
@@ -112,31 +89,8 @@ async function main() {
     process.exit(1);
   }
 
-  // Calculate total duration based on composition type
-  let totalDuration;
-  if (compositionId === "ScenePlayer" && props.storyboard) {
-    // New scene-based format
-    const buffer = props.storyboard.audio?.buffer_between_scenes_seconds ?? 1.0;
-    totalDuration = props.storyboard.scenes.reduce(
-      (acc, scene) => acc + scene.audio_duration_seconds + buffer,
-      0
-    );
-    console.log(`Total duration: ${totalDuration.toFixed(1)}s (${props.storyboard.scenes.length} scenes)`);
-  } else if (compositionId === "StoryboardPlayer" && props.storyboard) {
-    // Old beat-based format
-    totalDuration = props.storyboard.duration_seconds;
-    console.log(`Storyboard: ${props.storyboard.title}`);
-    console.log(`Beats: ${props.storyboard.beats.length}`);
-  } else if (props.scenes) {
-    totalDuration = props.scenes.reduce(
-      (acc, scene) => acc + scene.durationInSeconds,
-      0
-    );
-    console.log(`Title: ${props.title}`);
-    console.log(`Scenes: ${props.scenes.length}`);
-  } else {
-    totalDuration = props.duration_seconds || 60;
-  }
+  // Calculate total duration
+  const totalDuration = calculateDuration(config.compositionId, props);
   console.log(`Total duration: ${totalDuration}s`);
 
   // Bundle the Remotion project
@@ -163,29 +117,28 @@ async function main() {
   console.log("\nPreparing composition...");
   const composition = await selectComposition({
     serveUrl: bundleLocation,
-    id: compositionId,
+    id: config.compositionId,
     inputProps: props,
   });
 
-  // Override dimensions if specified
-  const finalWidth = width || composition.width;
-  const finalHeight = height || composition.height;
+  // Get final resolution
+  const resolution = getFinalResolution(config.width, config.height, composition);
 
   console.log(`Composition: ${composition.id}`);
   console.log(`Duration: ${composition.durationInFrames} frames @ ${composition.fps}fps`);
-  console.log(`Resolution: ${finalWidth}x${finalHeight}${width ? " (custom)" : ""}`);
+  console.log(`Resolution: ${resolution.width}x${resolution.height}${resolution.isCustom ? " (custom)" : ""}`);
 
   // Render the video
-  console.log(`\nRendering to ${outputPath}...`);
+  console.log(`\nRendering to ${config.outputPath}...`);
   await renderMedia({
     composition: {
       ...composition,
-      width: finalWidth,
-      height: finalHeight,
+      width: resolution.width,
+      height: resolution.height,
     },
     serveUrl: bundleLocation,
     codec: "h264",
-    outputLocation: outputPath,
+    outputLocation: config.outputPath,
     inputProps: props,
     onProgress: ({ progress }) => {
       const percent = Math.round(progress * 100);
@@ -195,7 +148,7 @@ async function main() {
     },
   });
 
-  console.log(`\n\nVideo rendered successfully: ${outputPath}`);
+  console.log(`\n\nVideo rendered successfully: ${config.outputPath}`);
 }
 
 main().catch((err) => {

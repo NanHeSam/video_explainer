@@ -20,18 +20,21 @@ Current phase: Phase 4 - Production Ready
 - Phase 2 First Video: COMPLETE
 - Phase 3 Automated Animation: COMPLETE
 - Phase 3.5 Quality Focus: COMPLETE
-- Phase 4 Project Organization: COMPLETE (241 tests passing)
+- Phase 4 Project Organization: COMPLETE (322 tests: 277 Python + 45 JavaScript)
   - Project-based organization (projects/ directory)
-  - CLI for independent pipeline stages
+  - CLI for independent pipeline stages with resolution options
   - JSON configuration files
-  - Cleanup of deprecated code
+  - Data-driven architecture with scene registry
+  - JavaScript testing with vitest
 
 Key commands:
-  source .venv/bin/activate && pytest tests/ -v  # Run all tests (241 passing)
+  source .venv/bin/activate && pytest tests/ -v  # Run Python tests (277 passing)
+  cd remotion && npm test                         # Run JS tests (45 passing)
   python -m src.cli list                          # List projects
   python -m src.cli info llm-inference            # Show project info
   python -m src.cli voiceover llm-inference --mock # Generate voiceovers
-  python -m src.cli render llm-inference          # Render video
+  python -m src.cli render llm-inference          # Render video (1080p)
+  python -m src.cli render llm-inference -r 4k    # Render in 4K for YouTube
   cd remotion && npm run dev                      # Start Remotion studio
 
 Key directories:
@@ -120,7 +123,12 @@ Check "Next Actions" section below for current tasks.
 - [x] Cleanup of old scattered files (output/, remotion/src/videos/, etc.)
 - [x] Updated tests for generic mock responses
 - [x] Updated documentation (README.md, design.md, progress.md)
-- [x] **241 tests passing, 1 skipped**
+- [x] Data-driven video architecture with scene registry
+- [x] Resolution configuration (4K to 480p) for YouTube export
+- [x] JavaScript testing with vitest for render utilities
+- [x] Comprehensive CLI tests (36 tests)
+- [x] Refactored render.mjs with testable utility functions
+- [x] **322 tests passing (277 Python + 45 JavaScript)**
 
 ### Next Steps (Phase 5 - Production Ready)
 - [ ] Enable real LLM API (Anthropic/OpenAI) for dynamic content analysis
@@ -173,8 +181,10 @@ Key modules:
 │   │   ├── scenes/       # Scene compositions
 │   │   └── types/        # TypeScript types
 │   └── scripts/
-│       └── render.mjs    # Headless rendering
-└── tests/                # 241 passing tests
+│       ├── render.mjs        # Headless rendering
+│       ├── render-utils.mjs  # Testable utility functions
+│       └── render-utils.test.mjs  # JavaScript tests
+└── tests/                    # 277 Python tests + 45 JS tests
 ```
 
 ---
@@ -190,7 +200,7 @@ Key modules:
 | Pipeline Execution | CLI commands | Run stages independently, easier iteration |
 | TTS Provider | ElevenLabs + Edge TTS | High quality with word timestamps |
 | LLM During Dev | Mock responses | Save money, test pipeline |
-| Video Resolution | 1080p (4K later) | Standard YouTube, can scale |
+| Video Resolution | 1080p default, 4K for export | CLI supports 4k, 1440p, 1080p, 720p, 480p |
 
 ---
 
@@ -215,8 +225,11 @@ Animation: easeInOutCubic, 0.3-0.5s transitions
 # Activate virtual environment
 source .venv/bin/activate
 
-# Run tests
+# Run Python tests (277 tests)
 pytest tests/ -v
+
+# Run JavaScript tests (45 tests)
+cd remotion && npm test
 
 # List projects
 python -m src.cli list
@@ -227,8 +240,14 @@ python -m src.cli info llm-inference
 # Generate voiceovers (mock)
 python -m src.cli voiceover llm-inference --mock
 
-# Render video
+# Render video (default 1080p)
 python -m src.cli render llm-inference
+
+# Render in 4K for YouTube
+python -m src.cli render llm-inference --resolution 4k
+
+# Render in 720p for faster development
+python -m src.cli render llm-inference -r 720p
 
 # Start Remotion studio for development
 cd remotion && npm run dev
@@ -252,6 +271,7 @@ python -m src.cli create my-new-video --title "My New Video"
 - remotion - Video rendering
 - @remotion/renderer - Headless rendering
 - react - UI components
+- vitest - JavaScript testing framework
 
 ### System
 - FFmpeg - Video processing
@@ -263,7 +283,7 @@ python -m src.cli create my-new-video --title "My New Video"
 ## Next Actions
 
 ### Immediate
-1. **Run E2E video generation** - Verify the full pipeline works after cleanup
+1. **Create more video content** - Use the pipeline to create additional explainer videos
 
 ### Future (Phase 5)
 2. **Enable real LLM API** - Switch from mock to Claude/GPT-4 for dynamic
@@ -282,11 +302,15 @@ python -m src.cli create my-new-video --title "My New Video"
 
 ## Notes for Future Sessions
 
-- Always run tests before committing: `pytest tests/ -v`
+- Always run tests before committing:
+  - Python: `pytest tests/ -v` (277 tests)
+  - JavaScript: `cd remotion && npm test` (45 tests)
 - Projects are self-contained in `projects/` directory
 - Use CLI commands for independent pipeline execution
 - Mock providers available for development without API costs
 - Human review checkpoints at: script, storyboard, final
+- Use `--resolution 4k` for YouTube-ready exports
+- Use `--resolution 720p` for faster development iterations
 
 ---
 
@@ -309,4 +333,4 @@ python -m src.cli create my-new-video --title "My New Video"
 ---
 
 *Last Updated: December 2024*
-*Session: Phase 4 - Project organization complete, 241 tests passing*
+*Session: Phase 4 - Added resolution config, comprehensive CLI & JS tests (322 tests total)*
