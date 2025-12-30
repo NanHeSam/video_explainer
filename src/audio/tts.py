@@ -501,6 +501,192 @@ class EdgeTTS(TTSProvider):
         return [v for v in all_voices if v["locale"].startswith("en-")]
 
 
+class ManualVoiceoverProvider(TTSProvider):
+    """Provider for manually recorded voiceovers.
+
+    This provider imports user-recorded audio files and uses Whisper
+    to generate word-level timestamps for video synchronization.
+    """
+
+    def __init__(
+        self,
+        config: TTSConfig,
+        audio_dir: Path | str,
+        whisper_model: str = "base",
+        whisper_backend: str = "auto",
+    ):
+        """Initialize manual voiceover provider.
+
+        Args:
+            config: TTS configuration
+            audio_dir: Directory containing recorded audio files.
+                       Files should be named by scene_id (e.g., scene1_hook.mp3)
+            whisper_model: Whisper model size for transcription
+            whisper_backend: Whisper backend ("auto", "whisper", "faster-whisper")
+        """
+        super().__init__(config)
+        self.audio_dir = Path(audio_dir)
+        self.whisper_model = whisper_model
+        self.whisper_backend = whisper_backend
+        self._transcriber = None
+
+        if not self.audio_dir.exists():
+            raise ValueError(f"Audio directory not found: {self.audio_dir}")
+
+    def _get_transcriber(self):
+        """Lazy load the transcriber."""
+        if self._transcriber is None:
+            from .transcribe import get_transcriber
+            self._transcriber = get_transcriber(
+                backend=self.whisper_backend,
+                model=self.whisper_model,
+            )
+        return self._transcriber
+
+    def _find_audio_file(self, scene_id: str) -> Path | None:
+        """Find audio file for a given scene ID.
+
+        Searches for files matching the scene_id with common audio extensions.
+        """
+        extensions = [".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"]
+
+        for ext in extensions:
+            # Try exact match
+            audio_file = self.audio_dir / f"{scene_id}{ext}"
+            if audio_file.exists():
+                return audio_file
+
+            # Try with underscores replaced by hyphens
+            alt_name = scene_id.replace("_", "-")
+            audio_file = self.audio_dir / f"{alt_name}{ext}"
+            if audio_file.exists():
+                return audio_file
+
+        return None
+
+    def generate(self, text: str, output_path: str | Path, scene_id: str = "") -> Path:
+        """Copy recorded audio file to output path.
+
+        Args:
+            text: The expected narration text (used for verification)
+            output_path: Path to save/copy the audio file
+            scene_id: Scene ID to find the matching audio file
+
+        Returns:
+            Path to the copied audio file
+        """
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # If no scene_id provided, try to extract from output_path
+        if not scene_id:
+            scene_id = output_path.stem
+
+        # Find the source audio file
+        source_file = self._find_audio_file(scene_id)
+        if source_file is None:
+            available = list(self.audio_dir.glob("*.*"))
+            available_names = [f.stem for f in available if f.suffix in [".mp3", ".wav", ".m4a"]]
+            raise FileNotFoundError(
+                f"No audio file found for scene '{scene_id}' in {self.audio_dir}\n"
+                f"Available files: {available_names}\n"
+                f"Expected file like: {scene_id}.mp3"
+            )
+
+        # Copy to output location (or convert if needed)
+        import shutil
+        if source_file.suffix == output_path.suffix:
+            shutil.copy2(source_file, output_path)
+        else:
+            # Convert using ffmpeg
+            self._convert_audio(source_file, output_path)
+
+        return output_path
+
+    def _convert_audio(self, source: Path, dest: Path) -> None:
+        """Convert audio file to target format using ffmpeg."""
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(source),
+            "-c:a", "libmp3lame" if dest.suffix == ".mp3" else "aac",
+            "-b:a", "192k",
+            str(dest),
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            raise RuntimeError(f"Audio conversion failed: {result.stderr}")
+
+    def generate_with_timestamps(
+        self, text: str, output_path: str | Path, scene_id: str = ""
+    ) -> TTSResult:
+        """Import audio and generate word timestamps using Whisper.
+
+        Args:
+            text: The expected narration text
+            output_path: Path to save the audio file
+            scene_id: Scene ID to find the matching audio file
+
+        Returns:
+            TTSResult with audio path, duration, and word timestamps
+        """
+        output_path = Path(output_path)
+
+        # If no scene_id provided, try to extract from output_path
+        if not scene_id:
+            scene_id = output_path.stem
+
+        # Copy/convert the audio file
+        self.generate(text, output_path, scene_id)
+
+        # Transcribe to get word timestamps
+        transcriber = self._get_transcriber()
+        result = transcriber.transcribe(output_path)
+
+        return TTSResult(
+            audio_path=output_path,
+            duration_seconds=result.duration_seconds,
+            word_timestamps=result.word_timestamps,
+        )
+
+    def generate_stream(self, text: str) -> Iterator[bytes]:
+        """Not supported for manual recordings."""
+        raise NotImplementedError(
+            "Streaming is not supported for manual voiceover provider"
+        )
+
+    def get_available_voices(self) -> list[dict]:
+        """List available audio files in the directory."""
+        audio_files = []
+        extensions = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
+
+        for file in self.audio_dir.iterdir():
+            if file.suffix.lower() in extensions:
+                audio_files.append({
+                    "voice_id": file.stem,
+                    "name": file.name,
+                    "category": "manual",
+                    "description": f"Recorded audio: {file.name}",
+                })
+
+        return audio_files
+
+    def list_missing_scenes(self, scene_ids: list[str]) -> list[str]:
+        """Check which scenes are missing audio files.
+
+        Args:
+            scene_ids: List of scene IDs to check
+
+        Returns:
+            List of scene IDs that don't have matching audio files
+        """
+        missing = []
+        for scene_id in scene_ids:
+            if self._find_audio_file(scene_id) is None:
+                missing.append(scene_id)
+        return missing
+
+
 class MockTTS(TTSProvider):
     """Mock TTS provider for testing."""
 

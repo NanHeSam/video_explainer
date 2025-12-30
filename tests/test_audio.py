@@ -489,3 +489,184 @@ class TestElevenLabsWordTimestamps:
         assert result[0].word == "hi"
         assert result[0].start_seconds == 0.0
         assert result[0].end_seconds == 0.2
+
+
+class TestManualVoiceoverProvider:
+    """Tests for ManualVoiceoverProvider."""
+
+    @pytest.fixture
+    def config(self):
+        return TTSConfig(provider="manual")
+
+    @pytest.fixture
+    def audio_dir(self, tmp_path):
+        """Create a temp directory with some audio files."""
+        audio_dir = tmp_path / "recordings"
+        audio_dir.mkdir()
+
+        # Create dummy audio files
+        (audio_dir / "scene1_hook.mp3").write_bytes(b"\x00" * 1000)
+        (audio_dir / "scene2_intro.wav").write_bytes(b"\x00" * 1000)
+        (audio_dir / "scene3_main.m4a").write_bytes(b"\x00" * 1000)
+
+        return audio_dir
+
+    def test_init_requires_audio_dir(self, config, tmp_path):
+        """Test that init requires an existing audio directory."""
+        from src.audio import ManualVoiceoverProvider
+
+        with pytest.raises(ValueError, match="Audio directory not found"):
+            ManualVoiceoverProvider(config, audio_dir=tmp_path / "nonexistent")
+
+    def test_init_with_valid_dir(self, config, audio_dir):
+        """Test initialization with valid audio directory."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        assert provider.audio_dir == audio_dir
+        assert provider.whisper_model == "base"
+
+    def test_find_audio_file_mp3(self, config, audio_dir):
+        """Test finding MP3 audio file."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        result = provider._find_audio_file("scene1_hook")
+
+        assert result is not None
+        assert result.name == "scene1_hook.mp3"
+
+    def test_find_audio_file_wav(self, config, audio_dir):
+        """Test finding WAV audio file."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        result = provider._find_audio_file("scene2_intro")
+
+        assert result is not None
+        assert result.name == "scene2_intro.wav"
+
+    def test_find_audio_file_not_found(self, config, audio_dir):
+        """Test that missing audio file returns None."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        result = provider._find_audio_file("nonexistent_scene")
+
+        assert result is None
+
+    def test_find_audio_file_with_hyphen_variation(self, config, tmp_path):
+        """Test finding audio file with hyphen instead of underscore."""
+        from src.audio import ManualVoiceoverProvider
+
+        audio_dir = tmp_path / "recordings"
+        audio_dir.mkdir()
+        (audio_dir / "scene1-hook.mp3").write_bytes(b"\x00" * 1000)
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        result = provider._find_audio_file("scene1_hook")
+
+        assert result is not None
+        assert result.name == "scene1-hook.mp3"
+
+    def test_get_available_voices(self, config, audio_dir):
+        """Test listing available audio files."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        voices = provider.get_available_voices()
+
+        assert len(voices) == 3
+        voice_ids = [v["voice_id"] for v in voices]
+        assert "scene1_hook" in voice_ids
+        assert "scene2_intro" in voice_ids
+        assert "scene3_main" in voice_ids
+
+    def test_list_missing_scenes(self, config, audio_dir):
+        """Test listing missing scene audio files."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+
+        scene_ids = ["scene1_hook", "scene2_intro", "scene4_missing", "scene5_missing"]
+        missing = provider.list_missing_scenes(scene_ids)
+
+        assert len(missing) == 2
+        assert "scene4_missing" in missing
+        assert "scene5_missing" in missing
+        assert "scene1_hook" not in missing
+
+    def test_generate_copies_file(self, config, audio_dir, tmp_path):
+        """Test that generate copies the audio file."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        output_path = tmp_path / "output" / "scene1_hook.mp3"
+
+        result = provider.generate("Test text", output_path, scene_id="scene1_hook")
+
+        assert result == output_path
+        assert output_path.exists()
+
+    def test_generate_file_not_found(self, config, audio_dir, tmp_path):
+        """Test that generate raises error for missing file."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        output_path = tmp_path / "output" / "missing.mp3"
+
+        with pytest.raises(FileNotFoundError, match="No audio file found"):
+            provider.generate("Test text", output_path, scene_id="missing_scene")
+
+    def test_generate_extracts_scene_id_from_path(self, config, audio_dir, tmp_path):
+        """Test that generate can extract scene_id from output path."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        output_path = tmp_path / "output" / "scene1_hook.mp3"
+
+        # Don't pass scene_id - should extract from path
+        result = provider.generate("Test text", output_path)
+
+        assert result == output_path
+        assert output_path.exists()
+
+    def test_generate_stream_not_supported(self, config, audio_dir):
+        """Test that streaming is not supported."""
+        from src.audio import ManualVoiceoverProvider
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+
+        with pytest.raises(NotImplementedError, match="Streaming is not supported"):
+            list(provider.generate_stream("Test"))
+
+    @patch("src.audio.tts.ManualVoiceoverProvider._get_transcriber")
+    def test_generate_with_timestamps(self, mock_get_transcriber, config, audio_dir, tmp_path):
+        """Test generate_with_timestamps uses Whisper for transcription."""
+        from src.audio import ManualVoiceoverProvider
+        from src.audio.transcribe import TranscriptionResult
+
+        # Mock transcriber
+        mock_transcriber = MagicMock()
+        mock_transcriber.transcribe.return_value = TranscriptionResult(
+            text="Hello world",
+            word_timestamps=[
+                WordTimestamp(word="Hello", start_seconds=0.0, end_seconds=0.5),
+                WordTimestamp(word="world", start_seconds=0.6, end_seconds=1.0),
+            ],
+            duration_seconds=1.0,
+        )
+        mock_get_transcriber.return_value = mock_transcriber
+
+        provider = ManualVoiceoverProvider(config, audio_dir=audio_dir)
+        output_path = tmp_path / "output" / "scene1_hook.mp3"
+
+        result = provider.generate_with_timestamps(
+            "Test text", output_path, scene_id="scene1_hook"
+        )
+
+        assert isinstance(result, TTSResult)
+        assert result.audio_path == output_path
+        assert result.duration_seconds == 1.0
+        assert len(result.word_timestamps) == 2
+        assert result.word_timestamps[0].word == "Hello"

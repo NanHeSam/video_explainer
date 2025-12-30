@@ -255,6 +255,9 @@ class TestCmdVoiceover:
         args.provider = None
         args.mock = True
         args.continue_on_error = False
+        args.export_script = False
+        args.audio_dir = None
+        args.whisper_model = "base"
 
         result = cmd_voiceover(args)
         assert result == 0
@@ -267,7 +270,7 @@ class TestCmdVoiceover:
         assert (voiceover_dir / "manifest.json").exists()
 
         captured = capsys.readouterr()
-        assert "Generated 2 voiceovers" in captured.out
+        assert "Processed 2 voiceovers" in captured.out
 
     def test_voiceover_nonexistent_project(self, tmp_path, capsys):
         """Test voiceover with nonexistent project."""
@@ -277,6 +280,9 @@ class TestCmdVoiceover:
         args.provider = None
         args.mock = True
         args.continue_on_error = False
+        args.export_script = False
+        args.audio_dir = None
+        args.whisper_model = "base"
 
         result = cmd_voiceover(args)
         assert result == 1
@@ -298,6 +304,9 @@ class TestCmdVoiceover:
         args.provider = None
         args.mock = True
         args.continue_on_error = False
+        args.export_script = False
+        args.audio_dir = None
+        args.whisper_model = "base"
 
         result = cmd_voiceover(args)
         assert result == 1

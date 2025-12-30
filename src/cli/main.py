@@ -96,7 +96,7 @@ def cmd_info(args: argparse.Namespace) -> int:
 def cmd_voiceover(args: argparse.Namespace) -> int:
     """Generate voiceovers for a project."""
     from ..project import load_project
-    from ..audio import get_tts_provider
+    from ..audio import get_tts_provider, ManualVoiceoverProvider
     from ..config import Config, TTSConfig
 
     try:
@@ -112,6 +112,10 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    # Handle --export-script: generate recording script and exit
+    if args.export_script:
+        return _export_recording_script(project, narrations, args)
+
     print(f"Generating voiceovers for {project.id}")
     print(f"Found {len(narrations)} scenes")
     print()
@@ -121,15 +125,48 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
     if args.mock:
         provider_name = "mock"
 
-    print(f"Using TTS provider: {provider_name}")
+    # Handle manual provider
+    if provider_name == "manual":
+        if not args.audio_dir:
+            print("Error: --audio-dir is required when using manual provider", file=sys.stderr)
+            return 1
 
-    # Create TTS config
-    config = Config()
-    config.tts.provider = provider_name
-    if project.tts.voice_id:
-        config.tts.voice_id = project.tts.voice_id
+        audio_dir = Path(args.audio_dir)
+        if not audio_dir.exists():
+            print(f"Error: Audio directory not found: {audio_dir}", file=sys.stderr)
+            return 1
 
-    tts = get_tts_provider(config)
+        print(f"Using manual voiceover provider")
+        print(f"Audio directory: {audio_dir}")
+
+        # Check for missing recordings
+        config = Config()
+        tts = ManualVoiceoverProvider(
+            config.tts,
+            audio_dir=audio_dir,
+            whisper_model=args.whisper_model or "base",
+        )
+
+        scene_ids = [n.scene_id for n in narrations]
+        missing = tts.list_missing_scenes(scene_ids)
+        if missing:
+            print(f"\nWarning: Missing audio files for {len(missing)} scene(s):")
+            for scene_id in missing:
+                print(f"  - {scene_id}.mp3 (or .wav, .m4a)")
+            if not args.continue_on_error:
+                print("\nUse --continue-on-error to skip missing scenes")
+                return 1
+            print()
+    else:
+        print(f"Using TTS provider: {provider_name}")
+
+        # Create TTS config
+        config = Config()
+        config.tts.provider = provider_name
+        if project.tts.voice_id:
+            config.tts.voice_id = project.tts.voice_id
+
+        tts = get_tts_provider(config)
 
     # Generate voiceovers
     output_dir = project.voiceover_dir
@@ -139,11 +176,20 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
     total_duration = 0.0
 
     for narration in narrations:
-        print(f"  Generating: {narration.title}...")
+        print(f"  Processing: {narration.title}...")
         output_path = output_dir / f"{narration.scene_id}.mp3"
 
         try:
-            result = tts.generate_with_timestamps(narration.narration, output_path)
+            # ManualVoiceoverProvider needs scene_id passed explicitly
+            if provider_name == "manual":
+                result = tts.generate_with_timestamps(
+                    narration.narration,
+                    output_path,
+                    scene_id=narration.scene_id,
+                )
+            else:
+                result = tts.generate_with_timestamps(narration.narration, output_path)
+
             results.append({
                 "scene_id": narration.scene_id,
                 "audio_path": str(output_path),
@@ -159,6 +205,12 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
             })
             total_duration += result.duration_seconds
             print(f"    Duration: {result.duration_seconds:.2f}s")
+            if provider_name == "manual":
+                print(f"    Words transcribed: {len(result.word_timestamps)}")
+        except FileNotFoundError as e:
+            print(f"    Skipped: {e}", file=sys.stderr)
+            if not args.continue_on_error:
+                return 1
         except Exception as e:
             print(f"    Error: {e}", file=sys.stderr)
             if not args.continue_on_error:
@@ -176,9 +228,69 @@ def cmd_voiceover(args: argparse.Namespace) -> int:
         json.dump(manifest, f, indent=2)
 
     print()
-    print(f"Generated {len(results)} voiceovers")
+    print(f"Processed {len(results)} voiceovers")
     print(f"Total duration: {total_duration:.2f}s ({total_duration/60:.1f} min)")
     print(f"Manifest saved to: {manifest_path}")
+
+    return 0
+
+
+def _export_recording_script(project, narrations, args) -> int:
+    """Export a recording script for manual voiceover recording."""
+    # Determine output path
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_path = project.root_dir / "recording_script.txt"
+
+    # Calculate estimated durations (~150 words per minute)
+    lines = []
+    lines.append("=" * 70)
+    lines.append(f"RECORDING SCRIPT: {project.title}")
+    lines.append("=" * 70)
+    lines.append("")
+    lines.append("Instructions:")
+    lines.append("1. Record each scene as a separate audio file")
+    lines.append("2. Name files by scene_id (e.g., scene1_hook.mp3)")
+    lines.append("3. Speak naturally - aim for conversational tone")
+    lines.append("4. Leave ~0.5s silence at start and end of each recording")
+    lines.append("")
+    lines.append("-" * 70)
+    lines.append("")
+
+    total_words = 0
+    for i, narration in enumerate(narrations, 1):
+        words = len(narration.narration.split())
+        total_words += words
+        duration_estimate = (words / 150) * 60  # seconds
+
+        lines.append(f"=== Scene {i}: {narration.scene_id} ===")
+        lines.append(f"Title: {narration.title}")
+        lines.append(f"Words: {words} (~{duration_estimate:.0f} seconds)")
+        lines.append(f"Output file: {narration.scene_id}.mp3")
+        lines.append("")
+        lines.append(f'"{narration.narration}"')
+        lines.append("")
+        lines.append("-" * 70)
+        lines.append("")
+
+    total_duration = (total_words / 150) * 60
+    lines.append(f"TOTAL: {len(narrations)} scenes, {total_words} words")
+    lines.append(f"Estimated recording time: {total_duration:.0f} seconds ({total_duration/60:.1f} minutes)")
+
+    # Write to file
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines))
+
+    print(f"Recording script exported to: {output_path}")
+    print(f"Scenes: {len(narrations)}")
+    print(f"Estimated duration: {total_duration/60:.1f} minutes")
+    print()
+    print("Next steps:")
+    print(f"  1. Record audio files following the script")
+    print(f"  2. Place files in a directory (e.g., ./recordings/)")
+    print(f"  3. Import with: python -m src.cli voiceover {project.id} --provider manual --audio-dir ./recordings/")
 
     return 0
 
@@ -734,8 +846,8 @@ def main() -> int:
     voiceover_parser.add_argument("project", help="Project ID")
     voiceover_parser.add_argument(
         "--provider",
-        choices=["elevenlabs", "edge", "mock"],
-        help="TTS provider to use",
+        choices=["elevenlabs", "edge", "mock", "manual"],
+        help="TTS provider to use (manual = import your own recordings)",
     )
     voiceover_parser.add_argument(
         "--mock",
@@ -746,6 +858,25 @@ def main() -> int:
         "--continue-on-error",
         action="store_true",
         help="Continue even if some scenes fail",
+    )
+    voiceover_parser.add_argument(
+        "--export-script",
+        action="store_true",
+        help="Export a recording script for manual voiceover recording",
+    )
+    voiceover_parser.add_argument(
+        "--output", "-o",
+        help="Output path for recording script (with --export-script)",
+    )
+    voiceover_parser.add_argument(
+        "--audio-dir",
+        help="Directory containing recorded audio files (required with --provider manual)",
+    )
+    voiceover_parser.add_argument(
+        "--whisper-model",
+        choices=["tiny", "base", "small", "medium", "large"],
+        default="base",
+        help="Whisper model size for transcription (default: base)",
     )
     voiceover_parser.set_defaults(func=cmd_voiceover)
 

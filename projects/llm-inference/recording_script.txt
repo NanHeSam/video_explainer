@@ -1,0 +1,158 @@
+======================================================================
+RECORDING SCRIPT: LLM Inference: How KV Caching Makes AI Fast
+======================================================================
+
+Instructions:
+1. Record each scene as a separate audio file
+2. Name files by scene_id (e.g., scene1_hook.mp3)
+3. Speak naturally - aim for conversational tone
+4. Leave ~0.5s silence at start and end of each recording
+
+----------------------------------------------------------------------
+
+=== Scene 1: scene1_hook ===
+Title: The Speed Problem
+Words: 43 (~17 seconds)
+Output file: scene1_hook.mp3
+
+"Every time you chat with an AI, something remarkable happens. A neural network generates your response, one word at a time. The naive approach? Forty tokens per second. The best systems? Over three thousand. That's eighty-seven times faster. Here's how they do it."
+
+----------------------------------------------------------------------
+
+=== Scene 2: scene2_phases ===
+Title: The Two Phases
+Words: 53 (~21 seconds)
+Output file: scene2_phases.mp3
+
+"LLM inference has two distinct phases. First, the prefill phase processes your entire prompt in parallel. The GPU loves this - it can crunch all tokens at once. Then comes the decode phase, generating one token at a time. Each new token depends on the previous one. This is where the bottleneck hides."
+
+----------------------------------------------------------------------
+
+=== Scene 3: scene3_bottleneck ===
+Title: The Decode Bottleneck
+Words: 51 (~20 seconds)
+Output file: scene3_bottleneck.mp3
+
+"During decode, something surprising happens. The GPU sits mostly idle, waiting for data. Why? Because we're not limited by compute power. We're limited by memory bandwidth. The model weights are massive - billions of parameters. Moving them from memory to GPU takes time. And we do this for every single token."
+
+----------------------------------------------------------------------
+
+=== Scene 4: scene4_attention ===
+Title: Understanding Attention
+Words: 77 (~31 seconds)
+Output file: scene4_attention.mp3
+
+"To understand the solution, we need to understand attention. For each token, we compute three vectors: Query, Key, and Value. The Query asks: what am I looking for? Keys answer: what information do I have? Values hold the actual content. We multiply Query by Key-transpose and divide by the square root of the key dimension. This scaling prevents attention scores from becoming too extreme. Attention scores tell us which past tokens matter most for the current prediction."
+
+----------------------------------------------------------------------
+
+=== Scene 5: scene5_redundancy ===
+Title: The Redundancy Problem
+Words: 51 (~20 seconds)
+Output file: scene5_redundancy.mp3
+
+"Here's the first problem with naive decoding. For each new token, we recompute Keys and Values for ALL previous tokens. Token one? Compute once. Token two? Compute everything twice. Token one hundred? One hundred times the work. This is O of n squared complexity. Most of this computation is completely redundant."
+
+----------------------------------------------------------------------
+
+=== Scene 6: scene6_static_batching ===
+Title: The Static Batching Problem
+Words: 60 (~24 seconds)
+Output file: scene6_static_batching.mp3
+
+"The second problem: static batching. To make GPUs efficient, we process multiple requests together. But what happens when requests finish at different times? The short request waits for the long one. If one user asks 'what is two plus two' and another wants a five hundred word essay, the first user waits for the entire essay. Empty slots waste compute."
+
+----------------------------------------------------------------------
+
+=== Scene 7: scene7_memory_fragmentation ===
+Title: The Memory Fragmentation Problem
+Words: 52 (~21 seconds)
+Output file: scene7_memory_fragmentation.mp3
+
+"The third problem: memory fragmentation. We don't know how long responses will be, so we pre-allocate memory for the maximum length. A four thousand token buffer for every request. But most responses are short. We're using just five percent of allocated memory. The rest sits wasted, fragmenting GPU memory into unusable chunks."
+
+----------------------------------------------------------------------
+
+=== Scene 8: scene8_kvcache ===
+Title: The KV Cache Solution
+Words: 68 (~27 seconds)
+Output file: scene8_kvcache.mp3
+
+"Watch what happens with the KV cache. Token one generates Key-one and Value-one. These go straight into the cache. Now token two arrives. It generates Key-two and Value-two, but for attention, it reuses Key-one and Value-one from the cache. No recalculation. Token three? It reuses everything—Key-one, Value-one, Key-two, Value-two—all from the cache. Each token adds one new pair. The cache grows, but the work per token stays constant."
+
+----------------------------------------------------------------------
+
+=== Scene 9: scene9_mechanics ===
+Title: The Attention Computation
+Words: 51 (~20 seconds)
+Output file: scene9_mechanics.mp3
+
+"Here's the math behind it. The new token's Query multiplies against all cached Keys. Softmax turns those into attention weights. Then we take a weighted sum of cached Values. The result? Same output as recomputing everything, but at a fraction of the cost. Just matrix multiplies against tensors already in memory."
+
+----------------------------------------------------------------------
+
+=== Scene 10: scene10_continuous_batching ===
+Title: Continuous Batching
+Words: 89 (~36 seconds)
+Output file: scene10_continuous_batching.mp3
+
+"The second solution: continuous batching. First, what's a slot? A slot is a fixed memory allocation for one sequence in the GPU batch. Here we have four slots in our GPU. Watch what happens when Sequence A finishes. Its slot becomes available immediately, and a new sequence enters right away. This is the key innovation. Static batching waits for ALL sequences to finish before accepting new ones. Continuous batching fills empty slots immediately. New sequences enter available slots while others are still processing. The GPU stays at maximum utilization."
+
+----------------------------------------------------------------------
+
+=== Scene 11: scene11_paged_attention ===
+Title: PagedAttention
+Words: 58 (~23 seconds)
+Output file: scene11_paged_attention.mp3
+
+"The third solution: PagedAttention. Inspired by operating system virtual memory, we divide the KV cache into fixed-size blocks. Instead of pre-allocating one giant buffer, we allocate blocks on demand as tokens are generated. When a request finishes, its blocks return to a free list. No pre-allocation, no fragmentation. Memory utilization jumps from thirty-five percent to over ninety-five percent."
+
+----------------------------------------------------------------------
+
+=== Scene 12: scene12_quantization ===
+Title: Quantization
+Words: 55 (~22 seconds)
+Output file: scene12_quantization.mp3
+
+"We can push further with quantization. Model weights in sixteen-bit floating point use two bytes per parameter. Quantization compresses them to eight bits or even four bits, with minimal accuracy loss. Since decode is memory-bound, smaller weights mean faster loading. INT4 weights are four times smaller than FP16. That's up to four times faster inference."
+
+----------------------------------------------------------------------
+
+=== Scene 13: scene13_speculative_decoding ===
+Title: Speculative Decoding
+Words: 62 (~25 seconds)
+Output file: scene13_speculative_decoding.mp3
+
+"Here's a counterintuitive idea: use a smaller draft model to guess multiple tokens ahead, then verify them in parallel with the large model. For easy, predictable tokens, the draft is usually right. We accept all guesses and generate multiple tokens for the cost of one. For harder tokens, we fall back to the large model. Result: two to three times faster latency."
+
+----------------------------------------------------------------------
+
+=== Scene 14: scene14_scaling ===
+Title: Scaling to Millions
+Words: 54 (~22 seconds)
+Output file: scene14_scaling.mp3
+
+"To serve millions of users, we need to scale. Tensor parallelism splits model layers across multiple GPUs, reducing memory per GPU. Pipeline parallelism chains GPUs together, each handling different layers. And horizontal scaling deploys thousands of independent replicas behind load balancers. Smart routing sends similar requests to the same replica for better cache hits."
+
+----------------------------------------------------------------------
+
+=== Scene 15: scene15_economics ===
+Title: The Economics of Scale
+Words: 61 (~24 seconds)
+Output file: scene15_economics.mp3
+
+"Let's talk real numbers. One million users, fifty tokens per second each. That's fifty million tokens per second total. With optimized inference at two thousand tokens per GPU-second, you need twenty-five thousand GPUs. At two dollars per GPU-hour, that's fifty million dollars per month. Every optimization in this video directly reduces that bill. A two-times throughput improvement halves your infrastructure cost."
+
+----------------------------------------------------------------------
+
+=== Scene 16: scene16_conclusion ===
+Title: The Full Picture
+Words: 72 (~29 seconds)
+Output file: scene16_conclusion.mp3
+
+"Putting it all together: from forty tokens per second to over three thousand five hundred. An eighty-seven times improvement. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. And smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every optimization here serves one goal: maximize useful work per byte transferred. These techniques power every major AI service today."
+
+----------------------------------------------------------------------
+
+TOTAL: 16 scenes, 957 words
+Estimated recording time: 383 seconds (6.4 minutes)
