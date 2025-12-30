@@ -3,7 +3,7 @@
     {
       "scene_id": "scene1_hook",
       "title": "The Speed Problem",
-      "duration_seconds": 15,
+      "duration_seconds": 18,
       "narration": "Every time you chat with an AI, something remarkable happens. A neural network generates your response, one word at a time. The naive approach? Forty tokens per second. The best systems? Over three thousand. That's eighty-seven times faster. Here's how they do it."
     },
     {
@@ -15,39 +15,87 @@
     {
       "scene_id": "scene3_bottleneck",
       "title": "The Decode Bottleneck",
-      "duration_seconds": 25,
+      "duration_seconds": 22,
       "narration": "During decode, something surprising happens. The GPU sits mostly idle, waiting for data. Why? Because we're not limited by compute power. We're limited by memory bandwidth. The model weights are massive - billions of parameters. Moving them from memory to GPU takes time. And we do this for every single token."
     },
     {
       "scene_id": "scene4_attention",
       "title": "Understanding Attention",
-      "duration_seconds": 25,
+      "duration_seconds": 22,
       "narration": "To understand the solution, we need to understand attention. For each token, we compute three vectors: Query, Key, and Value. The Query asks: what am I looking for? Keys answer: what information do I have? Values hold the actual content. Attention scores tell us which past tokens matter most for the current prediction."
     },
     {
       "scene_id": "scene5_redundancy",
       "title": "The Redundancy Problem",
       "duration_seconds": 25,
-      "narration": "Here's the problem with naive decoding. For each new token, we recompute Keys and Values for ALL previous tokens. Token one? Compute once. Token two? Compute everything twice. Token ten? Ten times the work. Token one hundred? You see the pattern. This is O of n squared complexity. Most of this computation is completely redundant."
+      "narration": "Here's the first problem with naive decoding. For each new token, we recompute Keys and Values for ALL previous tokens. Token one? Compute once. Token two? Compute everything twice. Token one hundred? One hundred times the work. This is O of n squared complexity. Most of this computation is completely redundant."
     },
     {
-      "scene_id": "scene6_kvcache",
+      "scene_id": "scene6_static_batching",
+      "title": "The Static Batching Problem",
+      "duration_seconds": 22,
+      "narration": "The second problem: static batching. To make GPUs efficient, we process multiple requests together. But what happens when requests finish at different times? The short request waits for the long one. If one user asks 'what is two plus two' and another wants a five hundred word essay, the first user waits for the entire essay. Empty slots waste compute."
+    },
+    {
+      "scene_id": "scene7_memory_fragmentation",
+      "title": "The Memory Fragmentation Problem",
+      "duration_seconds": 22,
+      "narration": "The third problem: memory fragmentation. We don't know how long responses will be, so we pre-allocate memory for the maximum length. A four thousand token buffer for every request. But most responses are short. We're using just five percent of allocated memory. The rest sits wasted, fragmenting GPU memory into unusable chunks."
+    },
+    {
+      "scene_id": "scene8_kvcache",
       "title": "The KV Cache Solution",
-      "duration_seconds": 25,
-      "narration": "The solution is elegant: the KV Cache. Compute each Key and Value exactly once, then store them. When generating the next token, just look up what you've already computed. No redundant calculations. No wasted work. We trade memory for speed. Compute once. Remember forever."
+      "duration_seconds": 22,
+      "narration": "The first solution is elegant: the KV Cache. Compute each Key and Value exactly once, then store them. When generating the next token, just look up what you've already computed. No redundant calculations. No wasted work. We trade memory for speed. Compute once, remember forever. This transforms O n squared into O n."
     },
     {
-      "scene_id": "scene7_mechanics",
+      "scene_id": "scene9_mechanics",
       "title": "How KV Cache Works",
-      "duration_seconds": 20,
+      "duration_seconds": 18,
       "narration": "Here's how it works in practice. The new token's Query looks up against the cached Keys. This gives us attention weights. Those weights select from cached Values. The result? Same output, fraction of the compute. Each new token only needs one new Key-Value pair added to the cache."
     },
     {
-      "scene_id": "scene8_impact",
-      "title": "The Impact",
+      "scene_id": "scene10_continuous_batching",
+      "title": "Continuous Batching",
       "duration_seconds": 25,
-      "narration": "The impact is massive. Eighty-seven times faster inference. The tradeoff? Memory. A seventy billion parameter model needs about thirty-two gigabytes just for the cache. But it's worth it. Every major LLM uses this technique. GPT-4, Claude, Gemini, LLaMA. KV caching is the foundation of fast LLM inference. Trade memory for speed. Never recompute what you can remember."
+      "narration": "The second solution: continuous batching. Instead of waiting for all requests to finish, we make scheduling decisions at every decode step. When a short request finishes, immediately fill its slot with a waiting request. Long requests don't block anyone. The GPU stays at maximum utilization. Every slot is always doing useful work."
+    },
+    {
+      "scene_id": "scene11_paged_attention",
+      "title": "PagedAttention",
+      "duration_seconds": 28,
+      "narration": "The third solution: PagedAttention. Inspired by operating system virtual memory, we divide the KV cache into fixed-size blocks. Instead of pre-allocating one giant buffer, we allocate blocks on demand as tokens are generated. When a request finishes, its blocks return to a free list. No pre-allocation, no fragmentation. Memory utilization jumps from thirty-five percent to over ninety-five percent."
+    },
+    {
+      "scene_id": "scene12_quantization",
+      "title": "Quantization",
+      "duration_seconds": 25,
+      "narration": "We can push further with quantization. Model weights in sixteen-bit floating point use two bytes per parameter. Quantization compresses them to eight bits or even four bits, with minimal accuracy loss. Since decode is memory-bound, smaller weights mean faster loading. INT4 weights are four times smaller than FP16. That's up to four times faster inference."
+    },
+    {
+      "scene_id": "scene13_speculative_decoding",
+      "title": "Speculative Decoding",
+      "duration_seconds": 28,
+      "narration": "Here's a counterintuitive idea: use a smaller draft model to guess multiple tokens ahead, then verify them in parallel with the large model. For easy, predictable tokens, the draft is usually right. We accept all guesses and generate multiple tokens for the cost of one. For harder tokens, we fall back to the large model. Result: two to three times faster latency."
+    },
+    {
+      "scene_id": "scene14_scaling",
+      "title": "Scaling to Millions",
+      "duration_seconds": 28,
+      "narration": "To serve millions of users, we need to scale. Tensor parallelism splits model layers across multiple GPUs, reducing memory per GPU. Pipeline parallelism chains GPUs together, each handling different layers. And horizontal scaling deploys thousands of independent replicas behind load balancers. Smart routing sends similar requests to the same replica for better cache hits."
+    },
+    {
+      "scene_id": "scene15_economics",
+      "title": "The Economics of Scale",
+      "duration_seconds": 30,
+      "narration": "Let's talk real numbers. One million users, fifty tokens per second each. That's fifty million tokens per second total. With optimized inference at two thousand tokens per GPU-second, you need twenty-five thousand GPUs. At two dollars per GPU-hour, that's fifty million dollars per month. Every optimization in this video directly reduces that bill. A two-times throughput improvement halves your infrastructure cost."
+    },
+    {
+      "scene_id": "scene16_conclusion",
+      "title": "The Full Picture",
+      "duration_seconds": 30,
+      "narration": "Putting it all together: from forty tokens per second to over three thousand five hundred. An eighty-seven times improvement. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. And smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every optimization here serves one goal: maximize useful work per byte transferred. These techniques power every major AI service today."
     }
   ],
-  "total_duration_seconds": 180
+  "total_duration_seconds": 385
 }

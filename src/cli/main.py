@@ -211,7 +211,6 @@ def cmd_storyboard(args: argparse.Namespace) -> int:
 
 def cmd_render(args: argparse.Namespace) -> int:
     """Render video for a project."""
-    import shutil
     import subprocess
 
     from ..project import load_project
@@ -232,51 +231,16 @@ def cmd_render(args: argparse.Namespace) -> int:
         print(f"Error: Render script not found: {render_script}", file=sys.stderr)
         return 1
 
+    # Check for storyboard
+    storyboard_path = project.get_path("storyboard")
+    if not storyboard_path.exists():
+        print(f"Error: Storyboard not found: {storyboard_path}", file=sys.stderr)
+        print("Run storyboard generation first or create storyboard/storyboard.json")
+        return 1
+
     # Check for voiceover files
     voiceover_files = list(project.voiceover_dir.glob("*.mp3"))
-    has_voiceover = len(voiceover_files) > 0
-
-    # Copy voiceover files to remotion/public/voiceover/ for staticFile() access
-    if has_voiceover:
-        public_voiceover_dir = remotion_dir / "public" / "voiceover"
-        public_voiceover_dir.mkdir(parents=True, exist_ok=True)
-
-        print(f"Copying {len(voiceover_files)} voiceover files to {public_voiceover_dir}")
-        for audio_file in voiceover_files:
-            dest = public_voiceover_dir / audio_file.name
-            shutil.copy2(audio_file, dest)
-
-    # Determine composition based on project
-    # For llm-inference project, use the hand-crafted LLM-Inference-WithAudio composition
-    if project.id == "llm-inference" and has_voiceover:
-        composition = "LLM-Inference-WithAudio"
-        props_path = remotion_dir / "empty-props.json"
-        # Create empty props file
-        with open(props_path, "w") as f:
-            json.dump({}, f)
-    else:
-        # Use StoryboardPlayer for other projects
-        composition = "StoryboardPlayer"
-
-        storyboard_path = project.get_path("storyboard")
-        if not storyboard_path.exists():
-            print(f"Error: Storyboard not found: {storyboard_path}", file=sys.stderr)
-            return 1
-
-        with open(storyboard_path) as f:
-            storyboard = json.load(f)
-
-        props = {"storyboard": storyboard}
-
-        voiceover_manifest = project.voiceover_dir / "manifest.json"
-        if voiceover_manifest.exists():
-            with open(voiceover_manifest) as f:
-                props["voiceover"] = json.load(f)
-
-        props_path = project.remotion_dir / "props.json"
-        props_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(props_path, "w") as f:
-            json.dump(props, f, indent=2)
+    print(f"Found {len(voiceover_files)} voiceover files")
 
     # Determine output path
     if args.preview:
@@ -286,16 +250,17 @@ def cmd_render(args: argparse.Namespace) -> int:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Build render command
+    # Build render command using new data-driven architecture
+    # The render script uses the project directory to serve static files (voiceovers)
     cmd = [
         "node",
         str(render_script),
-        "--composition", composition,
-        "--props", str(props_path),
+        "--project", str(project.root_dir),
         "--output", str(output_path),
     ]
 
-    print(f"Composition: {composition}")
+    print(f"Project: {project.root_dir}")
+    print(f"Output: {output_path}")
     print(f"Running: {' '.join(cmd)}")
     print()
 

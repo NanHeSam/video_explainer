@@ -1,566 +1,141 @@
 {
-  "$schema": "../../../storyboards/schema/storyboard.schema.json",
-  "id": "llm_inference_complete",
   "title": "LLM Inference: How KV Caching Makes AI Fast",
-  "description": "Complete explainer video covering the two phases of LLM inference and KV cache optimization",
-  "duration_seconds": 165,
+  "description": "An explainer video about KV caching and LLM inference optimization",
+  "version": "2.0.0",
+  "project": "llm-inference",
+
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+
   "style": {
     "background_color": "#0f0f1a",
     "primary_color": "#00d9ff",
     "secondary_color": "#ff6b35",
-    "accent_color": "#00ff88",
     "font_family": "Inter"
   },
-  "beats": [
+
+  "scenes": [
     {
       "id": "scene1_hook",
-      "start_seconds": 0,
-      "end_seconds": 17.2,
-      "voiceover": "Every time you chat with an AI, something remarkable happens. A neural network generates your response, one word at a time. The naive approach? Forty tokens per second. The best systems? Over three thousand. That's eighty-seven times faster. Here's how they do it.",
+      "type": "llm-inference/hook",
+      "title": "The Speed Problem",
       "audio_file": "scene1_hook.mp3",
-      "elements": [
-        {
-          "id": "title",
-          "component": "title_card",
-          "props": {
-            "title": "LLM Inference",
-            "subtitle": "The Speed Problem"
-          },
-          "position": { "x": "center", "y": 300 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 4 }
-        },
-        {
-          "id": "speed_comparison",
-          "component": "text_reveal",
-          "props": {
-            "text": "40 tokens/sec → 3,000+ tokens/sec",
-            "fontSize": 48
-          },
-          "position": { "x": "center", "y": 500 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 8 }
-        },
-        {
-          "id": "speedup",
-          "component": "text_reveal",
-          "props": {
-            "text": "87x faster",
-            "fontSize": 72,
-            "color": "#00ff88"
-          },
-          "position": { "x": "center", "y": 650 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 12 }
-        }
-      ]
+      "audio_duration_seconds": 21.16
     },
     {
       "id": "scene2_phases",
-      "start_seconds": 17.2,
-      "end_seconds": 38.4,
-      "voiceover": "LLM inference has two distinct phases. First, the prefill phase processes your entire prompt in parallel. The GPU loves this - it can crunch all tokens at once. Then comes the decode phase, generating one token at a time. Each new token depends on the previous one. This is where the bottleneck hides.",
+      "type": "llm-inference/phases",
+      "title": "The Two Phases",
       "audio_file": "scene2_phases.mp3",
-      "elements": [
-        {
-          "id": "phase_title",
-          "component": "title_card",
-          "props": {
-            "title": "Two Phases",
-            "subtitle": "Prefill & Decode"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 3 }
-        },
-        {
-          "id": "prefill_tokens",
-          "component": "token_row",
-          "props": {
-            "tokens": ["Explain", "quantum", "computing", "in", "simple", "terms"],
-            "mode": "prefill",
-            "label": "PREFILL"
-          },
-          "position": { "x": 480, "y": 400 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 3 },
-          "animations": [
-            { "action": "activate_all", "at_seconds": 6, "duration_seconds": 0.5 }
-          ]
-        },
-        {
-          "id": "gpu_prefill",
-          "component": "gpu_gauge",
-          "props": {
-            "utilization": 95,
-            "status": "compute",
-            "label": "GPU: Compute-bound"
-          },
-          "position": { "x": 480, "y": 600 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 5 },
-          "animations": [
-            { "action": "fill", "at_seconds": 6, "duration_seconds": 1 }
-          ]
-        },
-        {
-          "id": "decode_tokens",
-          "component": "token_row",
-          "props": {
-            "tokens": ["Quantum", "computing", "is", "a", "type", "of"],
-            "mode": "decode",
-            "label": "DECODE"
-          },
-          "position": { "x": 1440, "y": 400 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 11 },
-          "animations": [
-            { "action": "activate_sequential", "at_seconds": 12, "duration_seconds": 6, "params": { "delay_between": 1 } }
-          ]
-        },
-        {
-          "id": "gpu_decode",
-          "component": "gpu_gauge",
-          "props": {
-            "utilization": 5,
-            "status": "memory",
-            "label": "GPU: Memory-bound"
-          },
-          "position": { "x": 1440, "y": 600 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 14 },
-          "animations": [
-            { "action": "fill", "at_seconds": 15, "duration_seconds": 1 }
-          ]
-        }
-      ]
+      "audio_duration_seconds": 21.61
     },
     {
       "id": "scene3_bottleneck",
-      "start_seconds": 38.4,
-      "end_seconds": 58.8,
-      "voiceover": "During decode, something surprising happens. The GPU sits mostly idle, waiting for data. Why? Because we're not limited by compute power. We're limited by memory bandwidth. The model weights are massive - billions of parameters. Moving them from memory to GPU takes time. And we do this for every single token.",
+      "type": "llm-inference/bottleneck",
+      "title": "The Decode Bottleneck",
       "audio_file": "scene3_bottleneck.mp3",
-      "elements": [
-        {
-          "id": "bottleneck_title",
-          "component": "title_card",
-          "props": {
-            "title": "The Decode Bottleneck",
-            "subtitle": "Memory, not Compute"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 3 }
-        },
-        {
-          "id": "gpu_idle",
-          "component": "gpu_gauge",
-          "props": {
-            "utilization": 5,
-            "status": "memory",
-            "label": "GPU Utilization"
-          },
-          "position": { "x": "center", "y": 450 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 2 },
-          "animations": [
-            { "action": "fill", "at_seconds": 3, "duration_seconds": 1.5 },
-            { "action": "show_status", "at_seconds": 5, "duration_seconds": 0.3 }
-          ]
-        },
-        {
-          "id": "memory_label",
-          "component": "text_reveal",
-          "props": {
-            "text": "Memory Bandwidth Limited",
-            "fontSize": 36,
-            "color": "#ff6b35"
-          },
-          "position": { "x": "center", "y": 600 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 8 }
-        },
-        {
-          "id": "params_text",
-          "component": "text_reveal",
-          "props": {
-            "text": "Billions of parameters to load",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 700 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 12 }
-        },
-        {
-          "id": "every_token",
-          "component": "text_reveal",
-          "props": {
-            "text": "...for every single token",
-            "fontSize": 32,
-            "color": "#ff4757"
-          },
-          "position": { "x": "center", "y": 780 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 16 }
-        }
-      ]
+      "audio_duration_seconds": 24.30
     },
     {
       "id": "scene4_attention",
-      "start_seconds": 58.8,
-      "end_seconds": 80.0,
-      "voiceover": "To understand the solution, we need to understand attention. For each token, we compute three vectors: Query, Key, and Value. The Query asks: what am I looking for? Keys answer: what information do I have? Values hold the actual content. Attention scores tell us which past tokens matter most for the current prediction.",
+      "type": "llm-inference/attention",
+      "title": "Understanding Attention",
       "audio_file": "scene4_attention.mp3",
-      "elements": [
-        {
-          "id": "attention_title",
-          "component": "title_card",
-          "props": {
-            "title": "Understanding Attention",
-            "subtitle": "Query, Key, Value"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 3 }
-        },
-        {
-          "id": "query_text",
-          "component": "text_reveal",
-          "props": {
-            "text": "Query (Q): What am I looking for?",
-            "fontSize": 36,
-            "color": "#00d9ff"
-          },
-          "position": { "x": "center", "y": 400 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 5 }
-        },
-        {
-          "id": "key_text",
-          "component": "text_reveal",
-          "props": {
-            "text": "Key (K): What information do I have?",
-            "fontSize": 36,
-            "color": "#ff6b35"
-          },
-          "position": { "x": "center", "y": 500 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 8 }
-        },
-        {
-          "id": "value_text",
-          "component": "text_reveal",
-          "props": {
-            "text": "Value (V): The actual content",
-            "fontSize": 36,
-            "color": "#00ff88"
-          },
-          "position": { "x": "center", "y": 600 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 11 }
-        },
-        {
-          "id": "attention_formula",
-          "component": "text_reveal",
-          "props": {
-            "text": "Attention = softmax(Q · K^T) · V",
-            "fontSize": 42,
-            "color": "#ffffff"
-          },
-          "position": { "x": "center", "y": 750 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 16 }
-        }
-      ]
+      "audio_duration_seconds": 22.48
     },
     {
       "id": "scene5_redundancy",
-      "start_seconds": 80.0,
-      "end_seconds": 102.0,
-      "voiceover": "Here's the problem with naive decoding. For each new token, we recompute Keys and Values for ALL previous tokens. Token one? Compute once. Token two? Compute everything twice. Token ten? Ten times the work. Token one hundred? You see the pattern. This is O of n squared complexity. Most of this computation is completely redundant.",
+      "type": "llm-inference/redundancy",
+      "title": "The Redundancy Problem",
       "audio_file": "scene5_redundancy.mp3",
-      "elements": [
-        {
-          "id": "redundancy_title",
-          "component": "title_card",
-          "props": {
-            "title": "The Redundancy Problem",
-            "subtitle": "O(n²) Complexity"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 3 }
-        },
-        {
-          "id": "token1",
-          "component": "text_reveal",
-          "props": {
-            "text": "Token 1: Compute 1x",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 380 },
-          "enter": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 5 }
-        },
-        {
-          "id": "token2",
-          "component": "text_reveal",
-          "props": {
-            "text": "Token 2: Compute 2x",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 450 },
-          "enter": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 7 }
-        },
-        {
-          "id": "token10",
-          "component": "text_reveal",
-          "props": {
-            "text": "Token 10: Compute 10x",
-            "fontSize": 32,
-            "color": "#ff6b35"
-          },
-          "position": { "x": "center", "y": 520 },
-          "enter": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 9 }
-        },
-        {
-          "id": "token100",
-          "component": "text_reveal",
-          "props": {
-            "text": "Token 100: Compute 100x",
-            "fontSize": 32,
-            "color": "#ff4757"
-          },
-          "position": { "x": "center", "y": 590 },
-          "enter": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 11 }
-        },
-        {
-          "id": "complexity",
-          "component": "text_reveal",
-          "props": {
-            "text": "O(n²) - Quadratic Complexity",
-            "fontSize": 48,
-            "color": "#ff4757"
-          },
-          "position": { "x": "center", "y": 720 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 15 }
-        },
-        {
-          "id": "redundant",
-          "component": "text_reveal",
-          "props": {
-            "text": "Most computation is redundant!",
-            "fontSize": 36
-          },
-          "position": { "x": "center", "y": 820 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 18 }
-        }
-      ]
+      "audio_duration_seconds": 26.36
     },
     {
-      "id": "scene6_kvcache",
-      "start_seconds": 102.0,
-      "end_seconds": 119.6,
-      "voiceover": "The solution is elegant: the KV Cache. Compute each Key and Value exactly once, then store them. When generating the next token, just look up what you've already computed. No redundant calculations. No wasted work. We trade memory for speed. Compute once. Remember forever.",
-      "audio_file": "scene6_kvcache.mp3",
-      "elements": [
-        {
-          "id": "kvcache_title",
-          "component": "title_card",
-          "props": {
-            "title": "The KV Cache",
-            "subtitle": "The Solution"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 2.5 }
-        },
-        {
-          "id": "compute_once",
-          "component": "text_reveal",
-          "props": {
-            "text": "Compute K, V once",
-            "fontSize": 40,
-            "color": "#00d9ff"
-          },
-          "position": { "x": "center", "y": 400 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 3 }
-        },
-        {
-          "id": "store_them",
-          "component": "text_reveal",
-          "props": {
-            "text": "Store in cache",
-            "fontSize": 40,
-            "color": "#ff6b35"
-          },
-          "position": { "x": "center", "y": 480 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 5 }
-        },
-        {
-          "id": "lookup",
-          "component": "text_reveal",
-          "props": {
-            "text": "Look up when needed",
-            "fontSize": 40,
-            "color": "#00ff88"
-          },
-          "position": { "x": "center", "y": 560 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 7 }
-        },
-        {
-          "id": "tradeoff",
-          "component": "text_reveal",
-          "props": {
-            "text": "Trade memory for speed",
-            "fontSize": 48,
-            "color": "#a855f7"
-          },
-          "position": { "x": "center", "y": 700 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 11 }
-        },
-        {
-          "id": "motto",
-          "component": "text_reveal",
-          "props": {
-            "text": "Compute once. Remember forever.",
-            "fontSize": 42
-          },
-          "position": { "x": "center", "y": 800 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 14 }
-        }
-      ]
+      "id": "scene6_static_batching",
+      "type": "llm-inference/static_batching",
+      "title": "The Static Batching Problem",
+      "audio_file": "scene6_static_batching.mp3",
+      "audio_duration_seconds": 23.48
     },
     {
-      "id": "scene7_mechanics",
-      "start_seconds": 119.6,
-      "end_seconds": 138.8,
-      "voiceover": "Here's how it works in practice. The new token's Query looks up against the cached Keys. This gives us attention weights. Those weights select from cached Values. The result? Same output, fraction of the compute. Each new token only needs one new Key-Value pair added to the cache.",
-      "audio_file": "scene7_mechanics.mp3",
-      "elements": [
-        {
-          "id": "mechanics_title",
-          "component": "title_card",
-          "props": {
-            "title": "How It Works",
-            "subtitle": "KV Cache Mechanics"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 2.5 }
-        },
-        {
-          "id": "step1",
-          "component": "text_reveal",
-          "props": {
-            "text": "1. New token's Q looks up cached K",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 380 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 3 }
-        },
-        {
-          "id": "step2",
-          "component": "text_reveal",
-          "props": {
-            "text": "2. Compute attention weights",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 460 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 6 }
-        },
-        {
-          "id": "step3",
-          "component": "text_reveal",
-          "props": {
-            "text": "3. Select from cached V",
-            "fontSize": 32
-          },
-          "position": { "x": "center", "y": 540 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 8 }
-        },
-        {
-          "id": "result",
-          "component": "text_reveal",
-          "props": {
-            "text": "Same output, fraction of compute!",
-            "fontSize": 40,
-            "color": "#00ff88"
-          },
-          "position": { "x": "center", "y": 660 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 11 }
-        },
-        {
-          "id": "one_pair",
-          "component": "text_reveal",
-          "props": {
-            "text": "Only 1 new K-V pair per token",
-            "fontSize": 36,
-            "color": "#00d9ff"
-          },
-          "position": { "x": "center", "y": 780 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 15 }
-        }
-      ]
+      "id": "scene7_memory_fragmentation",
+      "type": "llm-inference/memory_fragmentation",
+      "title": "Memory Fragmentation",
+      "audio_file": "scene7_memory_fragmentation.mp3",
+      "audio_duration_seconds": 22.88
     },
     {
-      "id": "scene8_impact",
-      "start_seconds": 138.8,
-      "end_seconds": 165.0,
-      "voiceover": "The impact is massive. Eighty-seven times faster inference. The tradeoff? Memory. A seventy billion parameter model needs about thirty-two gigabytes just for the cache. But it's worth it. Every major LLM uses this technique. GPT-4, Claude, Gemini, LLaMA. KV caching is the foundation of fast LLM inference. Trade memory for speed. Never recompute what you can remember.",
-      "audio_file": "scene8_impact.mp3",
-      "elements": [
-        {
-          "id": "impact_title",
-          "component": "title_card",
-          "props": {
-            "title": "The Impact",
-            "subtitle": "87x Faster"
-          },
-          "position": { "x": "center", "y": 200 },
-          "enter": { "type": "fade", "duration_seconds": 0.5 },
-          "exit": { "type": "fade", "duration_seconds": 0.3, "delay_seconds": 3 }
-        },
-        {
-          "id": "speedup_big",
-          "component": "text_reveal",
-          "props": {
-            "text": "87x Faster Inference",
-            "fontSize": 64,
-            "color": "#00ff88"
-          },
-          "position": { "x": "center", "y": 380 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 2 }
-        },
-        {
-          "id": "memory_cost",
-          "component": "text_reveal",
-          "props": {
-            "text": "70B model = ~32GB cache",
-            "fontSize": 36,
-            "color": "#ff6b35"
-          },
-          "position": { "x": "center", "y": 500 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 6 }
-        },
-        {
-          "id": "models",
-          "component": "text_reveal",
-          "props": {
-            "text": "GPT-4 | Claude | Gemini | LLaMA",
-            "fontSize": 40
-          },
-          "position": { "x": "center", "y": 620 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 12 }
-        },
-        {
-          "id": "foundation",
-          "component": "text_reveal",
-          "props": {
-            "text": "KV Caching: Foundation of Fast LLM Inference",
-            "fontSize": 36,
-            "color": "#00d9ff"
-          },
-          "position": { "x": "center", "y": 740 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 17 }
-        },
-        {
-          "id": "final_motto",
-          "component": "text_reveal",
-          "props": {
-            "text": "Never recompute what you can remember.",
-            "fontSize": 42
-          },
-          "position": { "x": "center", "y": 860 },
-          "enter": { "type": "fade", "duration_seconds": 0.5, "delay_seconds": 22 }
-        }
-      ]
+      "id": "scene8_kvcache",
+      "type": "llm-inference/kvcache",
+      "title": "The KV Cache Solution",
+      "audio_file": "scene8_kvcache.mp3",
+      "audio_duration_seconds": 24.75
+    },
+    {
+      "id": "scene9_mechanics",
+      "type": "llm-inference/mechanics",
+      "title": "How KV Cache Works",
+      "audio_file": "scene9_mechanics.mp3",
+      "audio_duration_seconds": 20.40
+    },
+    {
+      "id": "scene10_continuous_batching",
+      "type": "llm-inference/continuous_batching",
+      "title": "Continuous Batching",
+      "audio_file": "scene10_continuous_batching.mp3",
+      "audio_duration_seconds": 23.00
+    },
+    {
+      "id": "scene11_paged_attention",
+      "type": "llm-inference/paged_attention",
+      "title": "PagedAttention",
+      "audio_file": "scene11_paged_attention.mp3",
+      "audio_duration_seconds": 27.11
+    },
+    {
+      "id": "scene12_quantization",
+      "type": "llm-inference/quantization",
+      "title": "Quantization",
+      "audio_file": "scene12_quantization.mp3",
+      "audio_duration_seconds": 24.26
+    },
+    {
+      "id": "scene13_speculative_decoding",
+      "type": "llm-inference/speculative_decoding",
+      "title": "Speculative Decoding",
+      "audio_file": "scene13_speculative_decoding.mp3",
+      "audio_duration_seconds": 23.79
+    },
+    {
+      "id": "scene14_scaling",
+      "type": "llm-inference/scaling",
+      "title": "Scaling to Millions",
+      "audio_file": "scene14_scaling.mp3",
+      "audio_duration_seconds": 25.26
+    },
+    {
+      "id": "scene15_economics",
+      "type": "llm-inference/economics",
+      "title": "The Economics of Scale",
+      "audio_file": "scene15_economics.mp3",
+      "audio_duration_seconds": 28.66
+    },
+    {
+      "id": "scene16_conclusion",
+      "type": "llm-inference/conclusion",
+      "title": "The Full Picture",
+      "audio_file": "scene16_conclusion.mp3",
+      "audio_duration_seconds": 38.84
     }
-  ]
+  ],
+
+  "audio": {
+    "voiceover_dir": "voiceover",
+    "buffer_between_scenes_seconds": 1.0
+  },
+
+  "total_duration_seconds": 414.34
 }

@@ -3,10 +3,12 @@
  * Render script for programmatic video generation.
  *
  * Usage:
+ *   node scripts/render.mjs --composition ScenePlayer --storyboard ./projects/llm-inference/storyboard/storyboard.json --output ./output.mp4
+ *   node scripts/render.mjs --project ../projects/llm-inference --output ./output.mp4
  *   node scripts/render.mjs --props ./props.json --output ./output.mp4
- *   node scripts/render.mjs --composition StoryboardPlayer --props ./storyboard.json --output ./output.mp4
  *
- * The props.json file should contain the composition props.
+ * The --project flag automatically finds storyboard.json and uses the project's
+ * voiceover directory for audio files.
  */
 
 import { bundle } from "@remotion/bundler";
@@ -24,12 +26,21 @@ async function main() {
   // Parse command line arguments
   const args = process.argv.slice(2);
   let propsPath = null;
+  let storyboardPath = null;
+  let projectDir = null;
   let outputPath = "./output.mp4";
-  let compositionId = "ExplainerVideo";
+  let compositionId = "ScenePlayer";
+  let voiceoverBasePath = "voiceover";
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--props" && args[i + 1]) {
       propsPath = args[i + 1];
+      i++;
+    } else if (args[i] === "--storyboard" && args[i + 1]) {
+      storyboardPath = args[i + 1];
+      i++;
+    } else if (args[i] === "--project" && args[i + 1]) {
+      projectDir = resolve(args[i + 1]);
       i++;
     } else if (args[i] === "--output" && args[i + 1]) {
       outputPath = args[i + 1];
@@ -37,27 +48,70 @@ async function main() {
     } else if (args[i] === "--composition" && args[i + 1]) {
       compositionId = args[i + 1];
       i++;
+    } else if (args[i] === "--voiceover-path" && args[i + 1]) {
+      voiceoverBasePath = args[i + 1];
+      i++;
     }
   }
 
-  if (!propsPath) {
-    console.error("Usage: node scripts/render.mjs [--composition <id>] --props <props.json> --output <output.mp4>");
-    process.exit(1);
+  // If project dir is specified, derive storyboard path from it
+  if (projectDir && !storyboardPath) {
+    storyboardPath = resolve(projectDir, "storyboard/storyboard.json");
   }
 
-  if (!existsSync(propsPath)) {
-    console.error(`Props file not found: ${propsPath}`);
+  // Build props based on arguments
+  let props;
+
+  if (storyboardPath) {
+    // Scene-based storyboard (new format)
+    if (!existsSync(storyboardPath)) {
+      console.error(`Storyboard file not found: ${storyboardPath}`);
+      process.exit(1);
+    }
+
+    const storyboard = JSON.parse(readFileSync(storyboardPath, "utf-8"));
+    props = { storyboard, voiceoverBasePath };
+
+    // Derive project directory from storyboard path if not specified
+    if (!projectDir) {
+      // storyboard is at projects/<name>/storyboard/storyboard.json
+      projectDir = resolve(dirname(storyboardPath), "..");
+    }
+
+    console.log(`Loaded storyboard from ${storyboardPath}`);
+    console.log(`Project directory: ${projectDir}`);
+    console.log(`Title: ${storyboard.title}`);
+    console.log(`Scenes: ${storyboard.scenes.length}`);
+    console.log(`Composition: ${compositionId}`);
+  } else if (propsPath) {
+    // Legacy props file
+    if (!existsSync(propsPath)) {
+      console.error(`Props file not found: ${propsPath}`);
+      process.exit(1);
+    }
+
+    props = JSON.parse(readFileSync(propsPath, "utf-8"));
+    console.log(`Loaded props from ${propsPath}`);
+    console.log(`Composition: ${compositionId}`);
+  } else {
+    console.error("Usage:");
+    console.error("  node scripts/render.mjs --composition ScenePlayer --storyboard <storyboard.json> --output <output.mp4>");
+    console.error("  node scripts/render.mjs [--composition <id>] --props <props.json> --output <output.mp4>");
     process.exit(1);
   }
-
-  // Load props from JSON file
-  const props = JSON.parse(readFileSync(propsPath, "utf-8"));
-  console.log(`Loaded props from ${propsPath}`);
-  console.log(`Composition: ${compositionId}`);
 
   // Calculate total duration based on composition type
   let totalDuration;
-  if (compositionId === "StoryboardPlayer" && props.storyboard) {
+  if (compositionId === "ScenePlayer" && props.storyboard) {
+    // New scene-based format
+    const buffer = props.storyboard.audio?.buffer_between_scenes_seconds ?? 1.0;
+    totalDuration = props.storyboard.scenes.reduce(
+      (acc, scene) => acc + scene.audio_duration_seconds + buffer,
+      0
+    );
+    console.log(`Total duration: ${totalDuration.toFixed(1)}s (${props.storyboard.scenes.length} scenes)`);
+  } else if (compositionId === "StoryboardPlayer" && props.storyboard) {
+    // Old beat-based format
     totalDuration = props.storyboard.duration_seconds;
     console.log(`Storyboard: ${props.storyboard.title}`);
     console.log(`Beats: ${props.storyboard.beats.length}`);
@@ -76,8 +130,14 @@ async function main() {
   // Bundle the Remotion project
   console.log("\nBundling Remotion project...");
   const entryPoint = resolve(__dirname, "../src/index.ts");
+
+  // Use project directory as public dir if available, otherwise use default
+  const publicDir = projectDir || resolve(__dirname, "../public");
+  console.log(`Public directory: ${publicDir}`);
+
   const bundleLocation = await bundle({
     entryPoint,
+    publicDir,
     onProgress: (progress) => {
       if (progress % 20 === 0) {
         console.log(`  Bundle progress: ${progress}%`);
