@@ -4,7 +4,7 @@
       "scene_id": "scene1_hook",
       "title": "The Speed Problem",
       "duration_seconds": 18,
-      "narration": "Every time you chat with an AI, something remarkable happens. A neural network generates your response, one word at a time. The naive approach? Forty tokens per second. The best systems? Over three thousand. That's eighty-seven times faster. Here's how they do it."
+      "narration": "Forty tokens per second. That's what you get with naive LLM inference. The best production systems? Over three thousand. Same model, same hardware—eighty-seven times faster. The difference is purely software. Here's how they do it."
     },
     {
       "scene_id": "scene2_phases",
@@ -22,7 +22,7 @@
       "scene_id": "scene4_attention",
       "title": "Understanding Attention",
       "duration_seconds": 25,
-      "narration": "To understand the solution, we need to understand attention. For each token, we compute three vectors: Query, Key, and Value. The Query asks: what am I looking for? Keys answer: what information do I have? Values hold the actual content. We multiply Query by Key-transpose and divide by the square root of the key dimension. This scaling prevents attention scores from becoming too extreme. Attention scores tell us which past tokens matter most for the current prediction."
+      "narration": "Quick attention refresher. Each token produces Query, Key, and Value vectors. To predict the next token, we compute attention: Q times K-transpose, scaled, then softmax, then weighted sum of Values. Here's the key insight for this video: Keys and Values for past tokens never change. So why recompute them every time?"
     },
     {
       "scene_id": "scene5_redundancy",
@@ -46,7 +46,7 @@
       "scene_id": "scene8_vllm_intro",
       "title": "Introducing vLLM",
       "duration_seconds": 12,
-      "narration": "To understand these optimizations, let's look at vLLM, a high-throughput LLM serving engine. It implements three key techniques: KV Cache optimization, Continuous Batching, and PagedAttention. Let's dive into how vLLM solves each problem."
+      "narration": "Now let's see how modern inference engines solve these problems. Three key techniques, now industry standard: KV caching, continuous batching, and PagedAttention. These ideas were pioneered in systems like vLLM and are now everywhere. Let's break them down."
     },
     {
       "scene_id": "scene9_kvcache",
@@ -76,7 +76,7 @@
       "scene_id": "scene13_more_optimizations",
       "title": "More Optimizations Coming",
       "duration_seconds": 10,
-      "narration": "We've covered a lot: KV Cache, Continuous Batching, and PagedAttention. But there's more. Two more powerful techniques to maximize LLM performance: Quantization and Speculative Decoding."
+      "narration": "Those three techniques solve the serving bottleneck. But we're still leaving performance on the table. Two more optimizations push throughput even further: quantization and speculative decoding."
     },
     {
       "scene_id": "scene14_quantization",
@@ -94,7 +94,7 @@
       "scene_id": "scene16_scaling",
       "title": "Scaling to Millions",
       "duration_seconds": 28,
-      "narration": "To serve millions of users, we need to scale. Tensor parallelism splits model layers across multiple GPUs, reducing memory per GPU. Pipeline parallelism chains GPUs together, each handling different layers. And horizontal scaling deploys thousands of independent replicas behind load balancers. Smart routing sends similar requests to the same replica for better cache hits."
+      "narration": "One GPU isn't enough for production scale. Tensor parallelism shards each layer across GPUs—essential when a single model doesn't fit in memory. Pipeline parallelism chains GPUs in sequence, overlapping computation across micro-batches. And at massive scale, you deploy thousands of replicas behind load balancers, with smart routing to maximize cache reuse across similar requests."
     },
     {
       "scene_id": "scene17_economics",
@@ -106,7 +106,7 @@
       "scene_id": "scene18_conclusion",
       "title": "The Full Picture",
       "duration_seconds": 30,
-      "narration": "Putting it all together: from forty tokens per second to over three thousand five hundred. An eighty-seven times improvement. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. And smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every optimization here serves one goal: maximize useful work per byte transferred. These techniques power every major AI service today."
+      "narration": "From forty tokens per second to over three thousand five hundred. An eighty-seven times improvement through pure software optimization. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. Smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every technique here serves one goal—maximize useful work per byte transferred. These optimizations power ChatGPT, Claude, and Gemini today. And inference costs still dominate AI budgets. The next ten-x improvement? That's an open problem."
     }
   ],
   "total_duration_seconds": 410

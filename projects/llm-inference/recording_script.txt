@@ -12,10 +12,10 @@ Instructions:
 
 === Scene 1: scene1_hook ===
 Title: The Speed Problem
-Words: 43 (~17 seconds)
+Words: 35 (~14 seconds)
 Output file: scene1_hook.mp3
 
-"Every time you chat with an AI, something remarkable happens. A neural network generates your response, one word at a time. The naive approach? Forty tokens per second. The best systems? Over three thousand. That's eighty-seven times faster. Here's how they do it."
+"Forty tokens per second. That's what you get with naive LLM inference. The best production systems? Over three thousand. Same model, same hardware—eighty-seven times faster. The difference is purely software. Here's how they do it."
 
 ----------------------------------------------------------------------
 
@@ -39,10 +39,10 @@ Output file: scene3_bottleneck.mp3
 
 === Scene 4: scene4_attention ===
 Title: Understanding Attention
-Words: 77 (~31 seconds)
+Words: 51 (~20 seconds)
 Output file: scene4_attention.mp3
 
-"To understand the solution, we need to understand attention. For each token, we compute three vectors: Query, Key, and Value. The Query asks: what am I looking for? Keys answer: what information do I have? Values hold the actual content. We multiply Query by Key-transpose and divide by the square root of the key dimension. This scaling prevents attention scores from becoming too extreme. Attention scores tell us which past tokens matter most for the current prediction."
+"Quick attention refresher. Each token produces Query, Key, and Value vectors. To predict the next token, we compute attention: Q times K-transpose, scaled, then softmax, then weighted sum of Values. Here's the key insight for this video: Keys and Values for past tokens never change. So why recompute them every time?"
 
 ----------------------------------------------------------------------
 
@@ -75,10 +75,10 @@ Output file: scene7_memory_fragmentation.mp3
 
 === Scene 8: scene8_vllm_intro ===
 Title: Introducing vLLM
-Words: 33 (~13 seconds)
+Words: 38 (~15 seconds)
 Output file: scene8_vllm_intro.mp3
 
-"To understand these optimizations, let's look at vLLM, a high-throughput LLM serving engine. It implements three key techniques: KV Cache optimization, Continuous Batching, and PagedAttention. Let's dive into how vLLM solves each problem."
+"Now let's see how modern inference engines solve these problems. Three key techniques, now industry standard: KV caching, continuous batching, and PagedAttention. These ideas were pioneered in systems like vLLM and are now everywhere. Let's break them down."
 
 ----------------------------------------------------------------------
 
@@ -120,10 +120,10 @@ Output file: scene12_paged_attention.mp3
 
 === Scene 13: scene13_more_optimizations ===
 Title: More Optimizations Coming
-Words: 25 (~10 seconds)
+Words: 26 (~10 seconds)
 Output file: scene13_more_optimizations.mp3
 
-"We've covered a lot: KV Cache, Continuous Batching, and PagedAttention. But there's more. Two more powerful techniques to maximize LLM performance: Quantization and Speculative Decoding."
+"Those three techniques solve the serving bottleneck. But we're still leaving performance on the table. Two more optimizations push throughput even further: quantization and speculative decoding."
 
 ----------------------------------------------------------------------
 
@@ -150,7 +150,7 @@ Title: Scaling to Millions
 Words: 54 (~22 seconds)
 Output file: scene16_scaling.mp3
 
-"To serve millions of users, we need to scale. Tensor parallelism splits model layers across multiple GPUs, reducing memory per GPU. Pipeline parallelism chains GPUs together, each handling different layers. And horizontal scaling deploys thousands of independent replicas behind load balancers. Smart routing sends similar requests to the same replica for better cache hits."
+"One GPU isn't enough for production scale. Tensor parallelism shards each layer across GPUs—essential when a single model doesn't fit in memory. Pipeline parallelism chains GPUs in sequence, overlapping computation across micro-batches. And at massive scale, you deploy thousands of replicas behind load balancers, with smart routing to maximize cache reuse across similar requests."
 
 ----------------------------------------------------------------------
 
@@ -165,12 +165,12 @@ Output file: scene17_economics.mp3
 
 === Scene 18: scene18_conclusion ===
 Title: The Full Picture
-Words: 72 (~29 seconds)
+Words: 85 (~34 seconds)
 Output file: scene18_conclusion.mp3
 
-"Putting it all together: from forty tokens per second to over three thousand five hundred. An eighty-seven times improvement. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. And smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every optimization here serves one goal: maximize useful work per byte transferred. These techniques power every major AI service today."
+"From forty tokens per second to over three thousand five hundred. An eighty-seven times improvement through pure software optimization. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. Smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every technique here serves one goal—maximize useful work per byte transferred. These optimizations power ChatGPT, Claude, and Gemini today. And inference costs still dominate AI budgets. The next ten-x improvement? That's an open problem."
 
 ----------------------------------------------------------------------
 
-TOTAL: 18 scenes, 1015 words
-Estimated recording time: 406 seconds (6.8 minutes)
+TOTAL: 18 scenes, 1000 words
+Estimated recording time: 400 seconds (6.7 minutes)
