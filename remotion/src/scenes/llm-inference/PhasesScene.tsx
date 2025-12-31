@@ -21,6 +21,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface PhasesSceneProps {
   startFrame?: number;
@@ -41,23 +42,23 @@ const OUTPUT_TOKENS = ["The", "capital", "of", "France", "is", "Paris", "."];
 
 export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
 
   // Responsive scaling based on 1920x1080 reference
   const scale = Math.min(width / 1920, height / 1080);
 
-  // Phase timings
-  const phase1End = fps * 3; // Show input tokens
-  const phase2End = fps * 7; // Prefill animation
-  const phase3End = fps * 10; // Transition
-  const phase4End = fps * 18; // Decode animation
-  const phase5End = fps * 20; // Summary
+  // Phase timings - proportional to total scene duration
+  const phase1End = Math.round(durationInFrames * 0.15); // Show input tokens (~15%)
+  const phase2End = Math.round(durationInFrames * 0.35); // Prefill animation (~35%)
+  const phase3End = Math.round(durationInFrames * 0.50); // Transition (~50%)
+  const phase4End = Math.round(durationInFrames * 0.90); // Decode animation (~90%)
+  const phase5End = Math.round(durationInFrames * 1.00); // Summary (100%)
 
   // Prefill animation - all tokens light up at once
   const prefillProgress = interpolate(
     localFrame,
-    [phase1End, phase1End + fps * 0.5],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.025)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -65,7 +66,7 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
   // GPU utilization during prefill (90% realistic max - not quite 100%)
   const prefillGPU = interpolate(
     localFrame,
-    [phase1End, phase1End + fps],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.05)],
     [10, 90],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -88,7 +89,7 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
   // GPU utilization during decode (drops significantly from 90% to 15%)
   const decodeGPU = interpolate(
     localFrame,
-    [phase3End, phase3End + fps],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.05)],
     [90, 15],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -109,6 +110,11 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: interpolate(localFrame, [0, Math.round(durationInFrames * 0.025)], [0, 1]) }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>2</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -117,14 +123,14 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
           left: 0,
           right: 0,
           textAlign: "center",
-          opacity: interpolate(localFrame, [0, fps * 0.5], [0, 1]),
+          opacity: interpolate(localFrame, [0, Math.round(durationInFrames * 0.025)], [0, 1]),
         }}
       >
         <h1
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -152,7 +158,7 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
             borderRadius: 16 * scale,
             padding: 24 * scale,
             border: `${2 * scale}px solid ${inPrefill ? COLORS.prefill : "#333"}`,
-            opacity: interpolate(localFrame, [0, fps], [0, 1]),
+            opacity: interpolate(localFrame, [0, Math.round(durationInFrames * 0.05)], [0, 1]),
             transition: "border-color 0.3s",
           }}
         >

@@ -20,6 +20,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface StaticBatchingSceneProps {
   startFrame?: number;
@@ -90,7 +91,7 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
@@ -100,10 +101,10 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
   const SLOT_GAP = 4 * scale;
 
   // Phase timings
-  const phase1End = fps * 3; // Intro - show GPU and sequences
-  const phase2End = fps * 15; // Animation - tokens generating, sequences finishing
-  const phase3End = fps * 20; // Show waste accumulation
-  const phase4End = fps * 23; // Final stats
+  const phase1End = Math.round(durationInFrames * 0.13); // Intro - show GPU and sequences
+  const phase2End = Math.round(durationInFrames * 0.65); // Animation - tokens generating, sequences finishing
+  const phase3End = Math.round(durationInFrames * 0.87); // Show waste accumulation
+  const phase4End = Math.round(durationInFrames * 1.00); // Final stats
 
   // Animation progress for token generation (0 to 1)
   const generationProgress = interpolate(
@@ -141,20 +142,20 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
   const { totalSlots, wastedSlots, wastePercentage } = calculateWaste();
 
   // Opacities
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const wasteHighlightOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const statsOpacity = interpolate(
     localFrame,
-    [phase3End, phase3End + fps * 0.5],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.02)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -166,6 +167,11 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>8</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -181,7 +187,7 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -631,7 +637,7 @@ export const StaticBatchingScene: React.FC<StaticBatchingSceneProps> = ({
             textAlign: "center",
             opacity: interpolate(
               localFrame,
-              [phase1End, phase1End + fps * 0.5],
+              [phase1End, phase1End + Math.round(durationInFrames * 0.02)],
               [0, 1],
               { extrapolateRight: "clamp" }
             ),

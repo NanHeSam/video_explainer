@@ -16,6 +16,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface ImpactSceneProps {
   startFrame?: number;
@@ -35,15 +36,15 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
   // Phase timings
-  const phase1End = fps * 5; // Recap
-  const phase2End = fps * 12; // Numbers
-  const phase3End = fps * 18; // Industry
-  const phase4End = fps * 25; // Takeaway
+  const phase1End = Math.round(durationInFrames * 0.20); // Recap
+  const phase2End = Math.round(durationInFrames * 0.48); // Numbers
+  const phase3End = Math.round(durationInFrames * 0.72); // Industry
+  const phase4End = Math.round(durationInFrames * 1.00); // Takeaway
 
   // Animations
   const recapProgress = interpolate(localFrame, [0, phase1End], [0, 1], {
@@ -80,14 +81,14 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
   // Stats for animated counters
   const speedupValue = interpolate(
     localFrame,
-    [phase1End + fps, phase1End + fps * 3],
+    [phase1End + Math.round(durationInFrames * 0.04), phase1End + Math.round(durationInFrames * 0.12)],
     [1, 87],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const memoryValue = interpolate(
     localFrame,
-    [phase1End + fps * 2, phase1End + fps * 4],
+    [phase1End + Math.round(durationInFrames * 0.08), phase1End + Math.round(durationInFrames * 0.16)],
     [0, 32],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -99,6 +100,11 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: recapProgress }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>8</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -114,7 +120,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -149,7 +155,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
               borderRadius: 16 * scale,
               padding: 24 * scale,
               border: "2px solid #ff4757",
-              opacity: interpolate(localFrame, [fps * 0.5, fps * 1], [0, 1], {
+              opacity: interpolate(localFrame, [Math.round(durationInFrames * 0.02), Math.round(durationInFrames * 0.04)], [0, 1], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
               }),
@@ -191,7 +197,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
               borderRadius: 16 * scale,
               padding: 24 * scale,
               border: `2px solid ${COLORS.success}`,
-              opacity: interpolate(localFrame, [fps * 1.5, fps * 2], [0, 1], {
+              opacity: interpolate(localFrame, [Math.round(durationInFrames * 0.06), Math.round(durationInFrames * 0.08)], [0, 1], {
                 extrapolateLeft: "clamp",
                 extrapolateRight: "clamp",
               }),
@@ -249,7 +255,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
               textAlign: "center",
               opacity: interpolate(
                 localFrame,
-                [phase1End, phase1End + fps],
+                [phase1End, phase1End + Math.round(durationInFrames * 0.04)],
                 [0, 1],
                 { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
               ),
@@ -276,7 +282,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
               textAlign: "center",
               opacity: interpolate(
                 localFrame,
-                [phase1End + fps, phase1End + fps * 2],
+                [phase1End + Math.round(durationInFrames * 0.04), phase1End + Math.round(durationInFrames * 0.08)],
                 [0, 1],
                 { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
               ),
@@ -303,7 +309,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
               textAlign: "center",
               opacity: interpolate(
                 localFrame,
-                [phase1End + fps * 2, phase1End + fps * 3],
+                [phase1End + Math.round(durationInFrames * 0.08), phase1End + Math.round(durationInFrames * 0.12)],
                 [0, 1],
                 { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
               ),
@@ -334,7 +340,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
             color: COLORS.textDim,
             opacity: interpolate(
               localFrame,
-              [phase1End + fps * 3, phase1End + fps * 4],
+              [phase1End + Math.round(durationInFrames * 0.12), phase1End + Math.round(durationInFrames * 0.16)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             ),
@@ -385,7 +391,7 @@ export const ImpactScene: React.FC<ImpactSceneProps> = ({
                 color: COLORS.text,
                 opacity: interpolate(
                   localFrame,
-                  [phase2End + i * 10, phase2End + i * 10 + fps * 0.3],
+                  [phase2End + i * Math.round(durationInFrames * 0.015), phase2End + i * Math.round(durationInFrames * 0.015) + Math.round(durationInFrames * 0.01)],
                   [0, 1],
                   { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
                 ),

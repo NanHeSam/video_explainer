@@ -23,6 +23,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface ContinuousBatchingSceneProps {
   startFrame?: number;
@@ -72,7 +73,7 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
 
   // Responsive scaling based on viewport size
@@ -83,10 +84,10 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
   const SLOT_HEIGHT = 80 * scale;
 
   // Phase timings
-  const phase1End = fps * 4;   // Slot definition
-  const phase2End = fps * 8;   // Show GPU with 4 labeled slots
-  const phase3End = fps * 18;  // Animation - sequences processing and new ones entering
-  const phase4End = fps * 23;  // Contrast callout
+  const phase1End = Math.round(durationInFrames * 0.17);   // Slot definition
+  const phase2End = Math.round(durationInFrames * 0.35);   // Show GPU with 4 labeled slots
+  const phase3End = Math.round(durationInFrames * 0.78);  // Animation - sequences processing and new ones entering
+  const phase4End = Math.round(durationInFrames * 1.00);  // Contrast callout
 
   // Animation progress for slot processing (0 to 1)
   const processingProgress = interpolate(
@@ -140,26 +141,26 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
   // Opacities
   const definitionOpacity = interpolate(
     localFrame,
-    [0, fps * 0.5, phase1End - fps * 0.5, phase1End],
+    [0, Math.round(durationInFrames * 0.02), phase1End - Math.round(durationInFrames * 0.02), phase1End],
     [0, 1, 1, 0.3],
     { extrapolateRight: "clamp" }
   );
 
   const gpuOpacity = interpolate(
     localFrame,
-    [phase1End, phase1End + fps * 0.5],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.02)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const contrastOpacity = interpolate(
     localFrame,
-    [phase3End, phase3End + fps * 0.5],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.02)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const titleOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const titleOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
@@ -177,6 +178,11 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: titleOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>9</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -192,7 +198,7 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -352,7 +358,7 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
                         ? `0 0 ${15 * scale}px ${COLORS.success}60`
                         : "none",
                       transform: isNewSequence
-                        ? `scale(${newSeqSpring(phase2End + fps * (slotIdx * 0.5))})`
+                        ? `scale(${newSeqSpring(phase2End + Math.round(durationInFrames * 0.02 * slotIdx))})`
                         : "scale(1)",
                     }}
                   >
@@ -465,7 +471,7 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
             top: 250 * scale,
             opacity: interpolate(
               localFrame,
-              [phase2End, phase2End + fps * 0.5],
+              [phase2End, phase2End + Math.round(durationInFrames * 0.02)],
               [0, 1],
               { extrapolateRight: "clamp" }
             ),
@@ -621,7 +627,7 @@ export const ContinuousBatchingScene: React.FC<ContinuousBatchingSceneProps> = (
             textAlign: "center",
             opacity: interpolate(
               localFrame,
-              [phase2End, phase2End + fps * 0.5],
+              [phase2End, phase2End + Math.round(durationInFrames * 0.02)],
               [0, 1],
               { extrapolateRight: "clamp" }
             ),

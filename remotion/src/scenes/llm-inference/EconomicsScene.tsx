@@ -19,6 +19,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface EconomicsSceneProps {
   startFrame?: number;
@@ -39,53 +40,53 @@ export const EconomicsScene: React.FC<EconomicsSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
   // Phase timings
-  const phase1End = fps * 6; // Requirements calculation
-  const phase2End = fps * 14; // Cost reveal
-  const phase3End = fps * 22; // Optimization impact
-  const phase4End = fps * 30; // Final insight
+  const phase1End = Math.round(durationInFrames * 0.20); // Requirements calculation
+  const phase2End = Math.round(durationInFrames * 0.47); // Cost reveal
+  const phase3End = Math.round(durationInFrames * 0.73); // Optimization impact
+  const phase4End = Math.round(durationInFrames * 1.00); // Final insight
 
   // Animated counters
   const usersCounter = interpolate(
     localFrame,
-    [fps * 1, fps * 3],
+    [Math.round(durationInFrames * 0.03), Math.round(durationInFrames * 0.10)],
     [0, 1000000],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const tokensCounter = interpolate(
     localFrame,
-    [fps * 2, fps * 4],
+    [Math.round(durationInFrames * 0.07), Math.round(durationInFrames * 0.13)],
     [0, 50000000],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const gpusCounter = interpolate(
     localFrame,
-    [phase1End, phase1End + fps * 2],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.07)],
     [0, 25000],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const costCounter = interpolate(
     localFrame,
-    [phase1End + fps * 2, phase2End],
+    [phase1End + Math.round(durationInFrames * 0.07), phase2End],
     [0, 50],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const optimizationOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.03)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -97,6 +98,11 @@ export const EconomicsScene: React.FC<EconomicsSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>15</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -112,7 +118,7 @@ export const EconomicsScene: React.FC<EconomicsSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -232,7 +238,7 @@ export const EconomicsScene: React.FC<EconomicsSceneProps> = ({
             marginBottom: 40 * scale,
             opacity: interpolate(
               localFrame,
-              [phase1End, phase1End + fps * 0.5],
+              [phase1End, phase1End + Math.round(durationInFrames * 0.02)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             ),

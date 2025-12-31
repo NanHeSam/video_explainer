@@ -19,6 +19,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface RedundancySceneProps {
   startFrame?: number;
@@ -41,15 +42,15 @@ export const RedundancyScene: React.FC<RedundancySceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
   // Phase timings
-  const phase1End = fps * 3; // Intro
-  const phase2End = fps * 15; // Show redundant computation growing
-  const phase3End = fps * 20; // O(n²) reveal
-  const phase4End = fps * 25; // Final statement
+  const phase1End = Math.round(durationInFrames * 0.12); // Intro
+  const phase2End = Math.round(durationInFrames * 0.60); // Show redundant computation growing
+  const phase3End = Math.round(durationInFrames * 0.80); // O(n²) reveal
+  const phase4End = Math.round(durationInFrames * 1.00); // Final statement
 
   // Current token being generated
   const currentTokenIndex = Math.min(
@@ -71,20 +72,20 @@ export const RedundancyScene: React.FC<RedundancySceneProps> = ({
     : 0;
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const problemOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const complexityOpacity = interpolate(
     localFrame,
-    [phase3End, phase3End + fps],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -96,6 +97,11 @@ export const RedundancyScene: React.FC<RedundancySceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>5</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -111,7 +117,7 @@ export const RedundancyScene: React.FC<RedundancySceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -417,7 +423,7 @@ export const RedundancyScene: React.FC<RedundancySceneProps> = ({
           textAlign: "center",
           opacity: interpolate(
             localFrame,
-            [phase3End + fps, phase4End],
+            [phase3End + Math.round(durationInFrames * 0.04), phase4End],
             [0, 1],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           ),

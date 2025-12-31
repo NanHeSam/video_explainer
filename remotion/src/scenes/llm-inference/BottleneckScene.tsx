@@ -16,6 +16,7 @@ import {
   useVideoConfig,
   Easing,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface BottleneckSceneProps {
   /** Scene start time in frames */
@@ -40,20 +41,20 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
   durationFrames,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
 
   // Responsive scaling based on viewport size
   const scale = Math.min(width / 1920, height / 1080);
 
-  // Phase timings (in local frames)
-  const phase1End = fps * 3; // Show the setup
-  const phase2End = fps * 8; // Animate weight loading
-  const phase3End = fps * 15; // Show the problem
-  const phase4End = fps * 22; // Key insight
+  // Phase timings - proportional to total scene duration
+  const phase1End = Math.round(durationInFrames * 0.14); // Show the setup (~14%)
+  const phase2End = Math.round(durationInFrames * 0.36); // Animate weight loading (~36%)
+  const phase3End = Math.round(durationInFrames * 0.68); // Show the problem (~68%)
+  const phase4End = Math.round(durationInFrames * 1.00); // Key insight (100%)
 
   // ===== PHASE 1: Introduce the setup =====
-  const setupOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const setupOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
@@ -76,14 +77,14 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
   // ===== PHASE 3: Show the bottleneck =====
   const gpuUtilization = interpolate(
     localFrame,
-    [phase1End, phase1End + fps * 2],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.09)],
     [100, 5],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const memoryBandwidthUsage = interpolate(
     localFrame,
-    [phase1End, phase1End + fps * 2],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.09)],
     [10, 100],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -91,7 +92,7 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
   // Problem highlight
   const problemOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps * 0.5],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.02)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -99,19 +100,21 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
   // ===== PHASE 4: Key insight text =====
   const insightOpacity = interpolate(
     localFrame,
-    [phase3End, phase3End + fps * 0.5],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.02)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   // Weight particles animation
   const numParticles = 12;
+  const particleInterval = Math.round(durationInFrames * 0.01);
+  const particleDuration = Math.round(durationInFrames * 0.07);
   const particles = Array.from({ length: numParticles }, (_, i) => {
     const particleProgress = interpolate(
       localFrame,
       [
-        phase1End + (i * fps) / 4,
-        phase1End + (i * fps) / 4 + fps * 1.5,
+        phase1End + i * particleInterval,
+        phase1End + i * particleInterval + particleDuration,
       ],
       [0, 1],
       { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
@@ -126,6 +129,11 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: setupOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>3</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -141,7 +149,7 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -475,7 +483,7 @@ export const BottleneckScene: React.FC<BottleneckSceneProps> = ({
       <div
         style={{
           position: "absolute",
-          bottom: 50 * scale,
+          bottom: 80 * scale,
           left: 0,
           right: 0,
           textAlign: "center",

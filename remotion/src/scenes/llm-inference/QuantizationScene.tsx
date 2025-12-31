@@ -19,6 +19,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface QuantizationSceneProps {
   startFrame?: number;
@@ -39,15 +40,15 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
   // Phase timings
-  const phase1End = fps * 4; // Show FP16
-  const phase2End = fps * 10; // Show INT8
-  const phase3End = fps * 16; // Show INT4
-  const phase4End = fps * 25; // Final stats
+  const phase1End = Math.round(durationInFrames * 0.16); // Show FP16
+  const phase2End = Math.round(durationInFrames * 0.40); // Show INT8
+  const phase3End = Math.round(durationInFrames * 0.64); // Show INT4
+  const phase4End = Math.round(durationInFrames * 1.00); // Final stats
 
   // Format data
   const formats = [
@@ -78,7 +79,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
   ];
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
@@ -93,6 +94,11 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>12</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -108,7 +114,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -142,7 +148,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
             const isVisible = localFrame >= format.showAt;
             const formatOpacity = interpolate(
               localFrame,
-              [format.showAt, format.showAt + fps * 0.5],
+              [format.showAt, format.showAt + Math.round(durationInFrames * 0.02)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             );
@@ -261,7 +267,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
             marginBottom: 32 * scale,
             opacity: interpolate(
               localFrame,
-              [phase2End, phase2End + fps],
+              [phase2End, phase2End + Math.round(durationInFrames * 0.04)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             ),
@@ -356,7 +362,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
             border: "1px solid #333",
             opacity: interpolate(
               localFrame,
-              [phase3End, phase3End + fps],
+              [phase3End, phase3End + Math.round(durationInFrames * 0.04)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             ),
@@ -376,7 +382,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
           {formats.map((format, index) => {
             const barWidth = ((2 / format.bytes) * 25); // Inverse of bytes = faster
             const barSpring = spring({
-              frame: localFrame - phase3End - index * 10,
+              frame: localFrame - phase3End - index * Math.round(durationInFrames * 0.015),
               fps,
               config: { damping: 15, stiffness: 100 },
             });
@@ -450,7 +456,7 @@ export const QuantizationScene: React.FC<QuantizationSceneProps> = ({
           textAlign: "center",
           opacity: interpolate(
             localFrame,
-            [phase3End + fps, phase4End],
+            [phase3End + Math.round(durationInFrames * 0.04), phase4End],
             [0, 1],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           ),

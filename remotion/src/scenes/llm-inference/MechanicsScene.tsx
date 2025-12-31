@@ -15,6 +15,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface MechanicsSceneProps {
   startFrame?: number;
@@ -37,15 +38,15 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const scale = Math.min(width / 1920, height / 1080);
   const localFrame = frame - startFrame;
 
   // Phase timings
-  const phase1End = fps * 5; // Show formula components
-  const phase2End = fps * 10; // Q × K^T step
-  const phase3End = fps * 14; // softmax step
-  const phase4End = fps * 18; // × V step
+  const phase1End = Math.round(durationInFrames * 0.28); // Show formula components
+  const phase2End = Math.round(durationInFrames * 0.56); // Q × K^T step
+  const phase3End = Math.round(durationInFrames * 0.78); // softmax step
+  const phase4End = Math.round(durationInFrames * 1.00); // × V step
 
   // Animation progress for each phase
   const formulaProgress = interpolate(localFrame, [0, phase1End], [0, 1], {
@@ -85,6 +86,11 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: formulaProgress }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>7</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -98,9 +104,9 @@ export const MechanicsScene: React.FC<MechanicsSceneProps> = ({
       >
         <h1
           style={{
-            fontSize: 44 * scale,
+            fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >

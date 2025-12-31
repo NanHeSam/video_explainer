@@ -18,6 +18,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface MemoryFragmentationSceneProps {
   startFrame?: number;
@@ -48,20 +49,20 @@ export const MemoryFragmentationScene: React.FC<MemoryFragmentationSceneProps> =
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const scale = Math.min(width / 1920, height / 1080);
   const localFrame = frame - startFrame;
 
   // Phase timings
-  const phase1End = fps * 3; // Show allocation
-  const phase2End = fps * 10; // Reveal actual usage
-  const phase3End = fps * 17; // Stats
-  const phase4End = fps * 22; // Final insight
+  const phase1End = Math.round(durationInFrames * 0.14); // Show allocation
+  const phase2End = Math.round(durationInFrames * 0.45); // Reveal actual usage
+  const phase3End = Math.round(durationInFrames * 0.77); // Stats
+  const phase4End = Math.round(durationInFrames * 1.00); // Final insight
 
   // Animation progress
   const allocationProgress = interpolate(
     localFrame,
-    [fps * 1, phase1End],
+    [Math.round(durationInFrames * 0.045), phase1End],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -79,13 +80,13 @@ export const MemoryFragmentationScene: React.FC<MemoryFragmentationSceneProps> =
   const wastePercentage = Math.round((1 - totalUsed / totalAllocated) * 100);
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const statsOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.045)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -97,6 +98,11 @@ export const MemoryFragmentationScene: React.FC<MemoryFragmentationSceneProps> =
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>10</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -112,7 +118,7 @@ export const MemoryFragmentationScene: React.FC<MemoryFragmentationSceneProps> =
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >

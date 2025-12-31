@@ -18,6 +18,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface ScalingSceneProps {
   startFrame?: number;
@@ -39,38 +40,38 @@ export const ScalingScene: React.FC<ScalingSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
   // Phase timings
-  const phase1End = fps * 6; // Tensor parallelism
-  const phase2End = fps * 12; // Pipeline parallelism
-  const phase3End = fps * 20; // Horizontal scaling
-  const phase4End = fps * 28; // Summary
+  const phase1End = Math.round(durationInFrames * 0.21); // Tensor parallelism
+  const phase2End = Math.round(durationInFrames * 0.43); // Pipeline parallelism
+  const phase3End = Math.round(durationInFrames * 0.71); // Horizontal scaling
+  const phase4End = Math.round(durationInFrames * 1.00); // Summary
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const tensorOpacity = interpolate(
     localFrame,
-    [fps * 1, fps * 2],
+    [Math.round(durationInFrames * 0.04), Math.round(durationInFrames * 0.07)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const pipelineOpacity = interpolate(
     localFrame,
-    [phase1End, phase1End + fps],
+    [phase1End, phase1End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const horizontalOpacity = interpolate(
     localFrame,
-    [phase2End, phase2End + fps],
+    [phase2End, phase2End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -82,6 +83,11 @@ export const ScalingScene: React.FC<ScalingSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>14</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -97,7 +103,7 @@ export const ScalingScene: React.FC<ScalingSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -427,7 +433,7 @@ export const ScalingScene: React.FC<ScalingSceneProps> = ({
             border: "1px solid #333",
             opacity: interpolate(
               localFrame,
-              [phase3End, phase3End + fps],
+              [phase3End, phase3End + Math.round(durationInFrames * 0.04)],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             ),
@@ -499,7 +505,7 @@ export const ScalingScene: React.FC<ScalingSceneProps> = ({
           textAlign: "center",
           opacity: interpolate(
             localFrame,
-            [phase3End + fps, phase4End],
+            [phase3End + Math.round(durationInFrames * 0.04), phase4End],
             [0, 1],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           ),

@@ -20,6 +20,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface PagedAttentionSceneProps {
   startFrame?: number;
@@ -43,15 +44,15 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const scale = Math.min(width / 1920, height / 1080);
   const localFrame = frame - startFrame;
 
   // Phase timings
-  const phase1End = fps * 4; // Intro - virtual memory concept
-  const phase2End = fps * 12; // Block allocation animation
-  const phase3End = fps * 20; // Deallocation
-  const phase4End = fps * 28; // Stats
+  const phase1End = Math.round(durationInFrames * 0.14); // Intro - virtual memory concept
+  const phase2End = Math.round(durationInFrames * 0.43); // Block allocation animation
+  const phase3End = Math.round(durationInFrames * 0.71); // Deallocation
+  const phase4End = Math.round(durationInFrames * 1.00); // Stats
 
   // Animation for blocks being allocated
   const allocationProgress = interpolate(
@@ -89,10 +90,10 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
     }
 
     // After phase3, some blocks get freed
-    if (localFrame > phase2End + fps * 2) {
+    if (localFrame > phase2End + Math.round(durationInFrames * 0.07)) {
       const freeProgress = interpolate(
         localFrame,
-        [phase2End + fps * 2, phase3End],
+        [phase2End + Math.round(durationInFrames * 0.07), phase3End],
         [0, 1],
         { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
       );
@@ -113,20 +114,20 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
   const freeBlocks = NUM_BLOCKS - usedBlocks;
 
   // Animations
-  const introOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
+  const introOpacity = interpolate(localFrame, [0, Math.round(durationInFrames * 0.02)], [0, 1], {
     extrapolateRight: "clamp",
   });
 
   const conceptOpacity = interpolate(
     localFrame,
-    [fps * 1, fps * 2],
+    [Math.round(durationInFrames * 0.04), Math.round(durationInFrames * 0.07)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
   const statsOpacity = interpolate(
     localFrame,
-    [phase3End, phase3End + fps],
+    [phase3End, phase3End + Math.round(durationInFrames * 0.04)],
     [0, 1],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -138,6 +139,11 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: introOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>11</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -153,7 +159,7 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
           }}
         >
@@ -359,7 +365,7 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
                 border: "1px solid #333",
                 opacity: interpolate(
                   localFrame,
-                  [phase1End + i * 20, phase1End + i * 20 + fps * 0.5],
+                  [phase1End + i * Math.round(durationInFrames * 0.03), phase1End + i * Math.round(durationInFrames * 0.03) + Math.round(durationInFrames * 0.02)],
                   [0, 1],
                   { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
                 ),
@@ -462,7 +468,7 @@ export const PagedAttentionScene: React.FC<PagedAttentionSceneProps> = ({
           textAlign: "center",
           opacity: interpolate(
             localFrame,
-            [phase3End + fps, phase4End],
+            [phase3End + Math.round(durationInFrames * 0.04), phase4End],
             [0, 1],
             { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
           ),

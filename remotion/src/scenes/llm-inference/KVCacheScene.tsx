@@ -1,12 +1,13 @@
 /**
  * Scene 6: The KV Cache Solution
  *
- * Concrete step-by-step example showing how KV cache works:
- * 1. Token 1 generates K₁, V₁ → store in cache
- * 2. Token 2 generates K₂, V₂ → store, reuse K₁V₁ for attention
- * 3. Token 3 generates K₃, V₃ → store, reuse K₁V₁K₂V₂ for attention
- *
- * Visual: Growing memory box that expands with each cached K,V pair
+ * Enhanced visualization showing how KV cache works with:
+ * - Clear token labels (Token 1, Token 2, Token 3)
+ * - Horizontal timeline cache that grows from right
+ * - Visual cache reuse with glow effects and "REUSED" labels
+ * - Before/after comparison
+ * - Computations Saved counter
+ * - Unmistakable "aha moment"
  */
 
 import React from "react";
@@ -17,6 +18,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { COLORS as STYLE_COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface KVCacheSceneProps {
   startFrame?: number;
@@ -34,32 +36,36 @@ const COLORS = {
   success: "#2ecc71",
   attention: "#f1c40f",
   newToken: "#00d9ff",
+  reused: "#00d9ff",
+  error: "#e74c3c",
 };
 
 // Step data for the animation
 const STEPS = [
-  { token: "The", label: "Token 1", subscript: "₁" },
-  { token: "cat", label: "Token 2", subscript: "₂" },
-  { token: "sat", label: "Token 3", subscript: "₃" },
+  { token: "The", label: "Token 1", subscript: "₁", number: 1 },
+  { token: "cat", label: "Token 2", subscript: "₂", number: 2 },
+  { token: "sat", label: "Token 3", subscript: "₃", number: 3 },
 ];
 
 export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
   startFrame = 0,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const { fps, width, height, durationInFrames } = useVideoConfig();
   const localFrame = frame - startFrame;
   const scale = Math.min(width / 1920, height / 1080);
 
-  // Phase timings - each token step gets ~7 seconds
-  const introEnd = fps * 3; // Title intro
+  // Phase timings
+  const introEnd = Math.round(durationInFrames * 0.08);
   const step1Start = introEnd;
-  const step1End = step1Start + fps * 7; // Token 1
+  const step1End = step1Start + Math.round(durationInFrames * 0.22);
   const step2Start = step1End;
-  const step2End = step2Start + fps * 7; // Token 2
+  const step2End = step2Start + Math.round(durationInFrames * 0.22);
   const step3Start = step2End;
-  const step3End = step3Start + fps * 7; // Token 3
-  const insightStart = step3End;
+  const step3End = step3Start + Math.round(durationInFrames * 0.22);
+  const comparisonStart = step3End;
+  const comparisonEnd = comparisonStart + Math.round(durationInFrames * 0.18);
+  const insightStart = comparisonEnd;
 
   // Determine current step
   const getCurrentStep = () => {
@@ -67,30 +73,17 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
     if (localFrame < step1End) return 0;
     if (localFrame < step2End) return 1;
     if (localFrame < step3End) return 2;
-    return 3; // Insight phase
+    if (localFrame < comparisonEnd) return 3; // Comparison phase
+    return 4; // Final insight
   };
   const currentStep = getCurrentStep();
 
   // Title opacity
-  const titleOpacity = interpolate(localFrame, [0, fps * 0.5], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  // Cache box expansion
-  const cacheItemCount = Math.min(currentStep + 1, 3);
-  const cacheWidth = interpolate(
-    cacheItemCount,
-    [0, 1, 2, 3],
-    [200 * scale, 280 * scale, 420 * scale, 560 * scale],
-    { extrapolateRight: "clamp" }
-  );
-
-  // Insight opacity
-  const insightOpacity = interpolate(
+  const titleOpacity = interpolate(
     localFrame,
-    [insightStart, insightStart + fps],
+    [0, Math.round(durationInFrames * 0.02)],
     [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    { extrapolateRight: "clamp" }
   );
 
   // Helper to get step progress (0-1) within a step
@@ -107,190 +100,422 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
   };
 
   // Animation phases within each step
-  const getPhaseProgress = (stepIndex: number, phase: "generate" | "store" | "reuse" | "attention") => {
+  const getPhaseProgress = (
+    stepIndex: number,
+    phase: "generate" | "store" | "reuse" | "attention"
+  ) => {
     const progress = getStepProgress(stepIndex);
     switch (phase) {
-      case "generate": // 0-30%
-        return interpolate(progress, [0, 0.3], [0, 1], {
+      case "generate":
+        return interpolate(progress, [0, 0.25], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-      case "store": // 30-50%
-        return interpolate(progress, [0.3, 0.5], [0, 1], {
+      case "store":
+        return interpolate(progress, [0.25, 0.45], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-      case "reuse": // 50-75%
-        return interpolate(progress, [0.5, 0.75], [0, 1], {
+      case "reuse":
+        return interpolate(progress, [0.45, 0.7], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-      case "attention": // 75-100%
-        return interpolate(progress, [0.75, 1], [0, 1], {
+      case "attention":
+        return interpolate(progress, [0.7, 1], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
     }
   };
 
-  // Render a single cached KV pair
-  const renderCacheEntry = (index: number, isNew: boolean, opacity: number) => {
-    const stepData = STEPS[index];
-    const scaleSpring = spring({
-      frame: localFrame - (index === 0 ? step1Start : index === 1 ? step2Start : step3Start) - fps * 1.5,
-      fps,
-      config: { damping: 12, stiffness: 100 },
-    });
-    const entryScale = isNew ? Math.min(scaleSpring, 1) * 0.2 + 0.8 : 1;
+  // Computations saved counter (must be after getPhaseProgress)
+  const getComputationsSaved = () => {
+    if (currentStep < 1) return 0;
+    if (currentStep === 1) {
+      const reuseProgress = getPhaseProgress(1, "reuse");
+      return reuseProgress > 0.5 ? 1 : 0;
+    }
+    if (currentStep === 2) {
+      const reuseProgress = getPhaseProgress(2, "reuse");
+      return reuseProgress > 0.5 ? 3 : 1;
+    }
+    return 3;
+  };
+  const computationsSaved = getComputationsSaved();
+
+  // Comparison phase progress
+  const comparisonProgress = interpolate(
+    localFrame,
+    [comparisonStart, comparisonStart + Math.round(durationInFrames * 0.06)],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  // Insight phase progress
+  const insightProgress = interpolate(
+    localFrame,
+    [insightStart, insightStart + Math.round(durationInFrames * 0.04)],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  // Glow pulse animation for reused entries
+  const glowPulse =
+    0.5 + 0.5 * Math.sin((localFrame / fps) * Math.PI * 3);
+
+  // Render the horizontal cache timeline
+  const renderCacheTimeline = () => {
+    if (currentStep < 0) return null;
+
+    const cachedCount = Math.min(currentStep + 1, 3);
+    const isComparisonPhase = currentStep >= 3;
 
     return (
       <div
-        key={index}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 6 * scale,
-          opacity,
-          transform: `scale(${entryScale})`,
-          padding: `${8 * scale}px ${12 * scale}px`,
-          backgroundColor: isNew ? COLORS.compute + "15" : "transparent",
-          borderRadius: 8 * scale,
-          border: isNew ? `${2 * scale}px solid ${COLORS.compute}40` : `${2 * scale}px solid transparent`,
-          transition: "background-color 0.3s, border 0.3s",
+          position: "absolute",
+          bottom: isComparisonPhase ? 400 * scale : 320 * scale,
+          left: "50%",
+          transform: "translateX(-50%)",
+          transition: "bottom 0.5s ease",
         }}
       >
-        {/* Token label */}
+        {/* Cache label */}
         <div
           style={{
-            fontSize: 18 * scale,
-            color: isNew ? COLORS.compute : COLORS.textDim,
-            fontWeight: 600,
-          }}
-        >
-          {stepData.token}
-        </div>
-
-        {/* K vector */}
-        <div
-          style={{
-            width: 100 * scale,
-            height: 40 * scale,
-            backgroundColor: isNew ? COLORS.key : COLORS.key + "60",
-            borderRadius: 6 * scale,
+            fontSize: 20 * scale,
+            color: COLORS.cache,
+            fontWeight: 700,
+            marginBottom: 16 * scale,
+            textAlign: "center",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 18 * scale,
-            fontWeight: 700,
-            color: "#000",
-            fontFamily: "JetBrains Mono",
-            boxShadow: isNew ? `0 0 ${12 * scale}px ${COLORS.key}60` : "none",
+            gap: 10 * scale,
           }}
         >
-          K{stepData.subscript}
+          <span style={{ fontSize: 24 * scale }}>📦</span>
+          <span>KV CACHE TIMELINE</span>
         </div>
 
-        {/* V vector */}
+        {/* Timeline container */}
         <div
           style={{
-            width: 100 * scale,
-            height: 40 * scale,
-            backgroundColor: isNew ? COLORS.value : COLORS.value + "60",
-            borderRadius: 6 * scale,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: 18 * scale,
-            fontWeight: 700,
-            color: "#000",
-            fontFamily: "JetBrains Mono",
-            boxShadow: isNew ? `0 0 ${12 * scale}px ${COLORS.value}60` : "none",
+            gap: 0,
+            padding: `${20 * scale}px ${30 * scale}px`,
+            backgroundColor: COLORS.surface,
+            borderRadius: 16 * scale,
+            border: `${3 * scale}px solid ${COLORS.cache}`,
+            boxShadow: `0 0 ${40 * scale}px ${COLORS.cache}40`,
+            overflow: "hidden",
           }}
         >
-          V{stepData.subscript}
+          {/* Timeline entries */}
+          {Array.from({ length: cachedCount }).map((_, i) => {
+            const stepData = STEPS[i];
+            const isNew = i === currentStep && currentStep <= 2;
+            const isBeingReused =
+              currentStep > i &&
+              currentStep <= 2 &&
+              getPhaseProgress(currentStep, "reuse") > 0.3;
+
+            // Slide in animation
+            const slideProgress = spring({
+              frame:
+                localFrame -
+                (i === 0 ? step1Start : i === 1 ? step2Start : step3Start) -
+                Math.round(durationInFrames * 0.06),
+              fps,
+              config: { damping: 15, stiffness: 80 },
+            });
+
+            const slideX = interpolate(slideProgress, [0, 1], [100, 0]);
+            const entryOpacity = interpolate(slideProgress, [0, 0.5], [0, 1], {
+              extrapolateRight: "clamp",
+            });
+
+            return (
+              <React.Fragment key={i}>
+                {/* Connector line */}
+                {i > 0 && (
+                  <div
+                    style={{
+                      width: 40 * scale,
+                      height: 3 * scale,
+                      backgroundColor: COLORS.cache,
+                      opacity: 0.6,
+                    }}
+                  />
+                )}
+
+                {/* Cache entry */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8 * scale,
+                    padding: `${12 * scale}px ${16 * scale}px`,
+                    backgroundColor: isBeingReused
+                      ? `rgba(0, 217, 255, ${0.15 + glowPulse * 0.1})`
+                      : isNew
+                      ? COLORS.compute + "15"
+                      : "transparent",
+                    borderRadius: 12 * scale,
+                    border: isBeingReused
+                      ? `${3 * scale}px solid ${COLORS.reused}`
+                      : isNew
+                      ? `${2 * scale}px solid ${COLORS.compute}60`
+                      : `${2 * scale}px solid transparent`,
+                    transform: `translateX(${slideX}px)`,
+                    opacity: entryOpacity,
+                    boxShadow: isBeingReused
+                      ? `0 0 ${20 + glowPulse * 15}px ${COLORS.reused}80`
+                      : isNew
+                      ? `0 0 ${15 * scale}px ${COLORS.compute}40`
+                      : "none",
+                    position: "relative",
+                  }}
+                >
+                  {/* REUSED badge */}
+                  {isBeingReused && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: -12 * scale,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        backgroundColor: COLORS.reused,
+                        color: "#000",
+                        fontSize: 10 * scale,
+                        fontWeight: 800,
+                        padding: `${3 * scale}px ${8 * scale}px`,
+                        borderRadius: 4 * scale,
+                        letterSpacing: 1,
+                      }}
+                    >
+                      REUSED
+                    </div>
+                  )}
+
+                  {/* Token label */}
+                  <div
+                    style={{
+                      fontSize: 14 * scale,
+                      color: COLORS.text,
+                      fontWeight: 700,
+                      backgroundColor: isNew ? COLORS.compute : COLORS.textDim,
+                      padding: `${4 * scale}px ${10 * scale}px`,
+                      borderRadius: 6 * scale,
+                      marginBottom: 4 * scale,
+                    }}
+                  >
+                    <span style={{ color: isNew ? "#000" : "#fff" }}>
+                      Token {stepData.number}
+                    </span>
+                  </div>
+
+                  {/* Token text */}
+                  <div
+                    style={{
+                      fontSize: 16 * scale,
+                      color: isNew ? COLORS.compute : COLORS.text,
+                      fontWeight: 600,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    "{stepData.token}"
+                  </div>
+
+                  {/* K/V pair */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8 * scale,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 50 * scale,
+                        height: 32 * scale,
+                        backgroundColor: COLORS.key,
+                        borderRadius: 6 * scale,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 14 * scale,
+                        fontWeight: 700,
+                        color: "#000",
+                        fontFamily: "JetBrains Mono",
+                        boxShadow:
+                          isNew || isBeingReused
+                            ? `0 0 ${10 * scale}px ${COLORS.key}`
+                            : "none",
+                      }}
+                    >
+                      K{stepData.subscript}
+                    </div>
+                    <div
+                      style={{
+                        width: 50 * scale,
+                        height: 32 * scale,
+                        backgroundColor: COLORS.value,
+                        borderRadius: 6 * scale,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 14 * scale,
+                        fontWeight: 700,
+                        color: "#000",
+                        fontFamily: "JetBrains Mono",
+                        boxShadow:
+                          isNew || isBeingReused
+                            ? `0 0 ${10 * scale}px ${COLORS.value}`
+                            : "none",
+                      }}
+                    >
+                      V{stepData.subscript}
+                    </div>
+                  </div>
+                </div>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Empty slots indicator */}
+          {currentStep < 2 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                opacity: 0.4,
+              }}
+            >
+              <div
+                style={{
+                  width: 40 * scale,
+                  height: 3 * scale,
+                  backgroundColor: COLORS.cache,
+                  opacity: 0.4,
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 24 * scale,
+                  color: COLORS.textDim,
+                  padding: `0 ${16 * scale}px`,
+                }}
+              >
+                →
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  // Render the current token being processed
+  // Render current token being processed
   const renderCurrentToken = () => {
     if (currentStep < 0 || currentStep > 2) return null;
     const stepData = STEPS[currentStep];
     const generateProgress = getPhaseProgress(currentStep, "generate");
-    const storeProgress = getPhaseProgress(currentStep, "store");
 
-    // Token fades out as it gets stored
-    const tokenOpacity = interpolate(storeProgress, [0.5, 1], [1, 0.3], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
+    const tokenSpring = spring({
+      frame:
+        localFrame -
+        (currentStep === 0
+          ? step1Start
+          : currentStep === 1
+          ? step2Start
+          : step3Start),
+      fps,
+      config: { damping: 12, stiffness: 100 },
     });
 
     return (
       <div
         style={{
           position: "absolute",
-          left: 100 * scale,
-          top: 200 * scale,
-          opacity: generateProgress * tokenOpacity,
+          left: 120 * scale,
+          top: 180 * scale,
+          opacity: generateProgress,
+          transform: `scale(${tokenSpring})`,
         }}
       >
+        {/* Token label badge */}
         <div
           style={{
-            fontSize: 16 * scale,
-            color: COLORS.textDim,
-            marginBottom: 12 * scale,
+            backgroundColor: COLORS.compute,
+            color: "#000",
+            fontSize: 18 * scale,
+            fontWeight: 800,
+            padding: `${8 * scale}px ${20 * scale}px`,
+            borderRadius: 8 * scale,
+            marginBottom: 16 * scale,
             textAlign: "center",
+            boxShadow: `0 0 ${20 * scale}px ${COLORS.compute}80`,
           }}
         >
-          {stepData.label}
+          {stepData.label.toUpperCase()}
         </div>
+
         <div
           style={{
             backgroundColor: COLORS.surface,
-            borderRadius: 12 * scale,
-            padding: 24 * scale,
-            border: `${2 * scale}px solid ${COLORS.compute}`,
+            borderRadius: 16 * scale,
+            padding: 28 * scale,
+            border: `${3 * scale}px solid ${COLORS.compute}`,
             textAlign: "center",
-            minWidth: 180 * scale,
+            boxShadow: `0 0 ${30 * scale}px ${COLORS.compute}40`,
           }}
         >
           <div
             style={{
-              fontSize: 28 * scale,
+              fontSize: 32 * scale,
               fontWeight: 700,
               color: COLORS.compute,
-              marginBottom: 20 * scale,
+              marginBottom: 24 * scale,
             }}
           >
             "{stepData.token}"
           </div>
 
           {/* Generating K,V indicator */}
-          <div style={{ display: "flex", gap: 12 * scale, justifyContent: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 16 * scale,
+              justifyContent: "center",
+            }}
+          >
             <div
               style={{
-                padding: `${8 * scale}px ${16 * scale}px`,
-                backgroundColor: COLORS.key + "40",
-                borderRadius: 6 * scale,
-                fontSize: 16 * scale,
-                fontWeight: 600,
-                color: COLORS.key,
+                padding: `${10 * scale}px ${20 * scale}px`,
+                backgroundColor: COLORS.key,
+                borderRadius: 8 * scale,
+                fontSize: 18 * scale,
+                fontWeight: 700,
+                color: "#000",
                 fontFamily: "JetBrains Mono",
+                boxShadow: `0 0 ${12 * scale}px ${COLORS.key}`,
               }}
             >
               → K{stepData.subscript}
             </div>
             <div
               style={{
-                padding: `${8 * scale}px ${16 * scale}px`,
-                backgroundColor: COLORS.value + "40",
-                borderRadius: 6 * scale,
-                fontSize: 16 * scale,
-                fontWeight: 600,
-                color: COLORS.value,
+                padding: `${10 * scale}px ${20 * scale}px`,
+                backgroundColor: COLORS.value,
+                borderRadius: 8 * scale,
+                fontSize: 18 * scale,
+                fontWeight: 700,
+                color: "#000",
                 fontFamily: "JetBrains Mono",
+                boxShadow: `0 0 ${12 * scale}px ${COLORS.value}`,
               }}
             >
               → V{stepData.subscript}
@@ -301,25 +526,27 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
     );
   };
 
-  // Render arrow from token to cache
+  // Render arrow from token to cache with store animation
   const renderStoreArrow = () => {
     if (currentStep < 0 || currentStep > 2) return null;
     const storeProgress = getPhaseProgress(currentStep, "store");
+
+    if (storeProgress < 0.1) return null;
 
     return (
       <svg
         style={{
           position: "absolute",
-          left: 290 * scale,
-          top: 280 * scale,
-          width: 200 * scale,
-          height: 60 * scale,
+          left: 350 * scale,
+          top: 250 * scale,
+          width: 220 * scale,
+          height: 100 * scale,
           opacity: storeProgress,
         }}
       >
         <defs>
           <marker
-            id="storeArrow"
+            id="storeArrowHead"
             markerWidth="10"
             markerHeight="7"
             refX="9"
@@ -328,143 +555,468 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
           >
             <polygon points="0 0, 10 3.5, 0 7" fill={COLORS.cache} />
           </marker>
+          <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={COLORS.compute} />
+            <stop offset="100%" stopColor={COLORS.cache} />
+          </linearGradient>
         </defs>
-        <line
-          x1={10 * scale}
-          y1={30 * scale}
-          x2={10 * scale + 160 * scale * storeProgress}
-          y2={30 * scale}
-          stroke={COLORS.cache}
-          strokeWidth={3 * scale}
-          markerEnd={storeProgress > 0.5 ? "url(#storeArrow)" : ""}
+
+        {/* Animated arrow path */}
+        <path
+          d={`M ${10 * scale} ${30 * scale} Q ${110 * scale} ${30 * scale} ${
+            110 * scale
+          } ${70 * scale} T ${200 * scale} ${70 * scale}`}
+          fill="none"
+          stroke="url(#arrowGradient)"
+          strokeWidth={4 * scale}
+          strokeDasharray={`${200 * storeProgress * scale} ${200 * scale}`}
+          markerEnd={storeProgress > 0.7 ? "url(#storeArrowHead)" : ""}
         />
+
+        {/* Store label */}
         <text
-          x={90 * scale}
-          y={18 * scale}
+          x={110 * scale}
+          y={20 * scale}
           fill={COLORS.cache}
-          fontSize={14 * scale}
+          fontSize={16 * scale}
           textAnchor="middle"
-          fontWeight="600"
+          fontWeight="700"
         >
-          store in cache
+          STORE →
         </text>
       </svg>
     );
   };
 
-  // Render attention reuse visualization
-  const renderReuseVisualization = () => {
+  // Render reuse arrows from cache to computation
+  const renderReuseArrows = () => {
     if (currentStep < 1 || currentStep > 2) return null;
     const reuseProgress = getPhaseProgress(currentStep, "reuse");
-    const attentionProgress = getPhaseProgress(currentStep, "attention");
 
-    // Which cached entries to show being reused
-    const reusedCount = currentStep; // Step 1 reuses 1, Step 2 reuses 2
+    if (reuseProgress < 0.2) return null;
+
+    const reusedCount = currentStep;
 
     return (
       <div
         style={{
           position: "absolute",
-          right: 80 * scale,
+          right: 100 * scale,
           top: 180 * scale,
           opacity: reuseProgress,
         }}
       >
-        <div
-          style={{
-            fontSize: 16 * scale,
-            color: COLORS.attention,
-            fontWeight: 600,
-            marginBottom: 12 * scale,
-            textAlign: "center",
-          }}
-        >
-          Reusing from cache
-        </div>
+        {/* Reuse panel */}
         <div
           style={{
             backgroundColor: COLORS.surface,
-            borderRadius: 12 * scale,
-            padding: 16 * scale,
-            border: `${2 * scale}px solid ${COLORS.attention}40`,
+            borderRadius: 16 * scale,
+            padding: 24 * scale,
+            border: `${3 * scale}px solid ${COLORS.reused}`,
+            boxShadow: `0 0 ${30 + glowPulse * 20}px ${COLORS.reused}60`,
           }}
         >
+          {/* Header with arrow */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12 * scale,
+              marginBottom: 16 * scale,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 28 * scale,
+              }}
+            >
+              ⬅️
+            </div>
+            <div
+              style={{
+                fontSize: 18 * scale,
+                color: COLORS.reused,
+                fontWeight: 700,
+              }}
+            >
+              FETCHING FROM CACHE
+            </div>
+          </div>
+
+          {/* Reused entries */}
           {STEPS.slice(0, reusedCount).map((step, i) => (
             <div
               key={i}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8 * scale,
-                marginBottom: i < reusedCount - 1 ? 8 * scale : 0,
-                padding: `${6 * scale}px ${10 * scale}px`,
-                backgroundColor: COLORS.attention + "15",
-                borderRadius: 6 * scale,
+                gap: 12 * scale,
+                marginBottom: i < reusedCount - 1 ? 12 * scale : 0,
+                padding: `${10 * scale}px ${14 * scale}px`,
+                backgroundColor: `rgba(0, 217, 255, ${0.1 + glowPulse * 0.05})`,
+                borderRadius: 8 * scale,
+                border: `${2 * scale}px solid ${COLORS.reused}60`,
               }}
             >
               <span
                 style={{
-                  fontSize: 15 * scale,
-                  color: COLORS.textDim,
-                  width: 40 * scale,
+                  fontSize: 14 * scale,
+                  color: COLORS.text,
+                  fontWeight: 600,
+                  width: 60 * scale,
                 }}
               >
-                {step.token}
+                Token {step.number}
               </span>
               <span
                 style={{
-                  fontSize: 15 * scale,
+                  fontSize: 16 * scale,
                   color: COLORS.key,
                   fontFamily: "JetBrains Mono",
-                  fontWeight: 600,
+                  fontWeight: 700,
                 }}
               >
                 K{step.subscript}
               </span>
               <span
                 style={{
-                  fontSize: 15 * scale,
+                  fontSize: 16 * scale,
                   color: COLORS.value,
                   fontFamily: "JetBrains Mono",
-                  fontWeight: 600,
+                  fontWeight: 700,
                 }}
               >
                 V{step.subscript}
               </span>
               <span
                 style={{
-                  fontSize: 14 * scale,
+                  fontSize: 16 * scale,
                   color: COLORS.success,
-                  fontWeight: 600,
+                  fontWeight: 700,
                 }}
               >
-                ✓ cached
+                ✓
               </span>
             </div>
           ))}
-        </div>
 
-        {/* Attention indicator */}
+          {/* No recalculation message */}
+          <div
+            style={{
+              marginTop: 16 * scale,
+              padding: `${10 * scale}px ${16 * scale}px`,
+              backgroundColor: COLORS.success + "20",
+              border: `${2 * scale}px solid ${COLORS.success}`,
+              borderRadius: 8 * scale,
+              textAlign: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 16 * scale,
+                color: COLORS.success,
+                fontWeight: 700,
+              }}
+            >
+              ✨ No recalculation needed!
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render computations saved counter
+  const renderComputationsSaved = () => {
+    if (computationsSaved === 0 && currentStep < 1) return null;
+
+    const counterSpring = spring({
+      frame: localFrame - step2Start,
+      fps,
+      config: { damping: 15, stiffness: 100 },
+    });
+
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: 130 * scale,
+          right: 80 * scale,
+          opacity: currentStep >= 1 ? Math.min(counterSpring, 1) : 0,
+          transform: `scale(${0.8 + counterSpring * 0.2})`,
+        }}
+      >
         <div
           style={{
-            marginTop: 16 * scale,
+            backgroundColor: COLORS.success + "20",
+            borderRadius: 12 * scale,
+            padding: `${16 * scale}px ${24 * scale}px`,
+            border: `${3 * scale}px solid ${COLORS.success}`,
+            boxShadow: `0 0 ${20 * scale}px ${COLORS.success}40`,
             textAlign: "center",
-            opacity: attentionProgress,
           }}
         >
           <div
             style={{
-              display: "inline-block",
-              padding: `${8 * scale}px ${16 * scale}px`,
-              backgroundColor: COLORS.success + "20",
-              border: `${1 * scale}px solid ${COLORS.success}`,
-              borderRadius: 8 * scale,
               fontSize: 14 * scale,
               color: COLORS.success,
               fontWeight: 600,
+              marginBottom: 8 * scale,
+              letterSpacing: 1,
             }}
           >
-            No recalculation needed!
+            COMPUTATIONS SAVED
+          </div>
+          <div
+            style={{
+              fontSize: 48 * scale,
+              fontWeight: 800,
+              color: COLORS.success,
+              fontFamily: "JetBrains Mono",
+              textShadow: `0 0 ${20 * scale}px ${COLORS.success}`,
+            }}
+          >
+            {computationsSaved}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render before/after comparison
+  const renderComparison = () => {
+    if (currentStep < 3) return null;
+
+    const comparisonScale = spring({
+      frame: localFrame - comparisonStart,
+      fps,
+      config: { damping: 15, stiffness: 80 },
+    });
+
+    return (
+      <div
+        style={{
+          position: "absolute",
+          bottom: 80 * scale,
+          left: "50%",
+          transform: `translateX(-50%) scale(${comparisonScale})`,
+          opacity: comparisonProgress,
+          display: "flex",
+          gap: 40 * scale,
+        }}
+      >
+        {/* Without Cache */}
+        <div
+          style={{
+            backgroundColor: COLORS.surface,
+            borderRadius: 16 * scale,
+            padding: 24 * scale,
+            border: `${3 * scale}px solid ${COLORS.error}`,
+            width: 320 * scale,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 18 * scale,
+              color: COLORS.error,
+              fontWeight: 700,
+              marginBottom: 16 * scale,
+              textAlign: "center",
+            }}
+          >
+            ❌ WITHOUT CACHE
+          </div>
+
+          {/* Crossed out computations */}
+          {["Token 1 → K₁V₁", "Token 2 → K₁V₁ K₂V₂", "Token 3 → K₁V₁ K₂V₂ K₃V₃"].map(
+            (text, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10 * scale,
+                  marginBottom: i < 2 ? 10 * scale : 0,
+                  padding: `${8 * scale}px ${12 * scale}px`,
+                  backgroundColor: COLORS.error + "15",
+                  borderRadius: 6 * scale,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 14 * scale,
+                    color: COLORS.error,
+                    textDecoration: "line-through",
+                    flex: 1,
+                  }}
+                >
+                  {text}
+                </span>
+                <span style={{ fontSize: 18 * scale }}>❌</span>
+              </div>
+            )
+          )}
+
+          <div
+            style={{
+              marginTop: 16 * scale,
+              fontSize: 14 * scale,
+              color: COLORS.error,
+              textAlign: "center",
+              fontWeight: 600,
+            }}
+          >
+            Recomputes ALL pairs every time
+          </div>
+        </div>
+
+        {/* VS divider */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 28 * scale,
+              fontWeight: 800,
+              color: COLORS.text,
+              backgroundColor: COLORS.surface,
+              padding: `${16 * scale}px ${20 * scale}px`,
+              borderRadius: 50,
+              border: `${2 * scale}px solid ${COLORS.textDim}`,
+            }}
+          >
+            VS
+          </div>
+        </div>
+
+        {/* With Cache */}
+        <div
+          style={{
+            backgroundColor: COLORS.surface,
+            borderRadius: 16 * scale,
+            padding: 24 * scale,
+            border: `${3 * scale}px solid ${COLORS.success}`,
+            width: 320 * scale,
+            boxShadow: `0 0 ${30 * scale}px ${COLORS.success}30`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 18 * scale,
+              color: COLORS.success,
+              fontWeight: 700,
+              marginBottom: 16 * scale,
+              textAlign: "center",
+            }}
+          >
+            ✅ WITH KV CACHE
+          </div>
+
+          {/* Efficient lookups */}
+          {[
+            { text: "Token 1 → K₁V₁", action: "compute" },
+            { text: "Token 2 → K₂V₂ + cache lookup", action: "lookup" },
+            { text: "Token 3 → K₃V₃ + cache lookup", action: "lookup" },
+          ].map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10 * scale,
+                marginBottom: i < 2 ? 10 * scale : 0,
+                padding: `${8 * scale}px ${12 * scale}px`,
+                backgroundColor: COLORS.success + "15",
+                borderRadius: 6 * scale,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 14 * scale,
+                  color: COLORS.success,
+                  flex: 1,
+                }}
+              >
+                {item.text}
+              </span>
+              <span style={{ fontSize: 18 * scale }}>✅</span>
+            </div>
+          ))}
+
+          <div
+            style={{
+              marginTop: 16 * scale,
+              fontSize: 14 * scale,
+              color: COLORS.success,
+              textAlign: "center",
+              fontWeight: 600,
+            }}
+          >
+            Only computes NEW pairs!
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render final insight / aha moment
+  const renderInsight = () => {
+    if (currentStep < 4) return null;
+
+    const insightScale = spring({
+      frame: localFrame - insightStart,
+      fps,
+      config: { damping: 12, stiffness: 80 },
+    });
+
+    return (
+      <div
+        style={{
+          position: "absolute",
+          bottom: 40 * scale,
+          left: "50%",
+          transform: `translateX(-50%) scale(${insightScale})`,
+          opacity: insightProgress,
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: `rgba(46, 204, 113, 0.15)`,
+            borderRadius: 20 * scale,
+            padding: `${24 * scale}px ${48 * scale}px`,
+            border: `${4 * scale}px solid ${COLORS.success}`,
+            boxShadow: `0 0 ${50 * scale}px ${COLORS.success}50`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 32 * scale,
+              fontWeight: 800,
+              color: COLORS.text,
+              marginBottom: 12 * scale,
+            }}
+          >
+            💡 THE KEY INSIGHT
+          </div>
+          <div
+            style={{
+              fontSize: 24 * scale,
+              fontWeight: 600,
+              color: COLORS.text,
+              lineHeight: 1.5,
+            }}
+          >
+            Each token adds{" "}
+            <span style={{ color: COLORS.compute }}>one new K/V pair</span>.
+            <br />
+            The cache <span style={{ color: COLORS.cache }}>grows</span>, but
+            work per token stays{" "}
+            <span style={{ color: COLORS.success }}>constant</span>!
           </div>
         </div>
       </div>
@@ -473,31 +1025,29 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
 
   // Render step indicator
   const renderStepIndicator = () => {
-    if (currentStep < 0) return null;
+    if (currentStep < 0 || currentStep > 2) return null;
 
     const stepDescriptions = [
-      "Token 1: Generate K₁,V₁ → Store in cache",
-      "Token 2: Generate K₂,V₂ → Store + Reuse K₁V₁",
-      "Token 3: Generate K₃,V₃ → Store + Reuse K₁V₁K₂V₂",
+      "STEP 1: Generate K₁,V₁ → Store in cache",
+      "STEP 2: Generate K₂,V₂ → Store + REUSE K₁V₁ from cache",
+      "STEP 3: Generate K₃,V₃ → Store + REUSE K₁V₁K₂V₂ from cache",
     ];
 
     return (
       <div
         style={{
           position: "absolute",
-          top: 140 * scale,
-          left: 0,
-          right: 0,
-          textAlign: "center",
+          top: 130 * scale,
+          left: 80 * scale,
         }}
       >
         <div
           style={{
             display: "inline-block",
-            padding: `${10 * scale}px ${24 * scale}px`,
+            padding: `${12 * scale}px ${28 * scale}px`,
             backgroundColor: COLORS.surface,
-            borderRadius: 24 * scale,
-            border: `${2 * scale}px solid ${COLORS.compute}40`,
+            borderRadius: 12 * scale,
+            border: `${2 * scale}px solid ${COLORS.compute}60`,
           }}
         >
           <span
@@ -507,7 +1057,7 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
               fontWeight: 600,
             }}
           >
-            {currentStep <= 2 ? stepDescriptions[currentStep] : "Cache grows with each token"}
+            {stepDescriptions[currentStep]}
           </span>
         </div>
       </div>
@@ -521,6 +1071,11 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
         fontFamily: "Inter, sans-serif",
       }}
     >
+      {/* Scene indicator */}
+      <div style={{ ...getSceneIndicatorStyle(scale), opacity: titleOpacity }}>
+        <span style={getSceneIndicatorTextStyle(scale)}>6</span>
+      </div>
+
       {/* Title */}
       <div
         style={{
@@ -536,8 +1091,9 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
           style={{
             fontSize: 48 * scale,
             fontWeight: 700,
-            color: COLORS.text,
+            color: STYLE_COLORS.primary,
             margin: 0,
+            textShadow: `0 0 ${30 * scale}px ${COLORS.cache}40`,
           }}
         >
           The KV Cache Solution
@@ -553,136 +1109,20 @@ export const KVCacheScene: React.FC<KVCacheSceneProps> = ({
       {/* Store arrow */}
       {renderStoreArrow()}
 
-      {/* Growing Cache Box */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 280 * scale,
-          left: "50%",
-          transform: "translateX(-50%)",
-          opacity: currentStep >= 0 ? 1 : 0,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 18 * scale,
-            color: COLORS.cache,
-            fontWeight: 600,
-            marginBottom: 12 * scale,
-            textAlign: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8 * scale,
-          }}
-        >
-          <span>📦</span>
-          <span>KV Cache</span>
-          <span
-            style={{
-              fontSize: 14 * scale,
-              color: COLORS.textDim,
-              fontWeight: 400,
-            }}
-          >
-            (growing memory)
-          </span>
-        </div>
+      {/* Cache timeline */}
+      {renderCacheTimeline()}
 
-        {/* The cache box that grows */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12 * scale,
-            padding: 24 * scale,
-            backgroundColor: COLORS.surface,
-            borderRadius: 16 * scale,
-            border: `${3 * scale}px solid ${COLORS.cache}`,
-            minWidth: cacheWidth,
-            maxWidth: 600 * scale,
-            justifyContent: "center",
-            transition: "min-width 0.5s ease-out",
-            boxShadow: `0 0 ${30 * scale}px ${COLORS.cache}30`,
-          }}
-        >
-          {/* Cached entries */}
-          {currentStep >= 0 &&
-            Array.from({ length: Math.min(currentStep + 1, 3) }).map((_, i) => {
-              const isNew = i === currentStep && currentStep <= 2;
-              const storeProgress = getPhaseProgress(i, "store");
-              const opacity = i < currentStep ? 1 : storeProgress;
-              return renderCacheEntry(i, isNew, opacity);
-            })}
+      {/* Reuse arrows and panel */}
+      {renderReuseArrows()}
 
-          {/* Empty slot indicators for remaining tokens */}
-          {currentStep < 2 &&
-            Array.from({ length: 2 - currentStep }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6 * scale,
-                  padding: `${8 * scale}px ${12 * scale}px`,
-                  opacity: 0.3,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 18 * scale,
-                    color: COLORS.textDim,
-                  }}
-                >
-                  ...
-                </div>
-                <div
-                  style={{
-                    width: 100 * scale,
-                    height: 40 * scale,
-                    backgroundColor: "#333",
-                    borderRadius: 6 * scale,
-                  }}
-                />
-                <div
-                  style={{
-                    width: 100 * scale,
-                    height: 40 * scale,
-                    backgroundColor: "#333",
-                    borderRadius: 6 * scale,
-                  }}
-                />
-              </div>
-            ))}
-        </div>
-      </div>
+      {/* Computations saved counter */}
+      {renderComputationsSaved()}
 
-      {/* Reuse visualization */}
-      {renderReuseVisualization()}
+      {/* Before/After comparison */}
+      {renderComparison()}
 
-      {/* Key insight */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 60 * scale,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          opacity: insightOpacity,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 28 * scale,
-            fontWeight: 600,
-            color: COLORS.text,
-          }}
-        >
-          Each token adds <span style={{ color: COLORS.compute }}>one new pair</span>.
-          {" "}The cache <span style={{ color: COLORS.cache }}>grows</span>,
-          {" "}but work per token stays <span style={{ color: COLORS.success }}>constant</span>.
-        </span>
-      </div>
+      {/* Final insight */}
+      {renderInsight()}
     </AbsoluteFill>
   );
 };

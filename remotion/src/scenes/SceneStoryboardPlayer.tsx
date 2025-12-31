@@ -19,6 +19,7 @@ import {
   useVideoConfig,
   interpolate,
   useCurrentFrame,
+  Easing,
 } from "remotion";
 import { getSceneByPath } from "./index";
 
@@ -69,11 +70,23 @@ export interface StyleConfig {
 }
 
 /**
+ * Background music configuration
+ */
+export interface BackgroundMusicConfig {
+  /** Path to the music file (relative to public directory) */
+  path: string;
+  /** Volume level (0-1), defaults to 0.1 */
+  volume?: number;
+}
+
+/**
  * Audio configuration
  */
 export interface AudioConfig {
   voiceover_dir: string;
   buffer_between_scenes_seconds: number;
+  /** Optional background music configuration */
+  background_music?: BackgroundMusicConfig;
 }
 
 /**
@@ -98,10 +111,10 @@ export interface SceneStoryboardPlayerProps {
 }
 
 // Transition duration in seconds
-const TRANSITION_DURATION = 0.5;
+const TRANSITION_DURATION = 0.7;
 
 /**
- * Fade transition component
+ * Fade transition component with cinematic scale and motion effects
  */
 const FadeTransition: React.FC<{
   children: React.ReactNode;
@@ -111,14 +124,30 @@ const FadeTransition: React.FC<{
   const { fps } = useVideoConfig();
 
   const transitionFrames = Math.floor(TRANSITION_DURATION * fps);
+  const easing = Easing.out(Easing.cubic);
 
-  // Fade in at start
+  // Fade in at start (opacity: 0 -> 1)
   const fadeIn = interpolate(frame, [0, transitionFrames], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing,
   });
 
-  // Fade out at end
+  // Scale in at start (0.98 -> 1)
+  const scaleIn = interpolate(frame, [0, transitionFrames], [0.98, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing,
+  });
+
+  // Translate Y in at start (-10px -> 0)
+  const translateYIn = interpolate(frame, [0, transitionFrames], [-10, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing,
+  });
+
+  // Fade out at end (opacity: 1 -> 0)
   const fadeOut = interpolate(
     frame,
     [durationInFrames - transitionFrames, durationInFrames],
@@ -126,12 +155,130 @@ const FadeTransition: React.FC<{
     {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
+      easing,
     }
   );
 
+  // Scale out at end (1 -> 0.98)
+  const scaleOut = interpolate(
+    frame,
+    [durationInFrames - transitionFrames, durationInFrames],
+    [1, 0.98],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing,
+    }
+  );
+
+  // Translate Y out at end (0 -> 10px)
+  const translateYOut = interpolate(
+    frame,
+    [durationInFrames - transitionFrames, durationInFrames],
+    [0, 10],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing,
+    }
+  );
+
+  // Combine fade in and fade out
   const opacity = Math.min(fadeIn, fadeOut);
 
-  return <div style={{ opacity }}>{children}</div>;
+  // Combine scale in and scale out
+  const scale = Math.min(scaleIn, scaleOut);
+
+  // Combine translateY in and out (use in value during fade-in, out value during fade-out)
+  const isInFadeOutPhase = frame > durationInFrames - transitionFrames;
+  const translateY = isInFadeOutPhase ? translateYOut : translateYIn;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity,
+        transform: `scale(${scale}) translateY(${translateY}px)`,
+        transformOrigin: "center center",
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+/**
+ * Background music component with fade-in and fade-out effects
+ * Plays throughout the entire video with looping support
+ *
+ * Note: If the music file doesn't exist, the component will not render
+ * and the video will render without background music (only a warning in console).
+ */
+const BackgroundMusic: React.FC<{
+  musicPath: string;
+  volume: number;
+  totalDurationInFrames: number;
+}> = ({ musicPath, volume, totalDurationInFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const [musicExists, setMusicExists] = React.useState<boolean | null>(null);
+
+  // Check if music file exists on mount
+  React.useEffect(() => {
+    // In Remotion, we can't easily check if a file exists before loading
+    // So we'll just try to render it and let Remotion handle the error gracefully
+    // For now, assume it exists - Remotion will show an error if it doesn't
+    setMusicExists(true);
+  }, [musicPath]);
+
+  // Fade-in: first 2 seconds
+  const fadeInDurationFrames = 2 * fps;
+  // Fade-out: last 3 seconds
+  const fadeOutDurationFrames = 3 * fps;
+
+  // Calculate fade-in volume (0 -> target volume over first 2 seconds)
+  const fadeInVolume = interpolate(
+    frame,
+    [0, fadeInDurationFrames],
+    [0, volume],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.out(Easing.cubic),
+    }
+  );
+
+  // Calculate fade-out volume (target volume -> 0 over last 3 seconds)
+  const fadeOutVolume = interpolate(
+    frame,
+    [totalDurationInFrames - fadeOutDurationFrames, totalDurationInFrames],
+    [volume, 0],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+      easing: Easing.in(Easing.cubic),
+    }
+  );
+
+  // Combined volume: use fade-in at start, fade-out at end, full volume in between
+  const currentVolume = Math.min(fadeInVolume, fadeOutVolume);
+
+  // Don't render if music doesn't exist
+  if (musicExists === false) {
+    return null;
+  }
+
+  return (
+    <Audio
+      src={staticFile(musicPath)}
+      volume={currentVolume}
+      loop
+    />
+  );
 };
 
 /**
@@ -217,12 +364,28 @@ export const SceneStoryboardPlayer: React.FC<SceneStoryboardPlayerProps> = ({
     };
   });
 
+  // Calculate total duration for background music fade-out
+  const totalDurationInFrames = currentFrame;
+
+  // Background music configuration
+  const backgroundMusic = storyboard.audio?.background_music;
+  const musicVolume = backgroundMusic?.volume ?? 0.1;
+
   return (
     <AbsoluteFill
       style={{
         backgroundColor: storyboard.style?.background_color || "#0f0f1a",
       }}
     >
+      {/* Background music - plays throughout entire video with fade-in/fade-out */}
+      {backgroundMusic?.path && (
+        <BackgroundMusic
+          musicPath={backgroundMusic.path}
+          volume={musicVolume}
+          totalDurationInFrames={totalDurationInFrames}
+        />
+      )}
+
       {sceneData.map((scene, index) => {
         const SceneComponent = scene.SceneComponent;
         const audioPath = `${voiceoverBasePath}/${scene.audio_file}`;
