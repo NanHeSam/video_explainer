@@ -93,47 +93,6 @@ const Particle: React.FC<{
   );
 };
 
-// Flying token component
-const FlyingToken: React.FC<{
-  text: string;
-  index: number;
-  frame: number;
-  startFrame: number;
-  scale: number;
-  fast: boolean;
-  containerWidth: number;
-}> = ({ text, index, frame, startFrame, scale, fast, containerWidth }) => {
-  const localFrame = frame - startFrame;
-  const duration = fast ? 8 : 40;
-  const delay = fast ? index * 0.5 : index * 8;
-  const tokenFrame = localFrame - delay;
-
-  if (tokenFrame < 0 || tokenFrame > duration) return null;
-
-  const progress = tokenFrame / duration;
-  const x = interpolate(progress, [0, 1], [-100, containerWidth + 100]);
-  const y = 20 + (index % 3) * 25;
-  const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        left: x * scale,
-        top: y * scale,
-        fontSize: 14 * scale,
-        color: fast ? COLORS.success : COLORS.slowRed,
-        opacity,
-        fontFamily: "JetBrains Mono, monospace",
-        whiteSpace: "nowrap",
-        textShadow: fast ? `0 0 ${8 * scale}px ${COLORS.success}` : "none",
-      }}
-    >
-      {text}
-    </div>
-  );
-};
-
 export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height, durationInFrames } = useVideoConfig();
@@ -208,19 +167,19 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
   // Glow intensity for fast bar
   const fastBarGlow = showFastBar
     ? interpolate(
-        Math.sin((localFrame - phase3Start) * 0.2),
-        [-1, 1],
-        [0.5, 1]
-      )
+      Math.sin((localFrame - phase3Start) * 0.2),
+      [-1, 1],
+      [0.5, 1]
+    )
     : 0;
 
   // Scale pulse for fast bar entrance
   const fastBarScale = showFastBar
     ? spring({
-        frame: localFrame - phase3Start,
-        fps,
-        config: { damping: 10, stiffness: 150 },
-      })
+      frame: localFrame - phase3Start,
+      fps,
+      config: { damping: 10, stiffness: 150 },
+    })
     : 0;
 
   // 87x reveal with enhanced zoom/pulse
@@ -242,29 +201,24 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
   const pulseFrame = localFrame - revealStartFrame;
   const glowPulse = revealProgress > 0
     ? interpolate(
-        Math.sin(pulseFrame * 0.12),
-        [-1, 1],
-        [0.6, 1.2]
-      )
+      Math.sin(pulseFrame * 0.12),
+      [-1, 1],
+      [0.6, 1.2]
+    )
     : 0;
 
   // Zoom effect on reveal
   const zoomScale = revealProgress > 0
     ? 1 + interpolate(
-        Math.sin(pulseFrame * 0.08),
-        [-1, 1],
-        [0, 0.08]
-      ) * glowPulse
+      Math.sin(pulseFrame * 0.08),
+      [-1, 1],
+      [0, 0.08]
+    ) * glowPulse
     : 1;
 
   // Generate particle positions
   const particles = useMemo(() => {
     return Array.from({ length: 24 }, (_, i) => i);
-  }, []);
-
-  // Flying tokens for visual effect
-  const flyingTokens = useMemo(() => {
-    return RESPONSE_TOKENS.slice(0, 20);
   }, []);
 
   // Bar chart dimensions
@@ -275,6 +229,35 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
   // Current mode
   const showingFast = localFrame > phase3Start;
   const currentSpeed = showingFast ? fastSpeed : slowSpeed;
+
+  // Calculate visible tokens for streaming text effect
+  // Slow phase: 8-10 frames per word, Fast phase: 1-2 frames per word
+  const SLOW_FRAMES_PER_WORD = 9;
+  const FAST_FRAMES_PER_WORD = 1.5;
+
+  const visibleTokenCount = useMemo(() => {
+    if (localFrame < phase2Start) return 0;
+
+    // Calculate tokens shown during slow phase
+    const slowPhaseFrames = Math.max(0, Math.min(localFrame - phase2Start, phase2End - phase2Start));
+    const slowTokens = Math.floor(slowPhaseFrames / SLOW_FRAMES_PER_WORD);
+
+    if (localFrame <= phase2End) {
+      return Math.min(slowTokens, RESPONSE_TOKENS.length);
+    }
+
+    // Fast phase: continue from where slow phase left off
+    const tokensAtSlowEnd = Math.floor((phase2End - phase2Start) / SLOW_FRAMES_PER_WORD);
+    const fastPhaseFrames = localFrame - phase3Start;
+    const fastTokens = Math.floor(fastPhaseFrames / FAST_FRAMES_PER_WORD);
+
+    return Math.min(tokensAtSlowEnd + fastTokens, RESPONSE_TOKENS.length);
+  }, [localFrame, phase2Start, phase2End, phase3Start]);
+
+  // Get the visible response text
+  const visibleResponseText = useMemo(() => {
+    return RESPONSE_TOKENS.slice(0, visibleTokenCount).join(' ');
+  }, [visibleTokenCount]);
 
   return (
     <AbsoluteFill
@@ -367,7 +350,7 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
           </div>
         </div>
 
-        {/* AI response indicator */}
+        {/* AI response with streaming text */}
         <div
           style={{
             display: "flex",
@@ -378,33 +361,70 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
           <div
             style={{
               backgroundColor: COLORS.surface,
-              border: `1px solid #333`,
+              border: `1px solid ${showingFast ? COLORS.success + '40' : '#333'}`,
               borderRadius: 12 * scale,
               borderBottomLeftRadius: 4 * scale,
               padding: `${12 * scale}px ${18 * scale}px`,
               minWidth: 150 * scale,
+              maxWidth: "85%",
               minHeight: 40 * scale,
+              maxHeight: 220 * scale,
+              overflow: "hidden",
+              transition: "border-color 0.3s ease",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 * scale }}>
-              <span
+            {visibleTokenCount === 0 ? (
+              // Show loading indicator before text starts
+              <div style={{ display: "flex", alignItems: "center", gap: 8 * scale }}>
+                <span
+                  style={{
+                    fontSize: 16 * scale,
+                    color: COLORS.textDim,
+                  }}
+                >
+                  Thinking
+                </span>
+                <span
+                  style={{
+                    fontSize: 16 * scale,
+                    color: COLORS.textDim,
+                    opacity: Math.sin(localFrame * 0.2) > 0 ? 1 : 0.3,
+                  }}
+                >
+                  ●●●
+                </span>
+              </div>
+            ) : (
+              // Show streaming text
+              <div
                 style={{
-                  fontSize: 16 * scale,
-                  color: showingFast ? COLORS.success : COLORS.slowRed,
+                  fontSize: 15 * scale,
+                  lineHeight: 1.5,
+                  color: COLORS.text,
+                  wordWrap: "break-word",
                 }}
               >
-                {showingFast ? "Generating rapidly..." : "Generating..."}
-              </span>
-              <span
-                style={{
-                  fontSize: 16 * scale,
-                  color: COLORS.textDim,
-                  opacity: Math.sin(localFrame * 0.2) > 0 ? 1 : 0.3,
-                }}
-              >
-
-              </span>
-            </div>
+                <span
+                  style={{
+                    color: showingFast ? COLORS.text : COLORS.text,
+                  }}
+                >
+                  {visibleResponseText}
+                </span>
+                {/* Blinking cursor at end */}
+                <span
+                  style={{
+                    color: showingFast ? COLORS.success : COLORS.slowRed,
+                    opacity: Math.sin(localFrame * 0.3) > 0 ? 1 : 0.3,
+                    fontWeight: 700,
+                    marginLeft: 2 * scale,
+                    textShadow: showingFast ? `0 0 ${8 * scale}px ${COLORS.success}` : 'none',
+                  }}
+                >
+                  |
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -413,9 +433,9 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
       <div
         style={{
           position: "absolute",
-          top: "45%",
+          top: "58%",
           left: "50%",
-          transform: "translate(-50%, -50%)",
+          transform: "translate(-50%, -30%)",
           width: barChartWidth + 200 * scale,
           opacity: localFrame > phase2Start ? 1 : 0,
         }}
@@ -578,51 +598,6 @@ export const HookScene: React.FC<HookSceneProps> = ({ startFrame = 0 }) => {
           <span>1000</span>
           <span>2000</span>
           <span>3500+ tok/s</span>
-        </div>
-      </div>
-
-      {/* Flying Token Counter - Shows tokens streaming by */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: height * 0.32,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 600 * scale,
-          height: 100 * scale,
-          overflow: "hidden",
-          opacity: localFrame > phase2Start + 20 ? 0.8 : 0,
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            fontSize: 14 * scale,
-            color: COLORS.textDim,
-            marginBottom: 10 * scale,
-          }}
-        >
-          {showingFast ? "Tokens streaming at 3500+/s" : "Tokens streaming at 40/s"}
-        </div>
-        <div
-          style={{
-            position: "relative",
-            height: 80 * scale,
-            background: `linear-gradient(90deg, ${COLORS.background} 0%, transparent 10%, transparent 90%, ${COLORS.background} 100%)`,
-          }}
-        >
-          {flyingTokens.map((token, i) => (
-            <FlyingToken
-              key={`${showingFast ? "fast" : "slow"}-${i}`}
-              text={token}
-              index={i}
-              frame={localFrame}
-              startFrame={showingFast ? phase3Start : phase2Start + 20}
-              scale={scale}
-              fast={showingFast}
-              containerWidth={600}
-            />
-          ))}
         </div>
       </div>
 

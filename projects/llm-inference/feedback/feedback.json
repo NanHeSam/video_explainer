@@ -2009,6 +2009,116 @@
       ],
       "preview_branch": null,
       "error_message": null
+    },
+    {
+      "id": "fb_0029_1767209215",
+      "timestamp": "2025-12-31T11:26:55.643941",
+      "feedback_text": "In the HookScene (Scene 1), enhance the AI chat response to show actual text being generated at different speeds instead of just saying 'Generating...'. \n\nCurrent behavior: The AI response area just shows 'Generating...' or 'Generating rapidly...' text.\n\nDesired behavior:\n1. During the slow phase (phase2): Show the RESPONSE_TOKENS appearing one word at a time with visible delay between each word (like 8-10 frames per word). The text should accumulate in the chat bubble.\n2. During the fast phase (phase3+): Show the remaining RESPONSE_TOKENS streaming in rapidly (like 1-2 frames per word), filling up the response area quickly.\n3. The chat bubble should expand/scroll as more text is added.\n4. Keep the existing bar chart, speed counter, and 87x reveal - they complement the text generation nicely.\n\nThe visual contrast of slow word-by-word generation vs rapid streaming text will make the speed difference immediately relatable to viewers who have used ChatGPT.",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "scene1_hook"
+      ],
+      "interpretation": "Replace the static 'Generating...' text in the AI response chat bubble with dynamic word-by-word text streaming. During the slow phase (phase2), tokens should appear slowly (8-10 frames per word) to simulate sluggish generation. During the fast phase (phase3+), tokens should stream rapidly (1-2 frames per word) to show the dramatic speed improvement. The chat bubble should expand as more text accumulates.",
+      "suggested_changes": {
+        "description": "Modify the HookScene AI response area to show actual RESPONSE_TOKENS being generated at different speeds - slow word-by-word during phase2, rapid streaming during phase3+. The chat bubble should dynamically expand to accommodate growing text content.",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Add new state/calculation for visible tokens count based on current phase - slow accumulation during phase2 (~8-10 frames per word) and rapid accumulation during phase3+ (~1-2 frames per word)"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Replace the static 'Generating...' / 'Generating rapidly...' text (lines 389-407) with a dynamic component that renders accumulated RESPONSE_TOKENS based on the visible token count calculation"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Update the AI response chat bubble container (lines 377-409) to have dynamic height/max-height with overflow handling to accommodate expanding text and optional auto-scroll behavior"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Ensure RESPONSE_TOKENS constant (lines 43-56) is used for the streaming text content in the chat bubble instead of just the flying tokens effect"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/feedback/feedback.json",
+        "remotion/src/scenes/llm-inference/HookScene.tsx"
+      ],
+      "preview_branch": null,
+      "error_message": null
+    },
+    {
+      "id": "fb_0030_1767214736",
+      "timestamp": "2025-12-31T12:58:56.649965",
+      "feedback_text": "In the HookScene, make two changes to the AI response chat bubble:\n\n1. Remove the speed indicator badge ('\ud83d\udc22 Generating slowly' / '\u26a1 Streaming fast') from inside the chat bubble - it's redundant since we have the bar chart and speed counter showing that information.\n\n2. Make the chat bubble bigger so we can see more of the generated text. Increase maxHeight from 120 to around 180-200 pixels (scaled). The bubble should be able to show more text without cutting off, but should NOT overlap with the bar chart below it (which starts at top: 45%).",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "0"
+      ],
+      "interpretation": "User wants to modify the AI response chat bubble in HookScene by: 1) Removing the speed indicator badge ('\ud83d\udc22 Generating slowly' / '\u26a1 Streaming fast') which is redundant with the bar chart and speed counter, and 2) Increasing the chat bubble's maxHeight from 120 to 180-200 pixels (scaled) to show more generated text without overlapping the bar chart at top: 45%",
+      "suggested_changes": {
+        "description": "Remove redundant speed indicator badge from AI response chat bubble and increase maxHeight to show more text",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "remove",
+            "what": "Remove the speed indicator badge JSX block (lines 472-488) that shows '\ud83d\udc22 Generating slowly' / '\u26a1 Streaming fast' inside the chat bubble"
+          },
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Change maxHeight from '120 * scale' to approximately '180 * scale' or '190 * scale' on line 417 to allow more visible text while ensuring no overlap with bar chart at 45%"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/feedback/feedback.json",
+        "remotion/src/scenes/llm-inference/HookScene.tsx"
+      ],
+      "preview_branch": null,
+      "error_message": null
+    },
+    {
+      "id": "fb_0031_1767215753",
+      "timestamp": "2025-12-31T13:15:53.755471",
+      "feedback_text": "In the HookScene, fix the overlap between the AI response chat bubble and the 'Token Generation Speed' bar chart below it.\n\nCurrent positions:\n- Chat interface is at top: 150 * scale\n- Bar chart is at top: '45%'\n\nThe chat bubble with maxHeight 180 is now overlapping with the bar chart. \n\nFix by moving the bar chart down - change its top position from '45%' to '52%' to give more room for the chat bubble above it.",
+      "status": "applied",
+      "scope": "scene",
+      "affected_scenes": [
+        "0"
+      ],
+      "interpretation": "Fix visual overlap between the AI response chat bubble and the 'Token Generation Speed' bar chart in HookScene by moving the bar chart down from 45% to 52% vertical position.",
+      "suggested_changes": {
+        "description": "Adjust the bar chart's top position from '45%' to '52%' to give more room for the chat bubble above it and prevent overlap.",
+        "files_to_modify": [
+          "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx"
+        ],
+        "changes": [
+          {
+            "file": "/Users/prajwal/Desktop/Learning/video_explainer/remotion/src/scenes/llm-inference/HookScene.tsx",
+            "action": "modify",
+            "what": "Change the Racing Bar Chart container's 'top' style from '45%' to '52%' (line 482)"
+          }
+        ]
+      },
+      "files_modified": [
+        "projects/llm-inference/feedback/feedback.json",
+        "remotion/src/scenes/llm-inference/HookScene.tsx"
+      ],
+      "preview_branch": null,
+      "error_message": null
     }
   ]
 }
