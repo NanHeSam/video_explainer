@@ -739,7 +739,7 @@ class TestTrueEndToEnd:
         narrations = load_narrations_from_file(narration_path)
 
         # Should have 16 scenes
-        assert len(narrations) == 16
+        assert len(narrations) == 18
 
         # All scenes should have required fields
         for narration in narrations:

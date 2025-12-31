@@ -18,8 +18,10 @@ export { MechanicsScene } from "./MechanicsScene";
 export { ImpactScene } from "./ImpactScene";
 export { StaticBatchingScene } from "./StaticBatchingScene";
 export { MemoryFragmentationScene } from "./MemoryFragmentationScene";
+export { VLLMIntroScene } from "./VLLMIntroScene";
 export { ContinuousBatchingScene } from "./ContinuousBatchingScene";
 export { PagedAttentionScene } from "./PagedAttentionScene";
+export { MoreOptimizationsScene } from "./MoreOptimizationsScene";
 export { QuantizationScene } from "./QuantizationScene";
 export { SpeculativeDecodingScene } from "./SpeculativeDecodingScene";
 export { ScalingScene } from "./ScalingScene";
@@ -37,8 +39,10 @@ import { MechanicsScene } from "./MechanicsScene";
 import { ImpactScene } from "./ImpactScene";
 import { StaticBatchingScene } from "./StaticBatchingScene";
 import { MemoryFragmentationScene } from "./MemoryFragmentationScene";
+import { VLLMIntroScene } from "./VLLMIntroScene";
 import { ContinuousBatchingScene } from "./ContinuousBatchingScene";
 import { PagedAttentionScene } from "./PagedAttentionScene";
+import { MoreOptimizationsScene } from "./MoreOptimizationsScene";
 import { QuantizationScene } from "./QuantizationScene";
 import { SpeculativeDecodingScene } from "./SpeculativeDecodingScene";
 import { ScalingScene } from "./ScalingScene";
@@ -65,8 +69,10 @@ export const LLM_INFERENCE_SCENES: Record<string, SceneComponent> = {
   impact: ImpactScene,
   static_batching: StaticBatchingScene,
   memory_fragmentation: MemoryFragmentationScene,
+  vllm_intro: VLLMIntroScene,
   continuous_batching: ContinuousBatchingScene,
   paged_attention: PagedAttentionScene,
+  more_optimizations: MoreOptimizationsScene,
   quantization: QuantizationScene,
   speculative_decoding: SpeculativeDecodingScene,
   scaling: ScalingScene,

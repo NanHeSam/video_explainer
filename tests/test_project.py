@@ -244,7 +244,7 @@ class TestLLMInferenceProject:
         project = load_project(project_path)
         narrations = project.load_narrations()
 
-        assert len(narrations) == 16
+        assert len(narrations) == 18
         assert narrations[0].scene_id == "scene1_hook"
 
     def test_llm_inference_voiceover_files(self):
@@ -256,4 +256,4 @@ class TestLLMInferenceProject:
         project = load_project(project_path)
         voiceover_files = project.get_voiceover_files()
 
-        assert len(voiceover_files) == 16
+        assert len(voiceover_files) == 18

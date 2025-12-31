@@ -43,59 +43,71 @@
       "narration": "The third problem: memory fragmentation. We don't know how long responses will be, so we pre-allocate memory for the maximum length. A four thousand token buffer for every request. But most responses are short. We're using just five percent of allocated memory. The rest sits wasted, fragmenting GPU memory into unusable chunks."
     },
     {
-      "scene_id": "scene8_kvcache",
+      "scene_id": "scene8_vllm_intro",
+      "title": "Introducing vLLM",
+      "duration_seconds": 12,
+      "narration": "To understand these optimizations, let's look at vLLM, a high-throughput LLM serving engine. It implements three key techniques: KV Cache optimization, Continuous Batching, and PagedAttention. Let's dive into how vLLM solves each problem."
+    },
+    {
+      "scene_id": "scene9_kvcache",
       "title": "The KV Cache Solution",
       "duration_seconds": 26,
       "narration": "Watch what happens with the KV cache. Token one generates Key-one and Value-one. These go straight into the cache. Now token two arrives. It generates Key-two and Value-two, but for attention, it reuses Key-one and Value-one from the cache. No recalculation. Token three? It reuses everything—Key-one, Value-one, Key-two, Value-two—all from the cache. Each token adds one new pair. The cache grows, but the work per token stays constant."
     },
     {
-      "scene_id": "scene9_mechanics",
-      "title": "The Attention Computation",
+      "scene_id": "scene10_mechanics",
+      "title": "How Attention Uses the Cache",
       "duration_seconds": 18,
       "narration": "Here's the math behind it. The new token's Query multiplies against all cached Keys. Softmax turns those into attention weights. Then we take a weighted sum of cached Values. The result? Same output as recomputing everything, but at a fraction of the cost. Just matrix multiplies against tensors already in memory."
     },
     {
-      "scene_id": "scene10_continuous_batching",
+      "scene_id": "scene11_continuous_batching",
       "title": "Continuous Batching",
       "duration_seconds": 25,
       "narration": "The second solution: continuous batching. First, what's a slot? A slot is a fixed memory allocation for one sequence in the GPU batch. Here we have four slots in our GPU. Watch what happens when Sequence A finishes. Its slot becomes available immediately, and a new sequence enters right away. This is the key innovation. Static batching waits for ALL sequences to finish before accepting new ones. Continuous batching fills empty slots immediately. New sequences enter available slots while others are still processing. The GPU stays at maximum utilization."
     },
     {
-      "scene_id": "scene11_paged_attention",
+      "scene_id": "scene12_paged_attention",
       "title": "PagedAttention",
       "duration_seconds": 28,
       "narration": "The third solution: PagedAttention. Inspired by operating system virtual memory, we divide the KV cache into fixed-size blocks. Instead of pre-allocating one giant buffer, we allocate blocks on demand as tokens are generated. When a request finishes, its blocks return to a free list. No pre-allocation, no fragmentation. Memory utilization jumps from thirty-five percent to over ninety-five percent."
     },
     {
-      "scene_id": "scene12_quantization",
+      "scene_id": "scene13_more_optimizations",
+      "title": "More Optimizations Coming",
+      "duration_seconds": 10,
+      "narration": "We've covered a lot: KV Cache, Continuous Batching, and PagedAttention. But there's more. Two more powerful techniques to maximize LLM performance: Quantization and Speculative Decoding."
+    },
+    {
+      "scene_id": "scene14_quantization",
       "title": "Quantization",
       "duration_seconds": 25,
       "narration": "We can push further with quantization. Model weights in sixteen-bit floating point use two bytes per parameter. Quantization compresses them to eight bits or even four bits, with minimal accuracy loss. Since decode is memory-bound, smaller weights mean faster loading. INT4 weights are four times smaller than FP16. That's up to four times faster inference."
     },
     {
-      "scene_id": "scene13_speculative_decoding",
+      "scene_id": "scene15_speculative_decoding",
       "title": "Speculative Decoding",
       "duration_seconds": 28,
       "narration": "Here's a counterintuitive idea: use a smaller draft model to guess multiple tokens ahead, then verify them in parallel with the large model. For easy, predictable tokens, the draft is usually right. We accept all guesses and generate multiple tokens for the cost of one. For harder tokens, we fall back to the large model. Result: two to three times faster latency."
     },
     {
-      "scene_id": "scene14_scaling",
+      "scene_id": "scene16_scaling",
       "title": "Scaling to Millions",
       "duration_seconds": 28,
       "narration": "To serve millions of users, we need to scale. Tensor parallelism splits model layers across multiple GPUs, reducing memory per GPU. Pipeline parallelism chains GPUs together, each handling different layers. And horizontal scaling deploys thousands of independent replicas behind load balancers. Smart routing sends similar requests to the same replica for better cache hits."
     },
     {
-      "scene_id": "scene15_economics",
+      "scene_id": "scene17_economics",
       "title": "The Economics of Scale",
       "duration_seconds": 30,
       "narration": "Let's talk real numbers. One million users, fifty tokens per second each. That's fifty million tokens per second total. With optimized inference at two thousand tokens per GPU-second, you need twenty-five thousand GPUs. At two dollars per GPU-hour, that's fifty million dollars per month. Every optimization in this video directly reduces that bill. A two-times throughput improvement halves your infrastructure cost."
     },
     {
-      "scene_id": "scene16_conclusion",
+      "scene_id": "scene18_conclusion",
       "title": "The Full Picture",
       "duration_seconds": 30,
       "narration": "Putting it all together: from forty tokens per second to over three thousand five hundred. An eighty-seven times improvement. KV caching eliminates redundant computation. PagedAttention maximizes memory utilization. Quantization shrinks model size. Speculative decoding accelerates generation. And smart scaling handles millions of users. The key insight: LLM inference is memory-bound, not compute-bound. Every optimization here serves one goal: maximize useful work per byte transferred. These techniques power every major AI service today."
     }
   ],
-  "total_duration_seconds": 388
+  "total_duration_seconds": 410
 }

@@ -254,7 +254,7 @@ class TestLLMInferenceProjectVoiceover:
             pytest.skip("LLM inference project not found")
 
         narrations = load_narrations_from_file(narration_path)
-        assert len(narrations) == 16
+        assert len(narrations) == 18
 
     def test_project_voiceover_files_exist(self):
         """Verify voiceover files exist in project."""
@@ -263,7 +263,7 @@ class TestLLMInferenceProjectVoiceover:
             pytest.skip("LLM inference voiceover directory not found")
 
         mp3_files = list(voiceover_dir.glob("*.mp3"))
-        assert len(mp3_files) == 16, f"Expected 16 mp3 files, got {len(mp3_files)}"
+        assert len(mp3_files) == 18, f"Expected 18 mp3 files, got {len(mp3_files)}"
 
     def test_project_manifest_exists(self):
         """Verify manifest file exists in project."""
@@ -273,5 +273,5 @@ class TestLLMInferenceProjectVoiceover:
 
         with open(manifest_path) as f:
             data = json.load(f)
-        assert len(data["scenes"]) == 16
+        assert len(data["scenes"]) == 18
         assert data["total_duration_seconds"] > 0

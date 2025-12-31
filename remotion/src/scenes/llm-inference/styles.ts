@@ -37,17 +37,17 @@ export const COLORS = {
 
 // ===== TYPOGRAPHY =====
 export const TYPOGRAPHY = {
-  // Title styling (48px, primary cyan, bold)
+  // Title styling (56px, primary cyan, bold)
   title: {
-    fontSize: 48,
+    fontSize: 56,
     fontWeight: 700 as const,
     color: COLORS.primary,
     margin: 0,
   },
 
-  // Subtitle styling (24px, lighter weight, secondary color)
+  // Subtitle styling (28px, lighter weight, secondary color)
   subtitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 400 as const,
     color: COLORS.textDim,
     marginTop: 8,
@@ -55,14 +55,14 @@ export const TYPOGRAPHY = {
 
   // Section headers
   sectionHeader: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 700 as const,
     color: COLORS.text,
   },
 
   // Body text
   body: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 400 as const,
     color: COLORS.text,
     lineHeight: 1.6,
@@ -116,7 +116,7 @@ export const KEY_INSIGHT = {
     textAlign: "center" as const,
   },
   text: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: 500 as const,
     color: COLORS.text,
     lineHeight: 1.5,
