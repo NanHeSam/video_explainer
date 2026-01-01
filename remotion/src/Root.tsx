@@ -1,6 +1,5 @@
 import { Composition } from "remotion";
 import { ExplainerVideo } from "./scenes/ExplainerVideo";
-import { PrefillDecodeScene } from "./scenes/PrefillDecodeScene";
 import { StoryboardPlayer } from "./scenes/StoryboardPlayer";
 import {
   SceneStoryboardPlayer,
@@ -13,8 +12,10 @@ import type { Storyboard } from "./types/storyboard";
 // Scene registry - used for data-driven rendering
 import { getAllScenePaths } from "./scenes/index";
 
-// Import individual scenes for preview/testing
+// Import individual scenes from project (via webpack alias configured at build time)
+// @ts-ignore - alias is configured dynamically at build time
 import {
+  PrefillDecodeScene,
   HookScene,
   PhasesScene,
   BottleneckScene,
@@ -32,7 +33,7 @@ import {
   ScalingScene,
   EconomicsScene,
   ConclusionScene,
-} from "./scenes/llm-inference";
+} from "@project-scenes";
 
 // Default beat-based storyboard for preview (old format)
 const defaultStoryboard: Storyboard = {

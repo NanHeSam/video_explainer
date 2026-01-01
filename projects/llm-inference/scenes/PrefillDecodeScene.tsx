@@ -7,8 +7,10 @@ import {
   Easing,
   Sequence,
 } from "remotion";
-import { TokenRow } from "../components/TokenRow";
-import { GPUGauge } from "../components/GPUGauge";
+// @ts-ignore - alias configured at build time in render.mjs
+import { TokenRow } from "@remotion-components/TokenRow";
+// @ts-ignore - alias configured at build time in render.mjs
+import { GPUGauge } from "@remotion-components/GPUGauge";
 
 // Timing constants (in frames at 30fps)
 const FPS = 30;

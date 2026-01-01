@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { SceneComponent } from "../llm-inference";
+import { SceneComponent } from "../index";
 
 /**
  * Registry of common/shared scene components

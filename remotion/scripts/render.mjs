@@ -89,6 +89,18 @@ async function main() {
     process.exit(1);
   }
 
+  // Validate project directory
+  if (!projectDir) {
+    console.error("Project directory is required for scene loading");
+    process.exit(1);
+  }
+
+  const projectScenesDir = resolve(projectDir, "scenes");
+  if (!existsSync(projectScenesDir)) {
+    console.error(`Project scenes directory not found: ${projectScenesDir}`);
+    process.exit(1);
+  }
+
   // Calculate total duration
   const totalDuration = calculateDuration(config.compositionId, props);
   console.log(`Total duration: ${totalDuration}s`);
@@ -97,9 +109,10 @@ async function main() {
   console.log("\nBundling Remotion project...");
   const entryPoint = resolve(__dirname, "../src/index.ts");
 
-  // Use project directory as public dir if available, otherwise use default
-  const publicDir = projectDir || resolve(__dirname, "../public");
+  // Use project directory as public dir for assets (voiceover, music, sfx)
+  const publicDir = projectDir;
   console.log(`Public directory: ${publicDir}`);
+  console.log(`Project scenes: ${projectScenesDir}`);
 
   const bundleLocation = await bundle({
     entryPoint,
@@ -109,6 +122,18 @@ async function main() {
         console.log(`  Bundle progress: ${progress}%`);
       }
     },
+    // Configure webpack aliases for project scenes and shared components
+    webpackOverride: (webpackConfig) => ({
+      ...webpackConfig,
+      resolve: {
+        ...webpackConfig.resolve,
+        alias: {
+          ...webpackConfig.resolve?.alias,
+          "@project-scenes": projectScenesDir,
+          "@remotion-components": resolve(__dirname, "../src/components"),
+        },
+      },
+    }),
   });
 
   console.log("Bundle created successfully");

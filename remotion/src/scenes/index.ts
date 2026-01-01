@@ -1,24 +1,22 @@
 /**
  * Main Scene Registry
  *
- * Combines scene registries from all projects and provides
- * a unified interface for looking up scenes by "project/type" format.
+ * Imports scenes from the project directory via webpack alias.
+ * The alias is configured at build time by render.mjs.
  */
 
 import React from "react";
-import { LLM_INFERENCE_SCENES, SceneComponent } from "./llm-inference";
 
-// Re-export project-specific registries
-export * from "./llm-inference";
+// Import project scenes via webpack alias (configured at build time in render.mjs)
+// @ts-ignore - alias is configured dynamically at build time
+import { LLM_INFERENCE_SCENES, SceneComponent as ProjectSceneComponent } from "@project-scenes";
 
-/**
- * All project scene registries
- */
-const PROJECT_REGISTRIES: Record<string, Record<string, SceneComponent>> = {
-  "llm-inference": LLM_INFERENCE_SCENES,
-  // Add more projects here as they're created:
-  // "another-video": ANOTHER_VIDEO_SCENES,
-};
+// Re-export types and scenes
+export type SceneComponent = ProjectSceneComponent;
+export { LLM_INFERENCE_SCENES };
+
+// Alias for generic access
+export const PROJECT_SCENES = LLM_INFERENCE_SCENES;
 
 /**
  * Get a scene component by full path (e.g., "llm-inference/hook")
@@ -31,33 +29,19 @@ export function getSceneByPath(scenePath: string): SceneComponent | undefined {
 
   if (parts.length === 2) {
     const [project, type] = parts;
-    const registry = PROJECT_REGISTRIES[project];
-    if (registry) {
-      return registry[type];
-    }
+    // All scenes now come from the current project
+    return PROJECT_SCENES[type];
   }
 
-  // Fallback: try to find in any registry (for backwards compatibility)
-  for (const registry of Object.values(PROJECT_REGISTRIES)) {
-    if (registry[scenePath]) {
-      return registry[scenePath];
-    }
-  }
-
-  return undefined;
+  // Fallback: try direct type lookup
+  return PROJECT_SCENES[scenePath];
 }
 
 /**
- * Get all available scene paths across all projects
+ * Get all available scene paths
  */
 export function getAllScenePaths(): string[] {
-  const paths: string[] = [];
-  for (const [project, registry] of Object.entries(PROJECT_REGISTRIES)) {
-    for (const type of Object.keys(registry)) {
-      paths.push(`${project}/${type}`);
-    }
-  }
-  return paths;
+  return Object.keys(PROJECT_SCENES).map((type) => `project/${type}`);
 }
 
 /**
@@ -68,16 +52,8 @@ export function hasScene(scenePath: string): boolean {
 }
 
 /**
- * Get all projects that have registered scenes
+ * Get all scene types
  */
-export function getProjects(): string[] {
-  return Object.keys(PROJECT_REGISTRIES);
-}
-
-/**
- * Get all scene types for a specific project
- */
-export function getProjectSceneTypes(project: string): string[] {
-  const registry = PROJECT_REGISTRIES[project];
-  return registry ? Object.keys(registry) : [];
+export function getSceneTypes(): string[] {
+  return Object.keys(PROJECT_SCENES);
 }

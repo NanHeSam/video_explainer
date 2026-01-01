@@ -8,6 +8,7 @@
 import React from "react";
 
 // Scene component exports
+export { PrefillDecodeScene } from "./PrefillDecodeScene";
 export { HookScene } from "./HookScene";
 export { PhasesScene } from "./PhasesScene";
 export { BottleneckScene } from "./BottleneckScene";
