@@ -145,7 +145,7 @@ export const PhasesScene: React.FC<PhasesSceneProps> = ({ startFrame = 0 }) => {
           top: 120 * scale,
           left: 60 * scale,
           right: 60 * scale,
-          bottom: 150 * scale,
+          bottom: 200 * scale,
           display: "flex",
           gap: 40 * scale,
         }}
