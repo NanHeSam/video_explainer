@@ -33,8 +33,37 @@ Pipeline workflow:
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
+
+
+def _title_to_scene_key(title: str) -> str:
+    """Convert a scene title to a scene key for registry/storyboard.
+
+    This must match the logic in src/scenes/generator.py to ensure
+    scene registry keys match storyboard scene types.
+
+    Examples:
+        "The Pixel Problem" -> "pixel_problem"
+        "The Tokenization Challenge" -> "tokenization_challenge"
+        "Cutting Images Into Visual Words" -> "cutting_images_into_visual_words"
+    """
+    # Remove common prefixes like "The", "A", "An"
+    words = title.split()
+    if words and words[0].lower() in ("the", "a", "an"):
+        words = words[1:]
+
+    # Convert to snake_case: lowercase with underscores
+    key = "_".join(word.lower() for word in words)
+
+    # Remove any non-alphanumeric characters except underscores
+    key = re.sub(r"[^a-z0-9_]", "", key)
+
+    # Collapse multiple underscores
+    key = re.sub(r"_+", "_", key).strip("_")
+
+    return key
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -479,8 +508,9 @@ def cmd_storyboard(args: argparse.Namespace) -> int:
         scene_id = scene.get("scene_id", "")
         title = scene.get("title", "")
 
-        # Determine scene type from scene_id (e.g., "scene1_hook" -> "hook")
-        scene_type_key = scene_id.split("_", 1)[1] if "_" in scene_id else scene_id
+        # Derive scene type from title - this must match the scene generator's logic
+        # to ensure storyboard scene types match scene registry keys
+        scene_type_key = _title_to_scene_key(title)
         scene_type = f"{project.id}/{scene_type_key}"
 
         # Get audio info from voiceover manifest or narration

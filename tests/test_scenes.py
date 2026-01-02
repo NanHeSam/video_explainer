@@ -14,6 +14,7 @@ from src.scenes.generator import (
     STYLES_TEMPLATE,
     INDEX_TEMPLATE,
 )
+from src.cli.main import _title_to_scene_key as cli_title_to_scene_key
 
 
 class TestSceneGeneratorHelpers:
@@ -22,6 +23,31 @@ class TestSceneGeneratorHelpers:
     @pytest.fixture
     def generator(self):
         return SceneGenerator()
+
+    def test_title_to_scene_key_simple(self, generator):
+        """Test simple title to scene key conversion."""
+        assert generator._title_to_scene_key("The Hook") == "hook"
+
+    def test_title_to_scene_key_multiple_words(self, generator):
+        """Test multi-word title to scene key."""
+        assert generator._title_to_scene_key("The Tokenization Challenge") == "tokenization_challenge"
+
+    def test_title_to_scene_key_with_article_prefix(self, generator):
+        """Test title starting with article."""
+        assert generator._title_to_scene_key("A New Beginning") == "new_beginning"
+        assert generator._title_to_scene_key("An Example Scene") == "example_scene"
+
+    def test_title_to_scene_key_long_title(self, generator):
+        """Test longer title conversion."""
+        assert generator._title_to_scene_key("Cutting Images Into Visual Words") == "cutting_images_into_visual_words"
+
+    def test_title_to_scene_key_special_chars(self, generator):
+        """Test title with special characters."""
+        assert generator._title_to_scene_key("What's Next?") == "whats_next"
+
+    def test_title_to_scene_key_with_numbers(self, generator):
+        """Test title with numbers."""
+        assert generator._title_to_scene_key("Phase 1 Introduction") == "phase_1_introduction"
 
     def test_title_to_component_name_simple(self, generator):
         """Test simple title conversion."""
@@ -224,8 +250,8 @@ export const TestScene: React.FC = () => {
         scenes_dir.mkdir()
 
         scenes = [
-            {"scene_number": 1, "title": "Hook", "component_name": "HookScene", "filename": "HookScene.tsx", "scene_type": "hook"},
-            {"scene_number": 2, "title": "Explanation", "component_name": "ExplanationScene", "filename": "ExplanationScene.tsx", "scene_type": "explanation"},
+            {"scene_number": 1, "title": "The Hook", "component_name": "HookScene", "filename": "HookScene.tsx", "scene_type": "hook", "scene_key": "hook"},
+            {"scene_number": 2, "title": "Core Explanation", "component_name": "ExplanationScene", "filename": "ExplanationScene.tsx", "scene_type": "explanation", "scene_key": "core_explanation"},
         ]
 
         generator._generate_index(scenes_dir, scenes, "Test Video")
@@ -237,9 +263,9 @@ export const TestScene: React.FC = () => {
         assert "HookScene" in content
         assert "ExplanationScene" in content
         assert "PROJECT_SCENES" in content  # Standard export name
-        # Registry keys should match scene_type
+        # Registry keys should match scene_key (derived from title)
         assert "hook: HookScene" in content
-        assert "explanation: ExplanationScene" in content
+        assert "core_explanation: ExplanationScene" in content
 
     @patch("src.scenes.generator.ClaudeCodeLLMProvider")
     def test_generate_scene_creates_file(self, mock_llm_class, temp_project_dir, mock_llm_response):
@@ -459,3 +485,66 @@ class TestSceneGeneratorOldFormat:
         call_args = mock_llm.generate_with_file_access.call_args
         prompt = call_args[0][0]
         assert "Old format visual description" in prompt
+
+
+class TestSceneKeyConsistency:
+    """Tests to ensure scene key generation is consistent across CLI and scene generator.
+
+    This is critical: if these functions produce different keys, scenes won't be found
+    at render time because the storyboard type won't match the registry key.
+    """
+
+    @pytest.fixture
+    def generator(self):
+        return SceneGenerator()
+
+    def test_cli_and_generator_produce_same_keys(self, generator):
+        """CRITICAL: CLI and scene generator must produce identical keys from titles."""
+        titles = [
+            "The Hook",
+            "The Tokenization Challenge",
+            "Cutting Images Into Visual Words",
+            "The Special Summary Token",
+            "A New Approach",
+            "What's Next?",
+            "Phase 1 Introduction",
+            "Vision Meets Language",
+            "The Vision Revolution",
+        ]
+
+        for title in titles:
+            generator_key = generator._title_to_scene_key(title)
+            cli_key = cli_title_to_scene_key(title)
+            assert generator_key == cli_key, (
+                f"Key mismatch for title '{title}': "
+                f"generator='{generator_key}', cli='{cli_key}'"
+            )
+
+    def test_actual_project_titles_produce_consistent_keys(self, generator):
+        """Test with actual titles from llm-image-understanding project."""
+        # These are the actual titles from the project
+        titles = [
+            "The Pixel Problem",
+            "The Tokenization Challenge",
+            "Cutting Images Into Visual Words",
+            "The Special Summary Token",
+            "Teaching Patches Their Location",
+            "Every Patch Talks to Every Patch",
+            "Learning by Hiding",
+            "Vision Meets Language",
+            "Adding the Time Dimension",
+            "Divided Space-Time Attention",
+            "How LLMs See Images",
+            "The Resolution Trade-off",
+            "The Key Parallel",
+            "Training Without Next-Token Prediction",
+            "The Vision Revolution",
+        ]
+
+        for title in titles:
+            generator_key = generator._title_to_scene_key(title)
+            cli_key = cli_title_to_scene_key(title)
+            assert generator_key == cli_key, (
+                f"Key mismatch for actual project title '{title}': "
+                f"generator='{generator_key}', cli='{cli_key}'"
+            )

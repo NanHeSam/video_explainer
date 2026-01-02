@@ -408,6 +408,10 @@ class SceneGenerator:
         duration = scene.get("duration_seconds", 20)
         voiceover = scene.get("voiceover", "")
 
+        # Derive scene key from title - this must match how storyboard extracts keys
+        # from narration scene_ids (e.g., "scene1_hook" -> "hook")
+        scene_key = self._title_to_scene_key(title)
+
         # Handle both old and new visual formats
         if "visual_cue" in scene:
             visual_desc = scene["visual_cue"].get("description", "")
@@ -477,6 +481,7 @@ Write the complete component code to the file: {output_path}
             "filename": filename,
             "path": str(output_path),
             "scene_type": scene_type,
+            "scene_key": scene_key,  # Derived from title, used as registry key
         }
 
     def _generate_styles(self, scenes_dir: Path, project_title: str) -> None:
@@ -501,13 +506,13 @@ Write the complete component code to the file: {output_path}
         for scene in scenes:
             name = scene["component_name"]
             filename = scene["filename"].replace(".tsx", "")
-            # Use scene_type as registry key - this matches the storyboard scene type
-            # (which is derived from scene_id suffix, e.g., "scene1_hook" -> "hook")
-            scene_type = scene["scene_type"]
+            # Use scene_key as registry key - derived from title to match storyboard
+            # (storyboard extracts keys from narration scene_ids, which are based on titles)
+            scene_key = scene["scene_key"]
 
             imports.append(f'import {{ {name} }} from "./{filename}";')
             exports.append(f"export {{ {name} }} from \"./{filename}\";")
-            registry_entries.append(f'  {scene_type}: {name},')
+            registry_entries.append(f'  {scene_key}: {name},')
 
         content = INDEX_TEMPLATE.format(
             project_title=project_title,
@@ -558,6 +563,33 @@ Write the complete component code to the file: {output_path}
         name = component_name.replace("Scene", "")
         # Insert underscore before capitals and lowercase
         key = re.sub(r"([a-z])([A-Z])", r"\1_\2", name).lower()
+        return key
+
+    def _title_to_scene_key(self, title: str) -> str:
+        """Convert a scene title to a scene key for registry.
+
+        This must match how narration generates scene_ids (e.g., "scene1_hook").
+        The storyboard extracts keys from scene_ids using split("_", 1)[1].
+
+        Examples:
+            "The Pixel Problem" -> "hook" (matches scene_type for hook)
+            "The Tokenization Challenge" -> "tokenization_challenge"
+            "Cutting Images Into Visual Words" -> "cutting_patches"
+        """
+        # Remove common prefixes like "The", "A", "An"
+        words = title.split()
+        if words and words[0].lower() in ("the", "a", "an"):
+            words = words[1:]
+
+        # Convert to snake_case: lowercase with underscores
+        key = "_".join(word.lower() for word in words)
+
+        # Remove any non-alphanumeric characters except underscores
+        key = re.sub(r"[^a-z0-9_]", "", key)
+
+        # Collapse multiple underscores
+        key = re.sub(r"_+", "_", key).strip("_")
+
         return key
 
     def _title_to_registry_name(self, title: str) -> str:
