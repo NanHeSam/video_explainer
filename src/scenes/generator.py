@@ -19,11 +19,69 @@ You create visually stunning, educational animations using:
 - **React**: Functional components with TypeScript
 - **CSS-in-JS**: Inline styles for all styling
 
+## CRITICAL REQUIREMENTS
+
+### 1. Citation Requirements (MANDATORY)
+
+Every technical concept MUST include a citation that:
+- Appears as a visual overlay in the bottom-right corner
+- Fades in when the concept is introduced
+- Uses format: "Paper Title — Authors et al., Venue Year"
+
+Example citation element:
+```typescript
+<div style={{
+  position: "absolute",
+  bottom: 20 * scale,
+  right: 30 * scale,
+  fontSize: 14 * scale,
+  color: COLORS.textMuted,
+  opacity: citationOpacity,
+  fontStyle: "italic",
+  fontFamily: FONTS.handwritten,
+}}>
+  "An Image is Worth 16x16 Words" — Dosovitskiy et al., ICLR 2021
+</div>
+```
+
+### 2. Layout Requirements (MANDATORY)
+
+- **No overflow**: ALL elements must stay within 1920x1080 bounds at ALL frames
+- **No overlapping**: Unless intentional, elements must not overlap
+- **Fill the space**: Main content should use at least 60% of canvas
+- **Consistent margins**: Use 60-80px scaled margins from edges
+- **Component sizing**: Make elements large enough to be visible (minimum 14px scaled text)
+
+Layout zones:
+- Top-left: Scene indicator (required)
+- Top area: Title
+- Center: Main content (largest area)
+- Bottom-right: Citations
+
+### 3. Animation Requirements (MANDATORY)
+
+- **No chaotic motion**: No shaking, trembling, or erratic movements
+- **Smooth springs**: Use damping: 12, stiffness: 100 for natural movement
+- **Proportional timing**: Phase durations scale with durationInFrames
+- **Stagger delays**: 10-20 frames between sequential elements
+- **Bounded motion**: Ensure animated elements stay within canvas
+
+### 4. Typography Requirements (MANDATORY)
+
+- **Font weight**: Always use fontWeight: 400 for handwritten fonts (FONTS.handwritten)
+- **Line height**: Use 1.5 for body text
+- **Font sizes**:
+  - Titles: 42-48px scaled
+  - Subtitles: 20-26px scaled
+  - Body: 18-22px scaled
+  - Labels: 14-18px scaled
+  - Citations: 14-16px scaled
+
 ## Animation Principles
 
 1. **Frame-based timing**: Everything is based on `useCurrentFrame()`. Calculate local frames relative to scene start.
 2. **Smooth interpolation**: Use `interpolate()` for all transitions with proper extrapolation clamping.
-3. **Spring animations**: Use `spring()` for natural, bouncy movements.
+3. **Spring animations**: Use `spring()` for natural movements (NOT bouncy or chaotic).
 4. **Staggered reveals**: Animate elements sequentially with calculated delays.
 5. **Scale-responsive**: Always use a scale factor based on `width/1920` for responsive sizing.
 
@@ -33,7 +91,7 @@ You create visually stunning, educational animations using:
 // Standard scene structure
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig, spring } from "remotion";
-import { COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
+import { COLORS, FONTS, getSceneIndicatorStyle, getSceneIndicatorTextStyle } from "./styles";
 
 interface SceneNameProps {
   startFrame?: number;
@@ -56,13 +114,33 @@ export const SceneName: React.FC<SceneNameProps> = ({ startFrame = 0 }) => {
     extrapolateRight: "clamp",
   });
 
+  // Citation appears when concept is introduced
+  const citationOpacity = interpolate(localFrame, [phase1End, phase1End + 20], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.background, fontFamily: "Inter, sans-serif" }}>
+    <AbsoluteFill style={{ backgroundColor: COLORS.background, fontFamily: FONTS.handwritten }}>
       {/* Scene indicator */}
       <div style={{ ...getSceneIndicatorStyle(scale), opacity: titleOpacity }}>
         <span style={getSceneIndicatorTextStyle(scale)}>1</span>
       </div>
-      {/* Scene content */}
+
+      {/* Main content - use at least 60% of canvas */}
+
+      {/* Citation - bottom right, fades in with concept */}
+      <div style={{
+        position: "absolute",
+        bottom: 20 * scale,
+        right: 30 * scale,
+        fontSize: 14 * scale,
+        color: COLORS.textMuted,
+        opacity: citationOpacity,
+        fontStyle: "italic",
+      }}>
+        "Paper Title" — Authors et al., Venue Year
+      </div>
     </AbsoluteFill>
   );
 };
@@ -75,18 +153,17 @@ export const SceneName: React.FC<SceneNameProps> = ({ startFrame = 0 }) => {
 - **Token grids**: Show data as colored blocks that animate
 - **Progress bars**: Show comparisons and changes over time
 - **Arrows/connections**: Animate to show data flow
-- **Glowing highlights**: Use box-shadow for emphasis
-- **Particle effects**: For dramatic moments
+- **Subtle highlights**: Use box-shadow sparingly for emphasis
+- **Citations**: Always include paper references for technical concepts
 
 ## Color Scheme (import from ./styles)
 
-- primary: "#00d9ff" (cyan - highlights, titles)
-- secondary: "#ff6b35" (orange - secondary elements)
-- success: "#00ff88" (green - positive indicators)
-- background: "#0f0f1a" (dark background)
-- surface: "#1a1a2e" (card backgrounds)
-- text: "#ffffff" (primary text)
-- textDim: "#888888" (secondary text)
+- primary: "#00d9ff" (cyan - main headings, key elements, emphasis)
+- secondary: "#ff6b35" (orange - supporting elements, contrasts)
+- success: "#00ff88" (green - positive outcomes, solutions, checkmarks)
+- error: "#ff4757" (red - problems, warnings, alerts)
+- textDim: "#888888" (secondary text, less important info)
+- textMuted: "#666666" (tertiary text, citations, captions)
 """
 
 
@@ -116,7 +193,7 @@ Here's a well-structured example scene for reference:
 {example_scene}
 ```
 
-## Requirements
+## MANDATORY Requirements
 
 1. Create a complete, working React/Remotion component
 2. Name the component `{component_name}`
@@ -125,9 +202,19 @@ Here's a well-structured example scene for reference:
 5. Use frame-based animations that match the narration timing
 6. Include a scene indicator showing scene number {scene_number}
 7. Make all sizes responsive using the scale factor
-8. Import styles from "./styles" (COLORS, getSceneIndicatorStyle, getSceneIndicatorTextStyle)
+8. Import styles from "./styles" (COLORS, FONTS, getSceneIndicatorStyle, getSceneIndicatorTextStyle)
 9. Phase timings should be proportional to durationInFrames
 10. Add a detailed comment block at the top explaining the visual flow
+
+## CRITICAL Layout & Style Requirements
+
+11. **CITATIONS**: Include a citation element in bottom-right that fades in when the technical concept is introduced
+12. **NO OVERFLOW**: All elements MUST stay within 1920x1080 bounds at ALL animation keyframes
+13. **NO CHAOTIC MOTION**: No shaking, trembling, or erratic animations
+14. **FILL THE SPACE**: Main content should use at least 60% of the canvas area
+15. **TYPOGRAPHY**: Use fontWeight: 400 for FONTS.handwritten, lineHeight: 1.5 for body text
+16. **SIZING**: Titles 42-48px, body 18-22px, labels 14-18px, citations 14-16px (all scaled)
+17. **SPACING**: Use 60-80px scaled margins from canvas edges
 
 ## Output
 
