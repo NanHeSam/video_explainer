@@ -215,8 +215,7 @@ const FadeTransition: React.FC<{
  * Background music component with fade-in and fade-out effects
  * Plays throughout the entire video with looping support
  *
- * Note: If the music file doesn't exist, the component will not render
- * and the video will render without background music (only a warning in console).
+ * Wrapped in a Sequence to ensure proper timing across the full composition.
  */
 const BackgroundMusic: React.FC<{
   musicPath: string;
@@ -225,15 +224,6 @@ const BackgroundMusic: React.FC<{
 }> = ({ musicPath, volume, totalDurationInFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const [musicExists, setMusicExists] = React.useState<boolean | null>(null);
-
-  // Check if music file exists on mount
-  React.useEffect(() => {
-    // In Remotion, we can't easily check if a file exists before loading
-    // So we'll just try to render it and let Remotion handle the error gracefully
-    // For now, assume it exists - Remotion will show an error if it doesn't
-    setMusicExists(true);
-  }, [musicPath]);
 
   // Fade-in: first 2 seconds
   const fadeInDurationFrames = 2 * fps;
@@ -267,17 +257,14 @@ const BackgroundMusic: React.FC<{
   // Combined volume: use fade-in at start, fade-out at end, full volume in between
   const currentVolume = Math.min(fadeInVolume, fadeOutVolume);
 
-  // Don't render if music doesn't exist
-  if (musicExists === false) {
-    return null;
-  }
-
   return (
-    <Audio
-      src={staticFile(musicPath)}
-      volume={currentVolume}
-      loop
-    />
+    <Sequence from={0} durationInFrames={totalDurationInFrames} name="Background Music">
+      <Audio
+        src={staticFile(musicPath)}
+        volume={currentVolume}
+        loop
+      />
+    </Sequence>
   );
 };
 

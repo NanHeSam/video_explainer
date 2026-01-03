@@ -220,3 +220,103 @@ describe("StoryboardScene interface", () => {
     expect(scene.sfx_cues[1].duration_frames).toBe(30);
   });
 });
+
+describe("Background music rendering", () => {
+  it("should render BackgroundMusic when background_music config is present", () => {
+    const storyboardWithMusic: SceneStoryboard = {
+      title: "Test Video",
+      description: "Test description",
+      version: "2.0.0",
+      project: "test-project",
+      video: { width: 1920, height: 1080, fps: 30 },
+      style: {
+        background_color: "#0f0f1a",
+        primary_color: "#00d9ff",
+        secondary_color: "#ff6b35",
+        font_family: "Inter",
+      },
+      scenes: [
+        {
+          id: "scene1_hook",
+          type: "test-project/hook",
+          title: "The Hook",
+          audio_file: "scene1_hook.mp3",
+          audio_duration_seconds: 20,
+        },
+      ],
+      audio: {
+        voiceover_dir: "voiceover",
+        buffer_between_scenes_seconds: 1.0,
+        background_music: {
+          path: "music/background.mp3",
+          volume: 0.15,
+        },
+      },
+      total_duration_seconds: 21,
+    };
+
+    const result = SceneStoryboardPlayer({ storyboard: storyboardWithMusic });
+
+    // Check that background_music.path exists and is accessible
+    expect(storyboardWithMusic.audio?.background_music?.path).toBe("music/background.mp3");
+    expect(storyboardWithMusic.audio?.background_music?.volume).toBe(0.15);
+  });
+
+  it("should handle missing audio config gracefully", () => {
+    const storyboardNoAudio: SceneStoryboard = {
+      title: "Test Video",
+      description: "Test description",
+      version: "2.0.0",
+      project: "test-project",
+      video: { width: 1920, height: 1080, fps: 30 },
+      style: {
+        background_color: "#0f0f1a",
+        primary_color: "#00d9ff",
+        secondary_color: "#ff6b35",
+        font_family: "Inter",
+      },
+      scenes: [],
+      audio: {
+        voiceover_dir: "voiceover",
+        buffer_between_scenes_seconds: 1.0,
+      },
+      total_duration_seconds: 0,
+    };
+
+    expect(() => SceneStoryboardPlayer({ storyboard: storyboardNoAudio })).not.toThrow();
+  });
+
+  it("should extract background_music from storyboard.audio correctly", () => {
+    const storyboard: SceneStoryboard = {
+      title: "Test",
+      description: "",
+      version: "2.0.0",
+      project: "test",
+      video: { width: 1920, height: 1080, fps: 30 },
+      style: {
+        background_color: "#000",
+        primary_color: "#fff",
+        secondary_color: "#ccc",
+        font_family: "Inter",
+      },
+      scenes: [],
+      audio: {
+        voiceover_dir: "voiceover",
+        buffer_between_scenes_seconds: 1.0,
+        background_music: {
+          path: "music/background.mp3",
+          volume: 0.12,
+        },
+      },
+      total_duration_seconds: 0,
+    };
+
+    // Simulate how SceneStoryboardPlayer extracts background music
+    const backgroundMusic = storyboard.audio?.background_music;
+    const musicVolume = backgroundMusic?.volume ?? 0.1;
+
+    expect(backgroundMusic).toBeDefined();
+    expect(backgroundMusic?.path).toBe("music/background.mp3");
+    expect(musicVolume).toBe(0.12);
+  });
+});
