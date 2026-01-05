@@ -19,6 +19,7 @@ Usage:
     python -m src.cli render <project> -r 4k                  # Render in 4K
     python -m src.cli feedback <project> add "<text>"         # Process feedback
     python -m src.cli feedback <project> list                 # List feedback
+    python -m src.cli factcheck <project>                     # Fact-check script
 
 Input formats supported:
     - Markdown files (.md, .markdown)
@@ -1408,6 +1409,104 @@ def cmd_sound(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_factcheck(args: argparse.Namespace) -> int:
+    """Run fact checking on a project's script and narration."""
+    from ..project import load_project
+    from ..factcheck import FactChecker, FactCheckError
+
+    try:
+        project = load_project(Path(args.projects_dir) / args.project)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    print(f"Fact checking project: {project.id}")
+    print()
+
+    try:
+        checker = FactChecker(
+            project,
+            use_mock=args.mock,
+            verbose=args.verbose,
+            timeout=args.timeout,
+        )
+
+        report = checker.run_fact_check()
+
+        # Display results
+        print()
+        print("=" * 60)
+        print("FACT CHECK REPORT")
+        print("=" * 60)
+        print(f"Project: {report.project_id}")
+        print(f"Script: {report.script_title}")
+        print(f"Source Documents: {', '.join(report.source_documents)}")
+        print()
+
+        # Summary
+        print("SUMMARY")
+        print("-" * 40)
+        print(f"Total Issues: {report.summary.total_issues}")
+        print(f"  Critical: {report.summary.critical_count}")
+        print(f"  High: {report.summary.high_count}")
+        print(f"  Medium: {report.summary.medium_count}")
+        print(f"  Low: {report.summary.low_count}")
+        print(f"  Info: {report.summary.info_count}")
+        print(f"Accuracy Score: {report.summary.overall_accuracy_score:.0%}")
+        print(f"Web Verified: {report.summary.web_verified_count} issues")
+        print()
+
+        # Issues
+        if report.issues:
+            print("ISSUES")
+            print("-" * 40)
+            for issue in report.issues:
+                severity_icon = {
+                    "critical": "[CRITICAL]",
+                    "high": "[HIGH]",
+                    "medium": "[MEDIUM]",
+                    "low": "[LOW]",
+                    "info": "[INFO]",
+                }.get(issue.severity.value, "[?]")
+
+                print(f"\n{severity_icon} {issue.id}")
+                print(f"  Location: {issue.location}")
+                print(f"  Category: {issue.category.value}")
+                print(f"  Original: \"{issue.original_text[:100]}{'...' if len(issue.original_text) > 100 else ''}\"")
+                print(f"  Issue: {issue.issue_description}")
+                print(f"  Correction: {issue.correction}")
+                print(f"  Source: {issue.source_reference}")
+                print(f"  Confidence: {issue.confidence:.0%}")
+                if issue.verified_via_web:
+                    print("  (Verified via web search)")
+
+        # Recommendations
+        if report.recommendations:
+            print()
+            print("RECOMMENDATIONS")
+            print("-" * 40)
+            for i, rec in enumerate(report.recommendations, 1):
+                print(f"  {i}. {rec}")
+
+        # Save report
+        if not args.no_save:
+            output_path = checker.save_report(report)
+            print()
+            print(f"Report saved to: {output_path}")
+
+        # Return code based on critical issues
+        if report.has_critical_issues():
+            print()
+            print("WARNING: Critical issues found! Review and fix before publishing.")
+            return 1
+
+        return 0
+
+    except FactCheckError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main() -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1643,6 +1742,35 @@ def main() -> int:
     )
 
     feedback_parser.set_defaults(func=cmd_feedback)
+
+    # factcheck command
+    factcheck_parser = subparsers.add_parser(
+        "factcheck",
+        help="Fact-check script and narration against source material",
+    )
+    factcheck_parser.add_argument("project", help="Project ID")
+    factcheck_parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Use mock LLM for testing",
+    )
+    factcheck_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=600,
+        help="LLM timeout in seconds (default: 600)",
+    )
+    factcheck_parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Don't save the report to file",
+    )
+    factcheck_parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show detailed progress",
+    )
+    factcheck_parser.set_defaults(func=cmd_factcheck)
 
     # music command
     music_parser = subparsers.add_parser(

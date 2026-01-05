@@ -192,6 +192,27 @@ python -m src.cli music llm-inference generate --style "ambient electronic"
 python -m src.cli music llm-inference info        # Show device support
 ```
 
+#### Fact Checking
+
+Thoroughly verify the accuracy of scripts and narrations against source material:
+
+```bash
+python -m src.cli factcheck llm-inference        # Run full fact check
+python -m src.cli factcheck llm-inference --mock # Use mock for testing
+python -m src.cli factcheck llm-inference -v     # Verbose output
+python -m src.cli factcheck llm-inference --no-save  # Don't save report
+```
+
+The fact checker:
+- Compares all claims against source documents (Markdown, PDF)
+- Uses web search to verify facts not in source material
+- Identifies factual errors, outdated info, missing context
+- Provides severity ratings (critical/high/medium/low/info)
+- Suggests corrections with source references
+- Generates an accuracy score
+
+Output: `projects/<project>/factcheck/report.json`
+
 #### Feedback Processing
 
 ```bash
@@ -236,20 +257,24 @@ video_explainer/
 │       │   └── storyboard.json
 │       ├── music/               # AI-generated background music
 │       │   └── background.mp3
+│       ├── factcheck/           # Fact check reports
+│       │   └── report.json
 │       └── output/              # Generated videos
 │
 ├── src/                         # Core pipeline code
 │   ├── cli/                     # CLI commands
 │   ├── project/                 # Project loader module
-│   ├── ingestion/               # Document parsing
+│   ├── ingestion/               # Document parsing (MD, PDF, URL)
 │   ├── understanding/           # Content analysis (LLM)
 │   ├── script/                  # Script generation
-│   ├── scenes/                  # Scene component generation (NEW)
+│   ├── scenes/                  # Scene component generation
 │   ├── audio/                   # TTS providers + transcription
 │   ├── sound/                   # Sound design (SFX, music, mixing)
 │   ├── music/                   # AI background music generation (MusicGen)
 │   ├── voiceover/               # Voiceover generation
 │   ├── storyboard/              # Storyboard system
+│   ├── factcheck/               # Fact checking with web verification
+│   ├── feedback/                # Feedback processing
 │   ├── animation/               # Animation rendering
 │   ├── composition/             # Video assembly
 │   ├── pipeline/                # End-to-end orchestration
@@ -338,7 +363,7 @@ Note: The default LLM provider is `claude-code`, which uses the Claude Code CLI 
 
 ## Testing
 
-The project includes 560+ tests (515+ Python + 45 JavaScript).
+The project includes 600+ tests (560+ Python + 45 JavaScript).
 
 ### Python Tests
 
