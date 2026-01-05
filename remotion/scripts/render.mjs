@@ -29,7 +29,10 @@ import {
   deriveStoryboardPath,
   deriveProjectDir,
   getFinalResolution,
+  validateSceneTypes,
 } from "./render-utils.mjs";
+import fs from "fs";
+import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,6 +102,38 @@ async function main() {
   if (!existsSync(projectScenesDir)) {
     console.error(`Project scenes directory not found: ${projectScenesDir}`);
     process.exit(1);
+  }
+
+  // Validate scene types match registry keys
+  if (config.storyboardPath) {
+    const storyboard = JSON.parse(readFileSync(config.storyboardPath, "utf-8"));
+    const validation = validateSceneTypes(storyboard, projectScenesDir, fs, path);
+
+    if (validation.error) {
+      console.error(`\n❌ Scene validation error: ${validation.error}`);
+      process.exit(1);
+    }
+
+    if (!validation.valid) {
+      console.error("\n❌ Scene type mismatch detected!");
+      console.error("The following storyboard scene types don't match registry keys:\n");
+
+      for (const mismatch of validation.mismatches) {
+        console.error(`  Scene: ${mismatch.sceneId}`);
+        console.error(`    Storyboard type: "${mismatch.storyboardType}"`);
+        if (mismatch.suggestions.length > 0) {
+          console.error(`    Did you mean: ${mismatch.suggestions.map(s => `"${s}"`).join(", ")}?`);
+        }
+        console.error("");
+      }
+
+      console.error("Available registry keys:", validation.registryKeys.join(", "));
+      console.error("\nFix: Update scenes/index.ts registry keys to match storyboard scene types,");
+      console.error("     or update storyboard.json scene types to match registry keys.");
+      process.exit(1);
+    }
+
+    console.log("✓ Scene types validated successfully");
   }
 
   // Calculate total duration

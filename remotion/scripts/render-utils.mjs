@@ -151,3 +151,78 @@ export function getFinalResolution(customWidth, customHeight, composition) {
   const isCustom = customWidth !== null || customHeight !== null;
   return { width, height, isCustom };
 }
+
+/**
+ * Validate that storyboard scene types match scene registry keys.
+ * This prevents "Scene Not Found" errors during rendering.
+ *
+ * @param {Object} storyboard - The storyboard object
+ * @param {string} projectScenesDir - Path to the project's scenes directory
+ * @param {Object} fs - Node.js fs module
+ * @param {Object} path - Node.js path module
+ * @returns {{ valid: boolean, mismatches: Array<{storyboardType: string, suggestions: string[]}> }}
+ */
+export function validateSceneTypes(storyboard, projectScenesDir, fs, path) {
+  const indexPath = path.resolve(projectScenesDir, "index.ts");
+
+  if (!fs.existsSync(indexPath)) {
+    return {
+      valid: false,
+      error: `Scene registry not found: ${indexPath}`,
+      mismatches: [],
+    };
+  }
+
+  // Read and parse the scene registry to extract keys
+  const indexContent = fs.readFileSync(indexPath, "utf-8");
+
+  // Extract registry keys using regex - matches patterns like "key_name: ComponentName,"
+  const registryMatch = indexContent.match(/SCENE_REGISTRY[^{]*\{([^}]+)\}/s);
+  if (!registryMatch) {
+    return {
+      valid: false,
+      error: "Could not parse SCENE_REGISTRY from index.ts",
+      mismatches: [],
+    };
+  }
+
+  const registryBlock = registryMatch[1];
+  const keyPattern = /^\s*(\w+):\s*\w+,?/gm;
+  const registryKeys = new Set();
+  let match;
+  while ((match = keyPattern.exec(registryBlock)) !== null) {
+    registryKeys.add(match[1]);
+  }
+
+  // Extract scene types from storyboard (strip project prefix)
+  const mismatches = [];
+  for (const scene of storyboard.scenes) {
+    const fullType = scene.type; // e.g., "continual-learning/amnesia_problem"
+    const parts = fullType.split("/");
+    const sceneKey = parts.length === 2 ? parts[1] : fullType;
+
+    if (!registryKeys.has(sceneKey)) {
+      // Find similar keys for suggestions
+      const suggestions = [...registryKeys].filter((key) => {
+        // Check for partial matches
+        return (
+          key.includes(sceneKey.split("_")[0]) ||
+          sceneKey.includes(key.split("_")[0])
+        );
+      });
+
+      mismatches.push({
+        sceneId: scene.id,
+        storyboardType: sceneKey,
+        fullType,
+        suggestions: suggestions.slice(0, 3),
+      });
+    }
+  }
+
+  return {
+    valid: mismatches.length === 0,
+    registryKeys: [...registryKeys],
+    mismatches,
+  };
+}
