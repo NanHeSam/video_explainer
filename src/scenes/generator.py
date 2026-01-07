@@ -22,30 +22,56 @@ You create visually stunning, educational animations using:
 
 ## CRITICAL REQUIREMENTS
 
-### 1. Citation Requirements (MANDATORY)
+### 1. Reference/Citation Component (OPTIONAL - Recommended for Technical Scenes)
 
-Every technical concept MUST include a citation that:
-- Appears as a visual overlay in the bottom-right corner
-- Fades in when the concept is introduced
-- Uses format: "Paper Title — Authors et al., Venue Year"
-
-Example citation element:
+For scenes with technical citations, use the Reference component (import from "./components/Reference"):
 ```typescript
-<div style={{
-  position: "absolute",
-  bottom: 20 * scale,
-  right: 30 * scale,
-  fontSize: 14 * scale,
-  color: COLORS.textMuted,
-  opacity: citationOpacity,
-  fontStyle: "italic",
-  fontFamily: FONTS.handwritten,
-}}>
-  "An Image is Worth 16x16 Words" — Dosovitskiy et al., ICLR 2021
-</div>
+import {{ Reference }} from "./components/Reference";
+
+// At the bottom of your scene JSX:
+<Reference
+  sources={{[
+    "Source 1 description",
+    "Source 2 description",
+  ]}}
+  startFrame={{startFrame}}
+  delay={{90}}
+/>
 ```
 
-### 2. Layout Requirements (MANDATORY)
+Note: Not all scenes need references. Hook scenes, transitions, and conclusion scenes may skip this.
+
+### 2. Layout Zone System (MANDATORY - PREVENTS OVERLAPS)
+
+Use this exact zone layout to prevent element overlaps:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Title (40-50 * scale from top, 80 * scale from left)   TechStack│
+│ Subtitle (20 * scale below title)                      (right)  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                    MAIN VISUALIZATION ZONE                      │
+│               (top: 130-150 * scale, 60-70% of canvas)          │
+│                    left: 80 * scale, right: varies              │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ Stats/Info (bottom: 100-180 * scale)           Reference        │
+│ (left: 80 * scale)                             (bottom-right)   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Zone Coordinates (at scale=1):**
+- Title: top: 40, left: 80
+- Subtitle: top: 90, left: 80
+- Main content: top: 130-150, left: 80, right: 300 (if TechStack), bottom: 200
+- Stats/Info: bottom: 100-180, left: 80
+- Reference: bottom: 20-40, right: 30-80
+- TechStack: right side, full height
+
+**CRITICAL**: Before positioning any element, check if it conflicts with other zones.
+
+### 2.1 Layout Requirements (MANDATORY)
 
 - **No overflow**: ALL elements must stay within 1920x1080 bounds at ALL frames
 - **No overlapping**: Elements must NEVER overlap unless intentionally layered
@@ -62,16 +88,10 @@ Example citation element:
   - Add padding inside containers (15-20px scaled)
   - Use overflow: "hidden" if needed, but prefer proper sizing
 
-Layout zones:
-- Top-left: Scene indicator (required)
-- Top area: Title
-- Center: Main content (largest area, USE THIS SPACE FULLY)
-- Bottom-right: Citations
-
 ### 3. Animation Requirements (MANDATORY)
 
 - **No chaotic motion**: No shaking, trembling, or erratic movements
-- **Smooth springs**: Use damping: 12, stiffness: 100 for natural movement
+- **Smooth springs**: Use damping: 12-20, stiffness: 80-120 for natural movement
 - **Proportional timing**: Phase durations scale with durationInFrames
 - **Stagger delays**: 10-20 frames between sequential elements
 - **Bounded motion**: Ensure animated elements stay within canvas
@@ -87,6 +107,105 @@ Layout zones:
 - **Proper endpoints**: Arrow heads should touch their target elements
 - **Visibility**: Arrows should be visible (2-3px stroke, contrasting color)
 - **Animation**: Animate arrows drawing from source to destination using strokeDasharray/strokeDashoffset
+
+### 3.2 Dynamic Background System (MANDATORY - NO STATIC SCENES)
+
+Every scene MUST have continuous visual interest. NEVER have a static background.
+
+**Required Background Elements:**
+```typescript
+// 1. Animated gradient background (subtle hue shifts)
+const bgHue1 = interpolate(localFrame, [0, durationInFrames], [140, 180]);
+const bgHue2 = interpolate(localFrame, [0, durationInFrames], [200, 240]);
+
+<AbsoluteFill style={{{{
+  background: `linear-gradient(135deg,
+    hsl(${{bgHue1}}, 12%, 97%) 0%,
+    hsl(${{bgHue2}}, 15%, 95%) 50%,
+    hsl(${{bgHue1}}, 10%, 98%) 100%)`,
+}}}}>
+
+// 2. SVG Grid pattern with floating particles
+<svg style={{{{ position: "absolute", width: "100%", height: "100%" }}}}>
+  <defs>
+    <pattern id="grid" width={{40 * scale}} height={{40 * scale}} patternUnits="userSpaceOnUse">
+      <path d={{`M ${{40 * scale}} 0 L 0 0 0 ${{40 * scale}}`}} fill="none" stroke={{COLORS.border}} strokeWidth={{0.5}} opacity={{0.3}} />
+    </pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grid)" />
+</svg>
+
+// 3. Floating background particles (continuous motion)
+const bgParticles = Array.from({{ length: 20-30 }}).map((_, i) => {{
+  const seed = i * 137.5;
+  const baseX = (seed * 7.3) % 100;
+  const baseY = (seed * 11.7) % 100;
+  const speed = 0.3 + (i % 5) * 0.15;
+  return {{ baseX, baseY, speed, phase: i * 0.5 }};
+}});
+
+// Render particles with continuous animation
+{{bgParticles.map((p, i) => {{
+  const x = (p.baseX + (localFrame * p.speed * 0.5) % 100);
+  const y = p.baseY + Math.sin((localFrame + p.phase) * 0.03) * 5;
+  const opacity = 0.2 + Math.sin((localFrame + p.phase) * 0.05) * 0.15;
+  return <circle key={{i}} cx={{`${{x}}%`}} cy={{`${{y}}%`}} r={{3 * scale}} fill={{COLORS.primary}} opacity={{opacity}} />;
+}})}}
+
+// 4. Glow pulse for emphasis (use throughout)
+const glowPulse = 0.7 + 0.3 * Math.sin(localFrame * 0.1);
+// Apply: opacity={{0.3 * glowPulse}}, boxShadow={{`0 0 ${{15 * glowPulse}}px ${{color}}60`}}
+
+// 5. Pulse rings emanating from center (optional but recommended)
+const pulseRings = Array.from({{ length: 4 }}).map((_, i) => ({{ delay: i * 45, duration: 180 }}));
+{{pulseRings.map((ring, i) => {{
+  const ringFrame = (localFrame + ring.delay) % ring.duration;
+  const ringProgress = ringFrame / ring.duration;
+  const ringRadius = ringProgress * 600;
+  const ringOpacity = interpolate(ringProgress, [0, 0.2, 0.8, 1], [0, 0.15, 0.05, 0]);
+  return <circle key={{i}} cx="50%" cy="50%" r={{ringRadius * scale}} fill="none" stroke={{COLORS.primary}} strokeWidth={{1 * scale}} opacity={{ringOpacity}} />;
+}})}}
+```
+
+### 3.3 Continuous Data Flow Visualization (RECOMMENDED)
+
+Show data flowing between components for visual interest:
+```typescript
+// Particles flowing between elements
+{{Array.from({{ length: 8 }}).map((_, i) => {{
+  const progress = ((localFrame * 0.015 + i * 0.125) % 1);
+  const x = startX + (endX - startX) * progress;
+  const y = startY + (endY - startY) * progress + Math.sin(progress * Math.PI * 3) * 15;
+  const opacity = interpolate(progress, [0, 0.1, 0.9, 1], [0, 0.8, 0.8, 0]);
+  return (
+    <g key={{i}}>
+      <circle cx={{x * scale}} cy={{y * scale}} r={{4 * scale}} fill={{COLORS.primary}} opacity={{opacity * 0.5}} filter="url(#glow)" />
+      <circle cx={{x * scale}} cy={{y * scale}} r={{2 * scale}} fill={{COLORS.primary}} opacity={{opacity}} />
+    </g>
+  );
+}})}}
+```
+
+### 3.4 Activity Indicators (RECOMMENDED)
+
+Show continuous activity at the bottom of scenes:
+```typescript
+<div style={{{{ position: "absolute", left: 80 * scale, bottom: 60 * scale, display: "flex", gap: 24 * scale }}}}>
+  <div style={{{{ display: "flex", alignItems: "center", gap: 8 * scale }}}}>
+    <div style={{{{
+      width: 8 * scale, height: 8 * scale, borderRadius: "50%",
+      backgroundColor: COLORS.primary,
+      boxShadow: `0 0 ${{8 + Math.sin(localFrame * 0.15) * 4}}px ${{COLORS.primary}}`,
+      opacity: 0.7 + Math.sin(localFrame * 0.15) * 0.3,
+    }}}} />
+    <span style={{{{ fontSize: 10 * scale, color: COLORS.textMuted, fontFamily: FONTS.mono }}}}>ACTIVE</span>
+  </div>
+</div>
+```
 
 ### 4. Typography Requirements (MANDATORY)
 
@@ -177,6 +296,56 @@ export const SceneName: React.FC<SceneNameProps> = ({ startFrame = 0 }) => {
 };
 ```
 
+## Reusable Components (USE THESE)
+
+Import and use these pre-built components for consistency:
+
+### 1. TechStack Component (Shows Layer Context)
+```typescript
+import {{ TechStack, getElapsedMs }} from "./TechStack";
+
+// Usage (right side of screen)
+<TechStack currentLayer={{layerNumber}} startFrame={{0}} side="right" elapsedMs={{getElapsedMs(layerNumber)}} />
+```
+- Shows the current technology layer being explained
+- Highlights the active layer
+- Provides visual context for where we are in the stack
+
+### 2. Reference Component (Citations/Sources)
+```typescript
+import {{ Reference }} from "./components/Reference";
+
+// Usage (bottom-right, auto-positioned)
+<Reference
+  sources={{[
+    "Source description 1",
+    "Author et al. paper reference",
+    "Technical specification name",
+  ]}}
+  startFrame={{startFrame}}
+  delay={{90}}  // frames before appearing
+/>
+```
+- Automatically positioned in bottom-right
+- Fades in after specified delay
+- Consistent styling across all scenes
+
+### 3. WorldMap Component (Global Network Visualization)
+```typescript
+import {{ WorldMap }} from "./components/WorldMap";
+
+<WorldMap
+  startFrame={{startFrame + 30}}
+  showCables={{true}}
+  animatePackets={{true}}
+  width={{600}}
+  height={{300}}
+/>
+```
+- Shows global network routes
+- Animated data packets
+- Use for network/internet scenes
+
 ## Visual Elements to Use
 
 - **Text reveals**: Fade in with slight upward movement
@@ -185,7 +354,8 @@ export const SceneName: React.FC<SceneNameProps> = ({ startFrame = 0 }) => {
 - **Progress bars**: Show comparisons and changes over time
 - **Arrows/connections**: Animate to show data flow
 - **Subtle highlights**: Use box-shadow sparingly for emphasis
-- **Citations**: Always include paper references for technical concepts
+- **SVG for complex shapes**: Use SVG for circuit diagrams, waveforms, neural networks
+- **Emoji icons**: Use for quick visual recognition (💻, 🔀, 🌐, 📡, 🏢)
 
 ## Advanced Visual Patterns (HIGHLY RECOMMENDED)
 

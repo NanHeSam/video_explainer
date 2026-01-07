@@ -97,6 +97,9 @@ class SceneValidator:
         2. interpolate() calls without extrapolateLeft when used for array indexing
         3. Array access patterns that could result in undefined
         4. Missing required imports
+        5. Dynamic background patterns (new)
+        6. Reference component usage (new)
+        7. Layout quality indicators (new)
         """
         issues: list[ValidationIssue] = []
         content = scene_file.read_text()
@@ -114,6 +117,15 @@ class SceneValidator:
 
         # Check for required imports
         issues.extend(self._check_imports(content, lines, filename))
+
+        # Check for dynamic background patterns
+        issues.extend(self._check_dynamic_background(content, lines, filename))
+
+        # Check for Reference component usage
+        issues.extend(self._check_reference_component(content, lines, filename))
+
+        # Check for layout quality
+        issues.extend(self._check_layout_quality(content, lines, filename))
 
         return issues
 
@@ -401,6 +413,176 @@ class SceneValidator:
                     file=filename,
                     line=1,
                     suggestion='Add: import { COLORS, FONTS } from "./styles";',
+                )
+            )
+
+        return issues
+
+    def _check_dynamic_background(
+        self, content: str, lines: list[str], filename: str
+    ) -> list[ValidationIssue]:
+        """Check for dynamic background patterns.
+
+        Scenes should have continuous visual interest, not static backgrounds.
+        Looks for:
+        - glowPulse pattern
+        - Math.sin animations
+        - Animated gradients
+        - Background particles
+        """
+        issues: list[ValidationIssue] = []
+
+        # Check for at least one dynamic animation pattern
+        dynamic_patterns = [
+            r"glowPulse\s*=",  # Glow pulse variable
+            r"Math\.sin\s*\(\s*(?:localFrame|frame)",  # Sine wave animation
+            r"Math\.cos\s*\(\s*(?:localFrame|frame)",  # Cosine wave animation
+            r"bgParticles|backgroundParticles",  # Background particles
+            r"hsl\s*\(\s*\$\{",  # Animated HSL colors
+            r"pulseRings|pulse.*rings",  # Pulse ring animations
+            r"localFrame\s*\*\s*[\d.]+\s*%",  # Frame-based modulo animation
+        ]
+
+        has_dynamic = any(re.search(p, content) for p in dynamic_patterns)
+
+        if not has_dynamic:
+            issues.append(
+                ValidationIssue(
+                    severity="warning",
+                    message="Scene may have static background - consider adding dynamic elements",
+                    file=filename,
+                    line=None,
+                    suggestion=(
+                        "Add glowPulse (0.7 + 0.3 * Math.sin(localFrame * 0.1)), "
+                        "background particles, or animated gradients for visual interest"
+                    ),
+                )
+            )
+
+        # Check for completely static backgrounds (solid color only)
+        has_solid_bg_only = bool(
+            re.search(r'backgroundColor:\s*(?:COLORS\.\w+|"#[0-9a-fA-F]+")', content)
+            and not re.search(r"background:\s*[`'\"].*gradient", content)
+            and not re.search(r"<svg[^>]*style=", content)
+        )
+
+        if has_solid_bg_only and not has_dynamic:
+            issues.append(
+                ValidationIssue(
+                    severity="warning",
+                    message="Scene has solid background with no animated elements",
+                    file=filename,
+                    line=None,
+                    suggestion=(
+                        "Add SVG grid pattern, floating particles, or animated gradient "
+                        "to make the scene visually engaging"
+                    ),
+                )
+            )
+
+        return issues
+
+    def _check_reference_component(
+        self, content: str, lines: list[str], filename: str
+    ) -> list[ValidationIssue]:
+        """Check for Reference component usage.
+
+        References are optional but recommended for technical scenes.
+        Only checks for import errors if Reference is used.
+        """
+        issues: list[ValidationIssue] = []
+
+        # Check if Reference component is imported
+        has_reference_import = bool(
+            re.search(r"import\s*\{[^}]*Reference[^}]*\}\s*from", content)
+        )
+
+        # Check if Reference component is used
+        has_reference_usage = bool(re.search(r"<Reference\b", content))
+
+        # Only error if Reference is used but not imported
+        if has_reference_usage and not has_reference_import:
+            issues.append(
+                ValidationIssue(
+                    severity="error",
+                    message="Reference component used but not imported",
+                    file=filename,
+                    line=None,
+                    suggestion='Add: import { Reference } from "./components/Reference";',
+                )
+            )
+
+        return issues
+
+    def _check_layout_quality(
+        self, content: str, lines: list[str], filename: str
+    ) -> list[ValidationIssue]:
+        """Check for layout quality indicators.
+
+        Looks for common layout issues:
+        - Scale factor usage
+        - Consistent margins
+        - Position absolute usage
+        """
+        issues: list[ValidationIssue] = []
+
+        # Check for scale factor
+        has_scale = bool(re.search(r"const\s+scale\s*=\s*Math\.min", content))
+        uses_scale = bool(re.search(r"\*\s*scale\b", content))
+
+        if not has_scale:
+            issues.append(
+                ValidationIssue(
+                    severity="warning",
+                    message="Missing scale factor for responsive sizing",
+                    file=filename,
+                    line=None,
+                    suggestion="Add: const scale = Math.min(width / 1920, height / 1080);",
+                )
+            )
+        elif not uses_scale:
+            issues.append(
+                ValidationIssue(
+                    severity="warning",
+                    message="Scale factor defined but not used - sizes may not be responsive",
+                    file=filename,
+                    line=None,
+                    suggestion="Multiply all pixel values by scale: fontSize: 24 * scale",
+                )
+            )
+
+        # Check for hardcoded large pixel values (likely missing scale)
+        hardcoded_pattern = r'(?:width|height|top|left|right|bottom|fontSize|margin|padding|gap):\s*(\d{3,})\b(?!\s*\*)'
+        for line_num, line in enumerate(lines, 1):
+            for match in re.finditer(hardcoded_pattern, line):
+                value = int(match.group(1))
+                if value > 100:  # Likely should be scaled
+                    issues.append(
+                        ValidationIssue(
+                            severity="warning",
+                            message=f"Hardcoded pixel value {value} - should use scale factor",
+                            file=filename,
+                            line=line_num,
+                            suggestion=f"Change to: {value} * scale",
+                        )
+                    )
+
+        # Check for TechStack usage (recommended for layer-based videos)
+        has_techstack = bool(re.search(r"<TechStack\b", content))
+        has_techstack_import = bool(re.search(r"TechStack", content))
+
+        # This is informational, not an error
+        if not has_techstack and "layer" in filename.lower():
+            issues.append(
+                ValidationIssue(
+                    severity="warning",
+                    message="Consider adding TechStack component for layer context",
+                    file=filename,
+                    line=None,
+                    suggestion=(
+                        'Import TechStack: import { TechStack, getElapsedMs } from "./TechStack"; '
+                        'and use: <TechStack currentLayer={N} startFrame={0} side="right" />'
+                    ),
                 )
             )
 

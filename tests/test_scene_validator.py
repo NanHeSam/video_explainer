@@ -66,8 +66,8 @@ export const FONTS = { main: "Inter" };
         validator = SceneValidator()
         result = validator.validate_single_scene(scene_file)
 
-        # Should have no static analysis errors
-        static_errors = [i for i in result.issues if not i.message.startswith("TypeScript:")]
+        # Should have no static analysis errors (warnings are OK)
+        static_errors = [i for i in result.errors if not i.message.startswith("TypeScript:")]
         assert len(static_errors) == 0
 
 
@@ -716,3 +716,234 @@ class TestSceneGeneratorIntegration:
         scenes_dir = tmp_path / "scenes"
         assert (scenes_dir / "styles.ts").exists()
         assert (scenes_dir / "index.ts").exists()
+
+
+class TestDynamicBackgroundCheck:
+    """Tests for dynamic background pattern detection."""
+
+    def test_warns_on_static_background(self, tmp_path: Path):
+        """Test that a static scene without animations triggers a warning."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div>Static content</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "StaticScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have warning about static background
+        static_warnings = [w for w in result.warnings if "static" in w.message.lower() or "dynamic" in w.message.lower()]
+        assert len(static_warnings) > 0
+
+    def test_no_warning_with_glowPulse(self, tmp_path: Path):
+        """Test that scene with glowPulse doesn't trigger static warning."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const localFrame = frame;
+  const glowPulse = 0.7 + 0.3 * Math.sin(localFrame * 0.1);
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div style={{ opacity: glowPulse }}>Dynamic content</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "DynamicScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should NOT have warning about static background
+        static_warnings = [w for w in result.warnings if "static background" in w.message.lower()]
+        assert len(static_warnings) == 0
+
+    def test_no_warning_with_background_particles(self, tmp_path: Path):
+        """Test that scene with bgParticles doesn't trigger static warning."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const bgParticles = Array.from({ length: 20 }).map((_, i) => ({ x: i * 10, y: i * 5 }));
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      {bgParticles.map((p, i) => <div key={i} style={{ left: p.x, top: p.y }} />)}
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "ParticleScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should NOT have warning about static background
+        static_warnings = [w for w in result.warnings if "static background" in w.message.lower()]
+        assert len(static_warnings) == 0
+
+
+class TestReferenceComponentCheck:
+    """Tests for Reference component validation."""
+
+    def test_no_warning_without_reference(self, tmp_path: Path):
+        """Test that missing Reference doesn't cause an error (it's optional)."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return <AbsoluteFill style={{ backgroundColor: COLORS.background }}><div>{glowPulse}</div></AbsoluteFill>;
+};
+'''
+        scene_file = tmp_path / "NoRefScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should NOT have error about missing Reference (it's optional now)
+        ref_errors = [e for e in result.errors if "Reference" in e.message]
+        assert len(ref_errors) == 0
+
+    def test_error_when_reference_used_but_not_imported(self, tmp_path: Path):
+        """Test that using Reference without import triggers an error."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <Reference sources={["Test"]} startFrame={0} delay={30} />
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "MissingImportScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have error about missing Reference import
+        ref_errors = [e for e in result.errors if "Reference" in e.message and "import" in e.message.lower()]
+        assert len(ref_errors) > 0
+
+
+class TestLayoutQualityCheck:
+    """Tests for layout quality validation."""
+
+    def test_warns_on_missing_scale_factor(self, tmp_path: Path):
+        """Test that missing scale factor triggers a warning."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  // Missing: const scale = Math.min(width / 1920, height / 1080);
+  return <AbsoluteFill style={{ backgroundColor: COLORS.background }}><div>{glowPulse}</div></AbsoluteFill>;
+};
+'''
+        scene_file = tmp_path / "NoScaleScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have warning about missing scale factor
+        scale_warnings = [w for w in result.warnings if "scale" in w.message.lower()]
+        assert len(scale_warnings) > 0
+
+    def test_no_warning_with_scale_factor(self, tmp_path: Path):
+        """Test that proper scale factor doesn't trigger warning."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  const scale = Math.min(width / 1920, height / 1080);
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return <AbsoluteFill style={{ fontSize: 24 * scale, backgroundColor: COLORS.background }}><div>{glowPulse}</div></AbsoluteFill>;
+};
+'''
+        scene_file = tmp_path / "ScaledScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should NOT have warning about missing scale factor
+        scale_warnings = [w for w in result.warnings if "Missing scale factor" in w.message]
+        assert len(scale_warnings) == 0
+
+    def test_warns_on_hardcoded_large_pixels(self, tmp_path: Path):
+        """Test that hardcoded large pixel values trigger warnings."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  const scale = Math.min(width / 1920, height / 1080);
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div style={{ fontSize: 200, width: 500, top: 300 }}>{glowPulse}</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "HardcodedScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have warnings about hardcoded pixel values
+        hardcoded_warnings = [w for w in result.warnings if "Hardcoded" in w.message]
+        assert len(hardcoded_warnings) >= 1
