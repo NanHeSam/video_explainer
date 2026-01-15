@@ -987,6 +987,7 @@ def cmd_scenes(args: argparse.Namespace) -> int:
     generator = SceneGenerator(
         working_dir=project.root_dir.parent.parent,  # Repo root
         timeout=args.timeout,
+        skip_validation=getattr(args, 'no_validate', False),
     )
 
     try:
@@ -1172,6 +1173,7 @@ def _cmd_scenes_regenerate_single(args: argparse.Namespace, project) -> int:
     generator = SceneGenerator(
         working_dir=project.root_dir.parent.parent,
         timeout=args.timeout,
+        skip_validation=getattr(args, 'no_validate', False),
     )
 
     scenes_dir = project.root_dir / "scenes"
@@ -1917,6 +1919,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
             step_args.force = args.force or not step_output_exists(step)
             step_args.sync = False  # Generate mode, not sync
             step_args.scene = None
+            step_args.no_validate = False
             result = cmd_scenes(step_args)
 
         elif step == "voiceover":
@@ -2222,6 +2225,11 @@ Use --force to regenerate all steps.
         type=int,
         default=300,
         help="Timeout per scene generation in seconds (default: 300)",
+    )
+    scenes_parser.add_argument(
+        "--no-validate",
+        action="store_true",
+        help="Skip validation (generate scene without checking for errors). Use when LLM keeps failing validation.",
     )
     scenes_parser.add_argument(
         "-v", "--verbose",

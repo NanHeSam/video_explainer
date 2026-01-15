@@ -1389,6 +1389,7 @@ class SceneGenerator:
         config: Config | None = None,
         working_dir: Path | None = None,
         timeout: int = 300,
+        skip_validation: bool = False,
     ):
         """Initialize the scene generator.
 
@@ -1396,10 +1397,12 @@ class SceneGenerator:
             config: Configuration object
             working_dir: Working directory for Claude Code
             timeout: Timeout for LLM calls in seconds
+            skip_validation: Skip validation and auto-correction (for debugging)
         """
         self.config = config or load_config()
         self.working_dir = working_dir or Path.cwd()
         self.timeout = timeout
+        self.skip_validation = skip_validation
         self.validator = SceneValidator()
 
     def generate_all_scenes(
@@ -1763,6 +1766,24 @@ Write the complete updated component code to the file: {scene_file}
 
         validation_feedback = ""
         last_error = None
+
+        # If skip_validation, just generate once without validation
+        if self.skip_validation:
+            self._generate_scene_file(
+                base_prompt=base_prompt,
+                output_path=output_path,
+                validation_feedback="",
+            )
+            print(f"    ⚠ Validation skipped - please check {filename} manually")
+            return {
+                "scene_number": scene_number,
+                "title": title,
+                "component_name": component_name,
+                "filename": filename,
+                "path": str(output_path),
+                "scene_type": scene_type,
+                "scene_key": scene_key,
+            }
 
         for attempt in range(self.MAX_RETRIES):
             try:
