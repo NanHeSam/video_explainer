@@ -85,6 +85,7 @@ class TestContentAnalyzer:
     @pytest.fixture
     def analyzer(self):
         config = Config()
+        config.llm.provider = "mock"  # Use mock to avoid real LLM calls
         return ContentAnalyzer(config)
 
     @pytest.fixture
@@ -129,7 +130,9 @@ class TestAnalyzeRealDocument:
 
     @pytest.fixture
     def analyzer(self):
-        return ContentAnalyzer()
+        config = Config()
+        config.llm.provider = "mock"  # Use mock to avoid real LLM calls
+        return ContentAnalyzer(config)
 
     def test_analyze_inference_document(self, analyzer, inference_doc_path):
         doc = parse_document(inference_doc_path)
