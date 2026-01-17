@@ -11,8 +11,8 @@ video:
 
 # LLM settings
 llm:
-  # Provider: "mock" for testing, "anthropic" or "openai" for production
-  provider: "mock"
+  # Provider: "claude-code" for production, "mock" for testing
+  provider: "claude-code"
   # Model to use (when provider is not mock)
   model: "claude-sonnet-4-20250514"
   # Maximum tokens for generation

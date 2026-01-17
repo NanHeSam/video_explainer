@@ -321,9 +321,51 @@ class TestCmdVoiceover:
 class TestCmdNarration:
     """Tests for the narration command."""
 
+    def _create_script(self, project_dir):
+        """Helper to create a valid script for a project."""
+        script_dir = project_dir / "script"
+        script_dir.mkdir(parents=True, exist_ok=True)
+        script = {
+            "title": "Test Script",
+            "total_duration_seconds": 60,
+            "source_document": "test.md",
+            "scenes": [
+                {
+                    "scene_id": 1,
+                    "scene_type": "hook",
+                    "title": "Hook",
+                    "voiceover": "Opening hook",
+                    "visual_cue": {
+                        "description": "Hook visual",
+                        "visual_type": "animation",
+                        "elements": [],
+                        "duration_seconds": 15,
+                    },
+                    "duration_seconds": 15,
+                    "notes": "",
+                },
+                {
+                    "scene_id": 2,
+                    "scene_type": "explanation",
+                    "title": "Main",
+                    "voiceover": "Main content",
+                    "visual_cue": {
+                        "description": "Main visual",
+                        "visual_type": "animation",
+                        "elements": [],
+                        "duration_seconds": 30,
+                    },
+                    "duration_seconds": 30,
+                    "notes": "",
+                },
+            ],
+        }
+        with open(script_dir / "script.json", "w") as f:
+            json.dump(script, f)
+
     @pytest.fixture
     def basic_project(self, tmp_path):
-        """Create a basic project without input files."""
+        """Create a basic project with a script."""
         project_dir = tmp_path / "test-project"
         project_dir.mkdir()
 
@@ -334,6 +376,8 @@ class TestCmdNarration:
         }
         with open(project_dir / "config.json", "w") as f:
             json.dump(config, f)
+
+        self._create_script(project_dir)
 
         return project_dir
 
@@ -351,17 +395,7 @@ class TestCmdNarration:
         with open(project_dir / "config.json", "w") as f:
             json.dump(config, f)
 
-        # Create script
-        script_dir = project_dir / "script"
-        script_dir.mkdir()
-        script = {
-            "scenes": [
-                {"scene_id": "scene1", "title": "Hook", "voiceover": "Opening hook"},
-                {"scene_id": "scene2", "title": "Main", "voiceover": "Main content"},
-            ]
-        }
-        with open(script_dir / "script.json", "w") as f:
-            json.dump(script, f)
+        self._create_script(project_dir)
 
         return project_dir
 
@@ -378,6 +412,8 @@ class TestCmdNarration:
         }
         with open(project_dir / "config.json", "w") as f:
             json.dump(config, f)
+
+        self._create_script(project_dir)
 
         # Create input with markdown
         input_dir = project_dir / "input"
@@ -403,6 +439,8 @@ class TestCmdNarration:
         }
         with open(project_dir / "config.json", "w") as f:
             json.dump(config, f)
+
+        self._create_script(project_dir)
 
         # Create input with PDF
         input_dir = project_dir / "input"
@@ -433,6 +471,8 @@ class TestCmdNarration:
         }
         with open(project_dir / "config.json", "w") as f:
             json.dump(config, f)
+
+        self._create_script(project_dir)
 
         input_dir = project_dir / "input"
         input_dir.mkdir()
@@ -595,59 +635,60 @@ class TestCmdNarration:
 
     def test_narration_prompt_contains_key_guidance(self):
         """Test that the narration prompt contains key guidance for good narration."""
-        from src.cli.main import cmd_narration
-        import inspect
-
-        source = inspect.getsource(cmd_narration)
+        from src.narration.generator import NARRATION_USER_PROMPT_TEMPLATE
 
         # Check for key prompt elements
-        assert "Generate Narrations for Video Script" in source, \
+        assert "Generate Narrations for Video Script" in NARRATION_USER_PROMPT_TEMPLATE, \
             "Prompt must have clear task title"
-        assert "Follow the script's scene structure exactly" in source, \
+        assert "Follow the script's scene structure exactly" in NARRATION_USER_PROMPT_TEMPLATE, \
             "Prompt must instruct to follow script structure"
-        assert "Explain Mechanisms" in source, \
+        assert "Explain Mechanisms" in NARRATION_USER_PROMPT_TEMPLATE, \
             "Prompt must have mechanism explanation guidance"
-        assert "Use Specific Numbers" in source, \
+        assert "Use Specific Numbers" in NARRATION_USER_PROMPT_TEMPLATE, \
             "Prompt must encourage using specific numbers"
 
     def test_narration_prompt_includes_script_structure(self):
-        """Test that the prompt includes script structure when available."""
-        from src.cli.main import cmd_narration
+        """Test that the generator builds prompt with script structure."""
+        from src.narration.generator import NARRATION_USER_PROMPT_TEMPLATE, NarrationGenerator
         import inspect
 
-        source = inspect.getsource(cmd_narration)
+        # Check that script context placeholder exists in template
+        assert "{script_context}" in NARRATION_USER_PROMPT_TEMPLATE, \
+            "Should have script_context placeholder"
 
-        # Check that script is loaded and included
-        assert "script_path.exists()" in source, \
-            "Should check if script exists"
-        assert "script_context" in source, \
-            "Should create script_context variable"
-        assert "Existing Script Structure" in source, \
+        # Check that generate method adds the proper label
+        generate_source = inspect.getsource(NarrationGenerator.generate)
+        assert "Existing Script Structure" in generate_source, \
             "Should label script section in prompt"
 
     def test_narration_prompt_includes_source_document(self):
-        """Test that the prompt includes source document context."""
-        from src.cli.main import cmd_narration
+        """Test that the generator builds prompt with source document context."""
+        from src.narration.generator import NARRATION_USER_PROMPT_TEMPLATE, NarrationGenerator
         import inspect
 
-        source = inspect.getsource(cmd_narration)
+        # Check prompt template has source context placeholder
+        assert "{source_context}" in NARRATION_USER_PROMPT_TEMPLATE, \
+            "Should have source_context placeholder"
 
-        # Check that source document is loaded
-        assert "parse_document" in source, \
-            "Should use parse_document for input files"
-        assert "Source Document (Reference Only)" in source, \
+        # Check that generate method adds the proper label
+        generate_source = inspect.getsource(NarrationGenerator.generate)
+        assert "Source Document (Reference Only)" in generate_source, \
             "Should label source document as reference only"
-        assert '".pdf"' in source or "*.pdf" in source, \
-            "Should support PDF files"
+
+        # Check CLI handles PDF files
+        from src.cli.main import cmd_narration
+        cli_source = inspect.getsource(cmd_narration)
+        assert "*.pdf" in cli_source, \
+            "CLI should support PDF files"
 
     def test_narration_truncates_long_input(self):
         """Test that long input content is truncated."""
-        from src.cli.main import cmd_narration
+        from src.narration.generator import NarrationGenerator
         import inspect
 
-        source = inspect.getsource(cmd_narration)
+        source = inspect.getsource(NarrationGenerator.generate)
 
-        # Check truncation logic exists
+        # Check truncation logic exists in generator
         assert "50000" in source, \
             "Should have truncation limit (50000 chars)"
         assert "[truncated]" in source, \
@@ -686,23 +727,20 @@ class TestCmdNarration:
         # Should still load the valid file
         assert "Loaded source: valid.md" in captured.out
 
-    @patch("src.understanding.llm_provider.ClaudeCodeLLMProvider")
+    @patch("src.narration.generator.get_llm_provider")
     def test_narration_llm_receives_correct_prompt_structure(
-        self, mock_llm_class, project_with_script, tmp_path
+        self, mock_get_llm, project_with_script, tmp_path
     ):
         """Test that the LLM receives a prompt with correct structure."""
         # Setup mock
         mock_llm = MagicMock()
-        mock_result = MagicMock()
-        mock_result.success = True
-        mock_llm.generate_with_file_access.return_value = mock_result
-        mock_llm_class.return_value = mock_llm
-
-        # Create narrations file that would be created by LLM
-        narration_dir = project_with_script / "narration"
-        narration_dir.mkdir(parents=True)
-        with open(narration_dir / "narrations.json", "w") as f:
-            json.dump({"scenes": [{"scene_id": "test"}]}, f)
+        mock_llm.generate_json.return_value = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "Hook", "duration_seconds": 15, "narration": "Test narration"}
+            ],
+            "total_duration_seconds": 15,
+        }
+        mock_get_llm.return_value = mock_llm
 
         args = MagicMock()
         args.projects_dir = str(tmp_path)
@@ -714,12 +752,13 @@ class TestCmdNarration:
         args.verbose = False
 
         result = cmd_narration(args)
+        assert result == 0
 
         # Verify LLM was called
-        mock_llm.generate_with_file_access.assert_called_once()
+        mock_llm.generate_json.assert_called_once()
 
         # Get the prompt that was passed
-        call_args = mock_llm.generate_with_file_access.call_args
+        call_args = mock_llm.generate_json.call_args
         prompt = call_args[0][0]  # First positional argument
 
         # Verify prompt structure
@@ -727,25 +766,22 @@ class TestCmdNarration:
         assert "Follow the script's scene structure exactly" in prompt
         assert "Explain Mechanisms" in prompt
         assert "Existing Script Structure" in prompt  # Script should be included
-        assert "scene1" in prompt or "Hook" in prompt  # Script content
+        assert "Hook" in prompt  # Script content
 
-    @patch("src.understanding.llm_provider.ClaudeCodeLLMProvider")
+    @patch("src.narration.generator.get_llm_provider")
     def test_narration_llm_receives_source_document_in_prompt(
-        self, mock_llm_class, project_with_md_input, tmp_path
+        self, mock_get_llm, project_with_md_input, tmp_path
     ):
         """Test that source document content is included in LLM prompt."""
         # Setup mock
         mock_llm = MagicMock()
-        mock_result = MagicMock()
-        mock_result.success = True
-        mock_llm.generate_with_file_access.return_value = mock_result
-        mock_llm_class.return_value = mock_llm
-
-        # Create narrations file
-        narration_dir = project_with_md_input / "narration"
-        narration_dir.mkdir(parents=True)
-        with open(narration_dir / "narrations.json", "w") as f:
-            json.dump({"scenes": [{"scene_id": "test"}]}, f)
+        mock_llm.generate_json.return_value = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "Hook", "duration_seconds": 15, "narration": "Test narration"}
+            ],
+            "total_duration_seconds": 15,
+        }
+        mock_get_llm.return_value = mock_llm
 
         args = MagicMock()
         args.projects_dir = str(tmp_path)
@@ -757,9 +793,10 @@ class TestCmdNarration:
         args.verbose = False
 
         result = cmd_narration(args)
+        assert result == 0
 
         # Get the prompt
-        call_args = mock_llm.generate_with_file_access.call_args
+        call_args = mock_llm.generate_json.call_args
         prompt = call_args[0][0]
 
         # Verify source document is included

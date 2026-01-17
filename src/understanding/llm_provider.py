@@ -90,6 +90,11 @@ class MockLLMProvider(LLMProvider):
         if "storyboard" in prompt_lower or "scene id:" in prompt_lower:
             return self._mock_storyboard_generation(prompt)
 
+        # Narration generation request (check before script - narration prompts contain "script")
+        # Use specific pattern to avoid matching script generation prompts
+        if "generate narrations for video script" in prompt_lower or "narrations for video" in prompt_lower:
+            return self._mock_narration_generation(prompt)
+
         # Script generation request (check before analysis - scripts may contain "analyze")
         if "script" in prompt_lower and (
             "generate" in prompt_lower or "create" in prompt_lower
@@ -218,6 +223,38 @@ class MockLLMProvider(LLMProvider):
                     "notes": "Wrap up",
                 },
             ],
+        }
+
+    def _mock_narration_generation(self, prompt: str = "") -> dict[str, Any]:
+        """Return mock narration for testing."""
+        return {
+            "scenes": [
+                {
+                    "scene_id": "scene1_hook",
+                    "title": "The Hook",
+                    "duration_seconds": 15,
+                    "narration": "What if I told you there's a better way to approach this problem?",
+                },
+                {
+                    "scene_id": "scene2_context",
+                    "title": "Setting the Context",
+                    "duration_seconds": 20,
+                    "narration": "To understand this, we need to first look at the bigger picture.",
+                },
+                {
+                    "scene_id": "scene3_explanation",
+                    "title": "How It Works",
+                    "duration_seconds": 30,
+                    "narration": "At its core, this works by processing information in a fundamentally different way.",
+                },
+                {
+                    "scene_id": "scene4_conclusion",
+                    "title": "Conclusion",
+                    "duration_seconds": 15,
+                    "narration": "And that's how this concept reshapes our understanding of what's possible.",
+                },
+            ],
+            "total_duration_seconds": 80,
         }
 
     def _mock_storyboard_generation(self, prompt: str = "") -> dict[str, Any]:

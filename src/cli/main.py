@@ -730,8 +730,10 @@ def cmd_script(args: argparse.Namespace) -> int:
 def cmd_narration(args: argparse.Namespace) -> int:
     """Generate narrations for a project."""
     from ..project import load_project
-    from ..understanding.llm_provider import ClaudeCodeLLMProvider
-    from ..config import LLMConfig
+    from ..narration import NarrationGenerator
+    from ..script.generator import ScriptGenerator
+    from ..ingestion import parse_document
+    from ..config import load_config
 
     try:
         project = load_project(Path(args.projects_dir) / args.project)
@@ -749,185 +751,85 @@ def cmd_narration(args: argparse.Namespace) -> int:
         print("Use --force to regenerate.")
         return 0
 
-    # If a script exists, use it as context
+    # Load script
     script_path = project.root_dir / "script" / "script.json"
-    script_context = ""
-    if script_path.exists():
-        with open(script_path) as f:
-            script_data = json.load(f)
-        script_context = f"\n## Existing Script Structure\n```json\n{json.dumps(script_data, indent=2)}\n```"
+    if not script_path.exists():
+        print(f"Error: Script not found at {script_path}", file=sys.stderr)
+        print("Run 'video-explainer script' first to generate a script.")
+        return 1
 
-    # Load input document for source content (supports MD and PDF)
-    input_context = ""
+    script = ScriptGenerator.load_script(str(script_path))
+    print(f"  Loaded script with {len(script.scenes)} scenes")
+
+    # Load source documents
+    source_documents = []
     input_dir = project.input_dir
     if input_dir.exists():
-        from ..ingestion import parse_document
-
-        # Find all supported input files
         input_files = []
         for pattern in ["*.md", "*.markdown", "*.pdf"]:
             input_files.extend(input_dir.glob(pattern))
 
-        if input_files:
-            all_content = []
-            for input_file in input_files:
-                try:
-                    doc = parse_document(input_file)
-                    title = doc.title or input_file.name
-                    all_content.append(f"### {title}\n{doc.raw_content}")
-                    print(f"  Loaded source: {input_file.name}")
-                except Exception as e:
-                    print(f"  Warning: Could not parse {input_file.name}: {e}")
+        for input_file in input_files:
+            try:
+                doc = parse_document(input_file)
+                source_documents.append(doc)
+                print(f"  Loaded source: {input_file.name}")
+            except Exception as e:
+                print(f"  Warning: Could not parse {input_file.name}: {e}")
 
-            if all_content:
-                combined_content = "\n\n---\n\n".join(all_content)
-                # Truncate if too long (increased limit for multiple docs)
-                if len(combined_content) > 50000:
-                    combined_content = combined_content[:50000] + "\n... [truncated]"
-                input_context = f"\n## Source Document (Reference Only)\n{combined_content}"
-
-    # If topic is provided, use it
+    # Determine topic
     topic = args.topic or project.title
 
-    # Generate narrations using Claude Code
+    # Create generator with appropriate config
+    config = load_config()
     if args.mock:
-        # Use mock narrations for testing
-        narrations = _generate_mock_narrations(topic)
-        # Write mock narrations to file
-        narration_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(narration_path, "w") as f:
-            json.dump(narrations, f, indent=2)
+        config.llm.provider = "mock"
+
+    generator = NarrationGenerator(config=config)
+
+    # Generate narrations
+    print(f"Generating narrations for topic: {topic}")
+
+    if args.mock:
+        narrations = generator.generate_mock(topic)
     else:
-        # Use Claude Code to generate narrations
-        print(f"Generating narrations for topic: {topic}")
-        print("Using Claude Code to generate narrations...")
-
-        llm_config = LLMConfig(provider="claude-code", model="claude-opus-4-5-20251101")
-        llm = ClaudeCodeLLMProvider(
-            llm_config,
-            working_dir=project.root_dir.parent.parent,  # Repo root
-            timeout=300,
-        )
-
-        prompt = f"""# Task: Generate Narrations for Video Script
-
-You are creating narrations for a technical explainer video about: **{topic}**
-
-{script_context}
-{input_context}
-
----
-
-## Your Role
-
-The script defines the structure and concepts. Your job is to write narrations that:
-1. **Follow the script's scene structure exactly** (same number of scenes, same order, same concepts)
-2. Make each concept genuinely understandable, not just mentioned
-3. Pull specific numbers and details from the source document
-4. Create narrations a technical viewer would actually understand
-
-**IMPORTANT**: Do not add, remove, or reorder scenes. The script is your structure—you're writing the narration for it.
-
----
-
-## What Good Narration Looks Like
-
-Here's an example of effective technical narration:
-
-"Your journey begins in the browser. The moment you type, JavaScript captures a keydown event. This event propagates through the DOM—a tree structure representing every element on the page. Then the browser's rendering pipeline kicks in. Recalculate styles—which CSS rules apply? Compute layout—where does everything go? Paint pixels to layers. Composite those layers to the screen. All of this happens sixty times per second. Sixteen milliseconds per frame. Miss that window and you see stutter."
-
-Notice what makes this work:
-- Explains the mechanism step by step (event → DOM → styles → layout → paint → composite)
-- Uses specific numbers (60 times/second, 16ms per frame)
-- Shows HOW things work, not just THAT they happen
-
-Another example:
-
-"Here's the problem: a single bad gradient update can collapse your policy, and you might never recover. PPO's solution: compute a ratio between new and old policy probabilities. If this ratio exceeds 1.2 or drops below 0.8, the gradient is clipped—no incentive to push further. This prevents catastrophic updates."
-
-This works because:
-- Creates an information gap ("Here's the problem...")
-- Explains the mechanism (ratio, clipping at 1.2/0.8)
-- Shows WHY it works (prevents catastrophic updates)
-
----
-
-## Core Principles
-
-### Use Specific Numbers
-
-Pull exact figures from the source:
-- "150,528 pixels in a 224×224 image"
-- "Eighty gigabytes of HBM3 memory at 3.35 terabytes per second"
-- "Accuracy improved from 15.6% to 71.0%"
-
-### Explain Mechanisms
-
-Don't just say what something does—show HOW:
-
-WEAK: "Patch embedding converts images to tokens."
-
-STRONG: "Take your image. Slice it into 16×16 pixel squares—196 patches total. Flatten each patch into a vector: 16 times 16 times 3 equals 768 raw pixel values. Pass this through a learned linear projection. You've just tokenized an image."
-
-### Create Information Gaps
-
-"You need to share a secret with a server you've never met. But everything you send crosses public networks—anyone could listen. How do you share a secret in public?"
-
-Then explain.
-
-### Connect Causally
-
-"But there's a problem: vanilla policy gradients have high variance. Gradient estimates fluctuate wildly. Therefore, we need advantage functions..."
-
----
-
-## Output Requirements
-
-Write the JSON file to: {narration_path}
-
-**Match the script's scene structure exactly.** Use this format:
-{{
-  "scenes": [
-    {{
-      "scene_id": "scene1_hook",
-      "title": "Scene title from script",
-      "duration_seconds": <estimated based on word count, ~2.5 words/second>,
-      "narration": "The narration text..."
-    }}
-  ],
-  "total_duration_seconds": <sum of all scene durations>
-}}
-"""
-
         try:
-            result = llm.generate_with_file_access(prompt, allow_writes=True)
-            if not result.success:
-                print(f"Error: {result.error_message}", file=sys.stderr)
-                return 1
+            narrations = generator.generate(
+                script=script,
+                source_documents=source_documents if source_documents else None,
+                topic=topic,
+            )
         except Exception as e:
             print(f"Error generating narrations: {e}", file=sys.stderr)
             return 1
 
-    # Verify narrations were created
-    if narration_path.exists():
-        with open(narration_path) as f:
-            narrations = json.load(f)
-        scene_count = len(narrations.get("scenes", []))
-        print(f"\nGenerated {scene_count} narrations")
-        print(f"Saved to: {narration_path}")
+    # Save narrations
+    generator.save_narrations(narrations, narration_path)
 
-        if args.verbose:
-            print("\nScenes:")
-            for scene in narrations.get("scenes", []):
-                print(f"  {scene.get('scene_id')}: {scene.get('title')}")
-    else:
-        print("Warning: Narrations file was not created.")
+    scene_count = len(narrations.get("scenes", []))
+    print(f"\nGenerated {scene_count} narrations")
+    print(f"Saved to: {narration_path}")
+
+    if args.verbose:
+        print("\nScenes:")
+        for scene in narrations.get("scenes", []):
+            print(f"  {scene.get('scene_id')}: {scene.get('title')}")
 
     return 0
 
 
 def _generate_mock_narrations(topic: str) -> dict:
-    """Generate mock narrations for testing."""
+    """Generate mock narrations for testing.
+
+    DEPRECATED: Use NarrationGenerator.generate_mock() instead.
+    """
+    from ..narration import NarrationGenerator
+    return NarrationGenerator().generate_mock(topic)
+
+
+# Keep old function for backward compatibility
+def _old_generate_mock_narrations(topic: str) -> dict:
+    """Generate mock narrations for testing (old implementation)."""
     return {
         "scenes": [
             {
