@@ -809,11 +809,9 @@ def cmd_narration(args: argparse.Namespace) -> int:
             timeout=300,
         )
 
-        prompt = f"""# Task: Generate Narrations That Create Deep Understanding
+        prompt = f"""# Task: Generate Narrations for Video Script
 
 You are creating narrations for a technical explainer video about: **{topic}**
-
-Your goal: Make every concept deeply understandable to a technical audience.
 
 {script_context}
 {input_context}
@@ -823,69 +821,63 @@ Your goal: Make every concept deeply understandable to a technical audience.
 ## Your Role
 
 The script defines the structure and concepts. Your job is to write narrations that:
-1. Follow the script's scene structure exactly (same number of scenes, same order)
+1. **Follow the script's scene structure exactly** (same number of scenes, same order, same concepts)
 2. Make each concept genuinely understandable, not just mentioned
-3. Use the source document to ensure technical accuracy and add precision
-4. Create narrations that would make a technical viewer truly understand the topic
+3. Pull specific numbers and details from the source document
+4. Create narrations a technical viewer would actually understand
+
+**IMPORTANT**: Do not add, remove, or reorder scenes. The script is your structure—you're writing the narration for it.
 
 ---
 
-## What Makes Narration Effective
+## What Good Narration Looks Like
 
-### Explain Mechanisms, Not Just Outcomes
+Here's an example of effective technical narration:
 
-Don't just say what something does—show HOW it works.
+"Your journey begins in the browser. The moment you type, JavaScript captures a keydown event. This event propagates through the DOM—a tree structure representing every element on the page. Then the browser's rendering pipeline kicks in. Recalculate styles—which CSS rules apply? Compute layout—where does everything go? Paint pixels to layers. Composite those layers to the screen. All of this happens sixty times per second. Sixteen milliseconds per frame. Miss that window and you see stutter."
 
-SHALLOW: "PPO uses clipping to stabilize training."
+Notice what makes this work:
+- Explains the mechanism step by step (event → DOM → styles → layout → paint → composite)
+- Uses specific numbers (60 times/second, 16ms per frame)
+- Shows HOW things work, not just THAT they happen
 
-DEEP: "Here's the problem: a single bad gradient update can collapse your policy. PPO's solution: compute the ratio between new and old policy probabilities. If this ratio exceeds 1.2 or drops below 0.8, the gradient is clipped—no incentive to push further. This prevents catastrophic updates."
+Another example:
 
-### Make Math Intuitive, Not Just Labeled
+"Here's the problem: a single bad gradient update can collapse your policy, and you might never recover. PPO's solution: compute a ratio between new and old policy probabilities. If this ratio exceeds 1.2 or drops below 0.8, the gradient is clipped—no incentive to push further. This prevents catastrophic updates."
 
-Most viewers find ML paper math intimidating. Don't just label terms—build intuition:
-
-DON'T: "A(s,a) = Q(s,a) - V(s), where Q is the action-value function and V is the state-value function."
-
-DO: "You're in a situation. Q asks: if I take THIS action, how well will things go? V asks: on average, how well do things go from here? The advantage A is the difference—is this action better or worse than average? Positive means better than average. Negative means worse."
-
-Build understanding BEFORE showing formulas. The goal is intuition, not notation.
-
-### Create Information Gaps Before Filling Them
-
-Make viewers WANT to know before you explain:
-
-"You need to share a secret with a server you've never met. But everything you send crosses public networks—anyone could listen. How do you share a secret in public? This seems impossible..."
-
-Then explain. The gap creates tension; the explanation provides release.
-
-### Use Precise Numbers from the Source
-
-Pull specific numbers, statistics, and results from the source document:
-- "83% on AIME compared to GPT-4's 13%"
-- "Improved from 15.6% to 71.0% through RL alone"
-- "256-bit keys—brute forcing would take longer than the age of the universe"
-
-### Connect Scenes Causally
-
-Each scene should connect to the previous with "but" or "therefore":
-
-"But there's a problem with REINFORCE: high variance. Gradient estimates fluctuate wildly. Therefore, we need advantage functions to center the learning signal..."
+This works because:
+- Creates an information gap ("Here's the problem...")
+- Explains the mechanism (ratio, clipping at 1.2/0.8)
+- Shows WHY it works (prevents catastrophic updates)
 
 ---
 
-## Think Carefully About Each Scene
+## Core Principles
 
-For each scene in the script:
+### Use Specific Numbers
 
-1. **What concept is this scene explaining?** Identify the core idea.
+Pull exact figures from the source:
+- "150,528 pixels in a 224×224 image"
+- "Eighty gigabytes of HBM3 memory at 3.35 terabytes per second"
+- "Accuracy improved from 15.6% to 71.0%"
 
-2. **What would make this concept click?** What explanation, example, or framing would create genuine understanding?
+### Explain Mechanisms
 
-3. **What details from the source document would help?** Pull in specific numbers, results, or technical precision.
+Don't just say what something does—show HOW:
 
-4. **How does this connect to what came before?** Ensure causal flow.
+WEAK: "Patch embedding converts images to tokens."
 
-5. **Would a technical viewer actually understand this?** Not just hear about it, but get it.
+STRONG: "Take your image. Slice it into 16×16 pixel squares—196 patches total. Flatten each patch into a vector: 16 times 16 times 3 equals 768 raw pixel values. Pass this through a learned linear projection. You've just tokenized an image."
+
+### Create Information Gaps
+
+"You need to share a secret with a server you've never met. But everything you send crosses public networks—anyone could listen. How do you share a secret in public?"
+
+Then explain.
+
+### Connect Causally
+
+"But there's a problem: vanilla policy gradients have high variance. Gradient estimates fluctuate wildly. Therefore, we need advantage functions..."
 
 ---
 
@@ -893,20 +885,18 @@ For each scene in the script:
 
 Write the JSON file to: {narration_path}
 
-Match the script's scene structure exactly. Use this format:
+**Match the script's scene structure exactly.** Use this format:
 {{
   "scenes": [
     {{
       "scene_id": "scene1_hook",
       "title": "Scene title from script",
       "duration_seconds": <estimated based on word count, ~2.5 words/second>,
-      "narration": "The narration text that creates understanding..."
+      "narration": "The narration text..."
     }}
   ],
   "total_duration_seconds": <sum of all scene durations>
 }}
-
-Take your time with each scene. The goal is genuine understanding, not just coverage.
 """
 
         try:

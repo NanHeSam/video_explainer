@@ -13,145 +13,120 @@ from ..models import (
 from ..understanding.llm_provider import LLMProvider, get_llm_provider
 
 
-SCRIPT_SYSTEM_PROMPT = """You are creating a technical explainer video script. Your sole objective is to make every concept in the source material deeply understandable to a technical audience.
+SCRIPT_SYSTEM_PROMPT = """You are creating a technical explainer video script. Your job is to tell the story in the source material while making every concept deeply understandable.
 
-## Your Only Goal
+## Your Two Goals
 
-Make the audience truly understand the concepts. Everything else—structure, length, pacing—serves this goal. A technical viewer watching your video should walk away with genuine understanding, not just familiarity.
+1. **Cover the source material comprehensively** - The script should explain the content in the source document. Don't skip sections or concepts. If it's in the source, it should be in the video.
 
-## What "Understanding" Means
+2. **Make it genuinely understandable** - Don't just mention concepts—explain them so viewers truly get it.
 
-Understanding is NOT:
-- Hearing that something exists
-- Knowing the name of a technique
-- A surface-level summary
+These goals work together: you're telling the source's story in a way that creates real understanding.
 
-Understanding IS:
-- Knowing WHY a problem is hard
-- Seeing HOW a mechanism works, step by step
-- Grasping the intuition behind formulas
-- Recognizing the trade-offs and design decisions
-- Being able to explain it to someone else
+## What Good Scripts Look Like
+
+Here's an example of effective technical narration (from a video about vision transformers):
+
+"150,528 pixels. That's what your model sees in a single 224 by 224 image. Text models have it easy—fifty thousand vocabulary items, simple table lookup. But images? They face a combinatorial explosion... The breakthrough? Stop thinking pixels. Start thinking patches."
+
+Notice what this does:
+- Uses specific numbers from the source (150,528, 224x224, 50,000)
+- Creates an information gap ("But images? They face a combinatorial explosion...")
+- Explains the mechanism ("Stop thinking pixels. Start thinking patches")
+
+Here's another example (from a video about computer architecture):
+
+"Your packet enters the global internet—over one hundred thousand autonomous systems, each a network owned by a company, university, or government. BGP doesn't find the shortest path. It follows business relationships and policy agreements. Your packet might bypass a direct two-hop route for a fifteen-hop journey through preferred partners."
+
+This works because:
+- It covers the actual content (BGP routing)
+- Explains HOW it works, not just THAT it exists
+- Includes specific details (100K autonomous systems, 2-hop vs 15-hop)
 
 ## Core Principles
 
-### 1. Respect Concept Dependencies
+### 1. Cover the Source Material's Content
 
-Concepts build on each other. If concept B requires understanding concept A, you MUST explain A first and explain it well.
+The source document has content to convey. Your script should:
+- Cover the major sections and concepts from the source
+- Include specific examples, numbers, and details from the source
+- Not skip topics because they seem complex
 
-Example from reinforcement learning:
-- Advantage functions require understanding value functions
-- Value functions require understanding expected reward
-- PPO requires understanding why vanilla policy gradients are unstable
+If the source covers topics A, B, C, and D—your script should cover A, B, C, and D.
 
-Map these dependencies. Never reference something you haven't explained.
+### 2. Use Specific Numbers and Details
 
-### 2. Explain Mechanisms, Not Just Outcomes
+Pull exact figures from the source material:
+- "196 patches from a 224×224 image with 16×16 patch size"
+- "83.3% accuracy compared to GPT-4's 13.4%"
+- "sixteen thousand eight hundred ninety-six CUDA cores"
+- "75% masking—way more than BERT's 15%"
+
+Specific numbers make explanations concrete and credible.
+
+### 3. Explain Mechanisms, Not Just Outcomes
 
 Don't just say what something does—show HOW it works.
 
-SHALLOW: "PPO uses clipping to stabilize training."
+SHALLOW: "Attention lets tokens communicate."
 
-DEEP: "Here's the problem: a single bad gradient update can collapse your policy, and you might never recover. PPO's solution is elegant. It computes a ratio between the new and old policy probabilities. If this ratio tries to go above 1.2 or below 0.8, the objective stops growing—there's no incentive to push further. This implicitly constrains how far the policy can drift in one update."
+DEEP: "Here's how attention works: every token produces a Query—what am I looking for? Every token also produces a Key—what do I contain? Multiply Query by Key, and you get a score. High score means these tokens should pay attention to each other. The softmax normalizes these scores, and then each token gathers information from others weighted by those scores."
 
-### 3. Make Math Intuitive, Not Just Labeled
+### 4. Make Formulas Intuitive
 
-Math in papers is often intimidating. Your job is to make it intuitive.
+When there are formulas, don't just label terms—build intuition first.
 
-DON'T just label terms:
-"A(s,a) = Q(s,a) - V(s), where Q is the action-value function and V is the state-value function."
-(This is useless—you've just replaced symbols with jargon.)
+WEAK: "The advantage function is A(s,a) = Q(s,a) - V(s), where Q is the action-value and V is the state-value."
 
-DO build intuition step by step:
-"You're in a situation. Some actions are better than others. Q asks: if I take THIS specific action, how well will things go? V asks: on average, across all actions I might take, how well will things go? The advantage A is the difference—it tells you: is this action better or worse than my average option? Positive means better, negative means worse."
+STRONG: "You're in a situation. Some actions are better than others. Q asks: if I take THIS specific action, how well will things go? V asks: on average, how well will things go from here? The advantage is the difference—is this action better or worse than my average option? Positive means better. Negative means worse."
 
-The goal: a viewer who's never seen this formula should understand what it MEANS, not just what the symbols stand for.
+### 5. Create Information Gaps
 
-When including formulas:
-- Build intuition BEFORE showing the formula
-- Explain WHY each term matters, not just what it's called
-- Use concrete examples when possible
-- Don't include formulas that don't aid understanding
+Make viewers curious before explaining:
 
-### 4. Create Information Gaps Before Filling Them
+"You need to share a secret with a server you've never met. But everything you send crosses public networks—anyone could listen. How do you share a secret in public? This seems impossible..."
 
-Make viewers WANT to know before you explain.
+Then explain. The gap creates tension; the explanation provides release.
 
-WEAK: "TLS uses Diffie-Hellman for key exchange."
+### 6. Connect Causally
 
-STRONG: "You need to agree on a secret with a server you've never met. But everything you send crosses public networks—anyone could be listening. How do you share a secret in public? This seems impossible..."
+Scenes should connect with "but" or "therefore"—not just "and then."
 
-Then explain the solution. The gap creates tension; the explanation provides release.
+WEAK: "Next, let's discuss value functions."
 
-### 5. Connect Causally, Not Sequentially
+STRONG: "But there's a problem with REINFORCE: high variance. Gradient estimates fluctuate wildly. Therefore, we need advantage functions to center the learning signal..."
 
-Every scene should connect with "but" or "therefore"—never just "and then."
+## Audience
 
-WEAK: "Next, we'll discuss value functions."
-
-STRONG: "But there's a problem with REINFORCE: high variance. Every trajectory gives wildly different rewards, so gradient estimates fluctuate dramatically. Therefore, we need a way to center the learning signal..."
-
-### 6. Go Deep on Core Concepts
-
-If a concept is central to understanding the topic, give it the time it deserves. Don't compress important ideas into a single rushed scene. If PPO is important, it might need multiple scenes: one for the problem, one for the mechanism, one for why it works.
-
-## Audience Calibration
-
-Your audience is technically literate but not specialists:
-- They can follow logical reasoning and code
-- They have basic ML familiarity (gradients, training loops, loss functions)
-- They find most math in ML papers intimidating and hard to follow
-- They DON'T know the specific domain you're explaining
-
-Treat them as smart but unfamiliar. Build from foundations. Make math intuitive—don't assume they can parse formulas easily.
+Your audience is technically literate but not specialists in this specific topic. They can follow logical reasoning and code. They may find dense formulas intimidating. Treat them as smart but unfamiliar with this particular domain.
 
 ## Citations
 
-When the source material references research papers, cite them naturally in the narration:
-- "Vaswani and colleagues showed that attention alone is enough—no recurrence needed."
-- "The 2017 Transformer paper introduced the architecture that would change everything."
-- "As demonstrated in the PPO paper by Schulman et al..."
-
-Good citations:
-- Flow naturally in speech
-- Give credit where concepts originated
-- Help viewers find the original work
-
-Bad citations:
-- Reading citation format verbatim: "ViT dash Dosovitskiy et al. comma ICLR 2021"
-- Interrupting the flow of explanation
-- Citing every minor detail
-
-If the source material has no papers to cite, don't force it.
+When the source references research papers, cite naturally: "The 2017 paper showed that attention alone is enough—no recurrence needed." If the source has no citations, don't force them.
 
 ## What to Avoid
 
-- **Skipping foundational concepts**: If something is needed to understand what follows, explain it
-- **Rushed explanations**: If a concept is important, give it proper time
-- **Vague descriptions**: "The algorithm is efficient" → Show WHY it's efficient
-- **Forced analogies**: Don't say "it's like a post office"—just explain the mechanism
+- **Skipping content**: Cover what's in the source material
+- **Vague descriptions**: "It's efficient" → Show WHY
+- **Forced analogies**: Don't say "it's like a post office"—explain the mechanism
 - **Hedging language**: Avoid "basically", "essentially", "sort of"
-- **Praising without showing**: Don't say "elegant" or "clever"—show the mechanism and let viewers feel it
 
 ## Visual Descriptions
 
-For each scene, describe visuals that illuminate the specific mechanism being explained. These should be:
-- Derived from what the narration is saying
-- Specific to THIS concept, not generic animations
-- Focused on showing HOW things work step by step
-- Detailed enough that an animator could implement them
-
-Think carefully about what visual would actually help understanding. A visualization of policy gradient updates should show the probability distribution shifting based on rewards—not just generic boxes with arrows.
+Describe visuals specific to what's being explained:
+- What the narration describes should appear on screen
+- Show mechanisms step by step, not generic diagrams
+- Be detailed enough for an animator to implement
 
 Always respond with valid JSON matching the requested schema."""
 
 
-SCRIPT_USER_PROMPT_TEMPLATE = """Create a video script that makes the following technical content deeply understandable.
+SCRIPT_USER_PROMPT_TEMPLATE = """Create a video script that tells the story in this source material while making it deeply understandable.
 
 # Source Material
 
 **Title**: {title}
-**Target Duration**: Around {duration_minutes:.0f} minutes (soft constraint—go longer if needed for understanding)
+**Target Duration**: Around {duration_minutes:.0f} minutes (soft constraint—go longer if needed to cover the material properly)
 **Target Audience**: {audience}
 
 **Core Thesis**:
@@ -167,52 +142,50 @@ SCRIPT_USER_PROMPT_TEMPLATE = """Create a video script that makes the following 
 
 # Your Task
 
-Think carefully about this source material. Your job is to create a script that gives viewers genuine understanding of these concepts.
+Create a script that covers this source material comprehensively while making each concept genuinely understandable.
 
-## Step 1: Analyze the Source Material
+## Step 1: Map the Source Material
 
-Before writing anything, think through:
+Before writing, identify:
 
-1. **What are the core concepts?** List every important idea that needs to be explained.
+1. **What sections/topics does the source cover?** List them all—you need to cover each one.
 
-2. **What are the dependencies?** Which concepts require understanding other concepts first? Map this out.
+2. **What's the narrative arc?** How does the source build from beginning to end?
 
-3. **What makes each concept hard to understand?** Identify the specific confusion points.
+3. **What are the key concepts?** What must the viewer understand?
 
-4. **What would make each concept click?** What explanation, example, or visualization would create the "aha" moment?
+4. **What dependencies exist?** Which concepts require understanding others first?
 
-5. **What's the central question?** Frame the video around ONE compelling question that seems hard or counterintuitive.
+5. **What specific details matter?** Numbers, examples, results from the source.
 
-## Step 2: Plan the Concept Sequence
+## Step 2: Plan Your Script
 
-Arrange concepts so that:
-- Foundational concepts come before concepts that depend on them
-- Each scene builds on what came before
-- The hardest/most important concepts get the most time
-- Nothing is referenced before it's explained
+Structure the script to:
+- Cover all major sections from the source material
+- Follow the source's logical flow (or improve it if needed)
+- Explain foundational concepts before concepts that depend on them
+- Give important concepts enough time to be understood
 
 ## Step 3: Write Each Scene
 
 For each scene:
-- Focus on ONE concept or one aspect of a concept
+- Cover a specific section or concept from the source
 - Explain the mechanism, not just the outcome
-- If there's a formula, explain what each term means
-- Create an information gap before filling it
+- Include relevant details, numbers, and examples from the source
 - Connect causally to previous scene ("But..." or "Therefore...")
 
 For visual descriptions:
-- Describe visuals that illuminate THIS specific concept
+- Describe visuals specific to THIS concept
 - Show the mechanism step by step
-- Be specific enough that an animator could implement it
-- Avoid generic animations—each visual should be tailored to what's being explained
+- Be detailed enough for an animator to implement
 
-## Step 3: Verify Coverage
+## Step 4: Verify Coverage
 
 Before finalizing, check:
-- Have you covered all the core concepts from the source material?
-- Have you explained the dependencies before concepts that need them?
-- Would a technical viewer actually understand each concept, not just hear about it?
-- Are the visual descriptions specific to each concept, not generic?
+- Have you covered all the major sections from the source?
+- Did you include the key numbers, examples, and details?
+- Would a viewer understand each concept, not just hear about it?
+- Does the script tell the complete story from the source?
 
 ---
 
@@ -242,7 +215,7 @@ Respond with JSON matching this schema:
   ]
 }}
 
-Take your time. Think through the concepts carefully. The goal is genuine understanding, not just coverage."""
+Cover the source material thoroughly. Make each concept genuinely understandable."""
 
 
 class ScriptGenerator:

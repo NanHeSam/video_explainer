@@ -593,22 +593,22 @@ class TestCmdNarration:
         assert "Loaded source: notes.md" in captured.out
         assert "Loaded source: paper.pdf" in captured.out
 
-    def test_narration_prompt_contains_understanding_focus(self):
-        """Test that the narration prompt focuses on deep understanding."""
+    def test_narration_prompt_contains_key_guidance(self):
+        """Test that the narration prompt contains key guidance for good narration."""
         from src.cli.main import cmd_narration
         import inspect
 
         source = inspect.getsource(cmd_narration)
 
-        # Check for understanding-focused keywords
-        assert "Generate Narrations That Create Deep Understanding" in source, \
-            "Prompt must focus on creating deep understanding"
-        assert "Make Math Intuitive" in source, \
-            "Prompt must have math intuition guidance"
-        assert "Match the script's scene structure exactly" in source, \
+        # Check for key prompt elements
+        assert "Generate Narrations for Video Script" in source, \
+            "Prompt must have clear task title"
+        assert "Follow the script's scene structure exactly" in source, \
             "Prompt must instruct to follow script structure"
-        assert "Explain Mechanisms, Not Just Outcomes" in source, \
+        assert "Explain Mechanisms" in source, \
             "Prompt must have mechanism explanation guidance"
+        assert "Use Specific Numbers" in source, \
+            "Prompt must encourage using specific numbers"
 
     def test_narration_prompt_includes_script_structure(self):
         """Test that the prompt includes script structure when available."""
@@ -723,9 +723,9 @@ class TestCmdNarration:
         prompt = call_args[0][0]  # First positional argument
 
         # Verify prompt structure
-        assert "Generate Narrations That Create Deep Understanding" in prompt
-        assert "Make Math Intuitive" in prompt
-        assert "Explain Mechanisms, Not Just Outcomes" in prompt
+        assert "Generate Narrations for Video Script" in prompt
+        assert "Follow the script's scene structure exactly" in prompt
+        assert "Explain Mechanisms" in prompt
         assert "Existing Script Structure" in prompt  # Script should be included
         assert "scene1" in prompt or "Hook" in prompt  # Script content
 
