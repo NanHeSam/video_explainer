@@ -5,6 +5,7 @@ import webpack from "webpack";
 
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
+Config.setChromiumOpenGlRenderer("angle");
 
 // Get project name from environment variable, default to llm-image-understanding
 const projectName = process.env.PROJECT || "llm-image-understanding";

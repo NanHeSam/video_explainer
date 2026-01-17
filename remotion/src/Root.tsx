@@ -2,6 +2,7 @@ import { Composition } from "remotion";
 import { loadFont as loadOutfit } from "@remotion/google-fonts/Outfit";
 import { ExplainerVideo } from "./scenes/ExplainerVideo";
 import { StoryboardPlayer } from "./scenes/StoryboardPlayer";
+import { ThreeDemo } from "./ThreeDemo";
 
 // Load Outfit font globally - modern geometric sans-serif for tech content
 loadOutfit();
@@ -139,6 +140,18 @@ export const RemotionRoot: React.FC = () => {
             durationInFrames: Math.ceil(duration * 30),
           };
         }}
+      />
+
+      {/* ===== Demo Compositions ===== */}
+
+      {/* Three.js Demo - showcases 3D capabilities */}
+      <Composition
+        id="ThreeDemo"
+        component={ThreeDemo}
+        durationInFrames={30 * 10}
+        fps={30}
+        width={1920}
+        height={1080}
       />
     </>
   );

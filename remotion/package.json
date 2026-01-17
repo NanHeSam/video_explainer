@@ -12,19 +12,24 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@react-three/drei": "^9.117.0",
+    "@react-three/fiber": "^8.17.0",
     "@remotion/bundler": "4.0.242",
     "@remotion/cli": "4.0.242",
     "@remotion/google-fonts": "^4.0.402",
     "@remotion/renderer": "4.0.242",
+    "@remotion/three": "4.0.242",
     "@remotion/transitions": "^4.0.242",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "remotion": "4.0.242",
+    "three": "^0.170.0",
     "zod": "3.22.4"
   },
   "devDependencies": {
     "@types/node": "22.10.2",
     "@types/react": "18.3.12",
+    "@types/three": "^0.170.0",
     "typescript": "5.7.2",
     "vitest": "^2.1.8"
   }
