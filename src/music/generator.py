@@ -643,9 +643,8 @@ def _update_shorts_storyboard_with_music(project_dir: Path, variant: str, music_
         with open(storyboard_path) as f:
             storyboard = json.load(f)
 
-        # Get relative path from short variant root
-        short_variant_dir = project_dir / "short" / variant
-        relative_path = music_path.relative_to(short_variant_dir)
+        # Get relative path from project root (consistent with voiceover_path)
+        relative_path = music_path.relative_to(project_dir)
 
         # Update audio config
         if "audio" not in storyboard:

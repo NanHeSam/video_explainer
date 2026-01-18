@@ -494,7 +494,8 @@ class TestUpdateShortsStoryboardWithMusic:
 
             assert "audio" in updated
             assert "background_music" in updated["audio"]
-            assert updated["audio"]["background_music"]["path"] == "music/background.mp3"
+            # Path should be relative to project root (consistent with voiceover_path)
+            assert updated["audio"]["background_music"]["path"] == "short/default/music/background.mp3"
             assert updated["audio"]["background_music"]["volume"] == 0.35
 
     def test_update_shorts_storyboard_missing_file(self):

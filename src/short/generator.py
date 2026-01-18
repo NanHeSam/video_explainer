@@ -60,6 +60,71 @@ def normalize_script_format(script_data: dict[str, Any]) -> dict[str, Any]:
     return script_data
 
 
+def merge_number_tokens(timestamps: list[dict]) -> list[dict]:
+    """Merge adjacent tokens that form a single number.
+
+    Whisper often splits numbers like "150,528" into separate tokens:
+    ["150", ",528"] or ["150", ",", "528"]. This function merges them
+    back into a single token for better caption display.
+
+    Args:
+        timestamps: List of word timestamp dicts with 'word', 'start_seconds', 'end_seconds'.
+
+    Returns:
+        List with number tokens merged.
+    """
+    if not timestamps:
+        return timestamps
+
+    import re
+
+    merged = []
+    i = 0
+
+    while i < len(timestamps):
+        current = timestamps[i]
+        word = current["word"]
+
+        # Check if this could be the start of a number sequence
+        # Pattern: digits optionally followed by comma/period fragments
+        if re.match(r"^\d+[,.]?$", word):
+            # Look ahead for continuation tokens (comma + digits, or just digits)
+            combined_word = word
+            end_seconds = current["end_seconds"]
+            j = i + 1
+
+            while j < len(timestamps):
+                next_word = timestamps[j]["word"]
+                # Match: ",528" or ".5" or just continuation digits
+                if re.match(r"^[,.]\d+$", next_word):
+                    combined_word += next_word
+                    end_seconds = timestamps[j]["end_seconds"]
+                    j += 1
+                # Match standalone comma/period followed by digits
+                elif next_word in [",", "."] and j + 1 < len(timestamps):
+                    following = timestamps[j + 1]["word"]
+                    if re.match(r"^\d+$", following):
+                        combined_word += next_word + following
+                        end_seconds = timestamps[j + 1]["end_seconds"]
+                        j += 2
+                    else:
+                        break
+                else:
+                    break
+
+            merged.append({
+                "word": combined_word,
+                "start_seconds": current["start_seconds"],
+                "end_seconds": end_seconds,
+            })
+            i = j
+        else:
+            merged.append(current)
+            i += 1
+
+    return merged
+
+
 HOOK_ANALYSIS_SYSTEM_PROMPT = """You are an expert at creating viral YouTube Shorts.
 
 Your job is to analyze a full video script and identify the SINGLE most intriguing 30-45 second segment that would make viewers desperate to watch the full video.
@@ -906,6 +971,9 @@ class ShortGenerator:
             for ts in word_timestamps
         ]
 
+        # Merge number tokens (e.g., "150" + ",528" → "150,528")
+        timestamps = merge_number_tokens(timestamps)
+
         # Assign timestamps to beats based on timing
         for beat in storyboard.beats:
             beat_timestamps = [
@@ -951,6 +1019,9 @@ class ShortGenerator:
             }
             for ts in word_timestamps
         ]
+
+        # Merge number tokens (e.g., "150" + ",528" → "150,528")
+        timestamps = merge_number_tokens(timestamps)
 
         if not timestamps:
             # Fallback to old method if no timestamps

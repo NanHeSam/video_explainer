@@ -134,6 +134,12 @@ export interface ShortsStoryboard {
   hook_question?: string;
   cta_text?: string;
   voiceover_path?: string;
+  audio?: {
+    background_music?: {
+      path: string;
+      volume: number;
+    };
+  };
 }
 
 interface ShortsPlayerProps {
@@ -245,9 +251,17 @@ export const ShortsPlayer: React.FC<ShortsPlayerProps> = ({
         height={SHORTS_LAYOUT.progressBar.height}
       />
 
-      {/* Audio */}
+      {/* Audio - Voiceover */}
       {storyboard.voiceover_path && (
         <Audio src={staticFile(storyboard.voiceover_path)} />
+      )}
+
+      {/* Audio - Background Music */}
+      {storyboard.audio?.background_music?.path && (
+        <Audio
+          src={staticFile(storyboard.audio.background_music.path)}
+          volume={storyboard.audio.background_music.volume ?? 0.3}
+        />
       )}
     </AbsoluteFill>
   );
