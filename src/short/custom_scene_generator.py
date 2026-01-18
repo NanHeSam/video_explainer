@@ -81,16 +81,23 @@ export const BeatNScene: React.FC<BeatNSceneProps> = ({ startFrame = 0 }) => {
   const phase2End = YYY;  // Calculate from word timestamps
   const phase3End = ZZZ;  // Total frames
 
-  // Phase transitions (smooth crossfades)
-  const phase1Opacity = interpolate(localFrame, [0, 15, phase1End - 15, phase1End], [0, 1, 1, 0], {
+  // IMPORTANT: Use adaptive fade times to prevent "inputRange must be monotonically increasing" errors
+  // When phases are short (<30 frames), hardcoded fade times can cause [0, 15, 12, 27] which fails
+  const getFadeTime = (duration: number) => Math.min(10, Math.floor(duration / 3));
+  const fade1 = getFadeTime(phase1End);
+  const fade2 = getFadeTime(phase2End - phase1End);
+  const fade3 = getFadeTime(phase3End - phase2End);
+
+  // Phase transitions (smooth crossfades with adaptive timing)
+  const phase1Opacity = interpolate(localFrame, [0, fade1, phase1End - fade1, phase1End], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const phase2Opacity = interpolate(localFrame, [phase1End - 15, phase1End + 15, phase2End - 15, phase2End], [0, 1, 1, 0], {
+  const phase2Opacity = interpolate(localFrame, [phase1End - fade2, phase1End + fade2, phase2End - fade2, phase2End], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const phase3Opacity = interpolate(localFrame, [phase2End - 15, phase2End + 15], [0, 1], {
+  const phase3Opacity = interpolate(localFrame, [phase2End - fade3, phase2End + fade3], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
