@@ -108,7 +108,7 @@ import {{ LAYOUT, getCenteredPosition, getTwoColumnLayout, getThreeColumnLayout,
 
 **Base constraints (defined in styles.ts):**
 - Canvas: 1920x1080
-- Left margin: 60px, Right margin: 40px
+- Left margin: 60px, Right margin: 60px (symmetric)
 - Title area: 120px from top
 - Bottom margin: 160px (for references)
 - Full-width layout by default (no sidebar reservation)
@@ -116,8 +116,8 @@ import {{ LAYOUT, getCenteredPosition, getTwoColumnLayout, getThreeColumnLayout,
 **Usable content area (calculated automatically):**
 ```typescript
 LAYOUT.content.startX   // 60px - left edge of content
-LAYOUT.content.endX     // ~1880px - right edge (full width minus margins)
-LAYOUT.content.width    // ~1820px - full usable width
+LAYOUT.content.endX     // 1860px - right edge (full width minus right margin)
+LAYOUT.content.width    // 1800px - full usable width
 LAYOUT.content.startY   // 120px - top of content area
 LAYOUT.content.endY     // 920px - bottom of content area
 LAYOUT.content.height   // 800px - full usable height
@@ -493,7 +493,7 @@ export const SceneName: React.FC<SceneNameProps> = ({{ startFrame = 0 }}) => {{
       <div style={{{{
         position: "absolute",
         bottom: LAYOUT.margin.bottom * scale,
-        right: (LAYOUT.sidebar.width + LAYOUT.sidebar.gap + 30) * scale,
+        right: LAYOUT.margin.right * scale,
         fontSize: 14 * scale,
         color: COLORS.textMuted,
         fontStyle: "italic",
@@ -1134,13 +1134,13 @@ const CANVAS_HEIGHT = 1080;
 const SIDEBAR_WIDTH = {sidebar_width};  // Width of right sidebar area (0 = full width)
 const SIDEBAR_GAP = {sidebar_width} > 0 ? 30 : 0;  // Gap only when sidebar exists
 const MARGIN_LEFT = 60;
-const MARGIN_RIGHT = 40;
+const MARGIN_RIGHT = 60;  // Symmetric with left margin
 const TITLE_HEIGHT = 120;     // Space for title at top
 const BOTTOM_MARGIN = 160;    // Space for references at bottom
 
 // Derived values
 const USABLE_LEFT = MARGIN_LEFT;
-const USABLE_RIGHT = CANVAS_WIDTH - SIDEBAR_WIDTH - SIDEBAR_GAP;
+const USABLE_RIGHT = CANVAS_WIDTH - MARGIN_RIGHT - SIDEBAR_WIDTH - SIDEBAR_GAP;
 const USABLE_WIDTH = USABLE_RIGHT - USABLE_LEFT;
 const USABLE_TOP = TITLE_HEIGHT;
 const USABLE_BOTTOM = CANVAS_HEIGHT - BOTTOM_MARGIN;
