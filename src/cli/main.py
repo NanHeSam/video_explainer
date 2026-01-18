@@ -1779,6 +1779,7 @@ def cmd_short(args: argparse.Namespace) -> int:
     import json
     from ..project import load_project
     from ..short import ShortGenerator, ShortSceneGenerator
+    from ..short.generator import normalize_script_format
     from ..models import Script
 
     try:
@@ -1799,8 +1800,16 @@ def cmd_short(args: argparse.Namespace) -> int:
         return 1
 
     # Load source script for visual descriptions
-    with open(script_path) as f:
-        source_script = Script(**json.load(f))
+    # Normalize script format (handles visual_description -> visual_cue conversion)
+    source_script = None
+    try:
+        with open(script_path) as f:
+            script_data = json.load(f)
+        script_data = normalize_script_format(script_data)
+        source_script = Script(**script_data)
+    except Exception as e:
+        print(f"  Warning: Could not load script ({type(e).__name__}: {e})")
+        print("  Will use generic visual components instead.")
 
     print(f"Generating YouTube Short for: {project.id}")
     print(f"  Variant: {args.variant}")

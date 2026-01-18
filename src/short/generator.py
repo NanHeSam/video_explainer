@@ -23,6 +23,43 @@ from .models import (
 )
 
 
+def normalize_script_format(script_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize script data to use visual_cue format.
+
+    Some projects use a flat 'visual_description' field on scenes,
+    while the Script model expects a nested 'visual_cue' object.
+    This function normalizes both formats to the expected structure.
+
+    Args:
+        script_data: Raw script data from JSON.
+
+    Returns:
+        Script data with visual_cue format.
+    """
+    if "scenes" not in script_data:
+        return script_data
+
+    for scene in script_data["scenes"]:
+        # Already has visual_cue - no conversion needed
+        if "visual_cue" in scene:
+            continue
+
+        # Convert flat visual_description to visual_cue object
+        if "visual_description" in scene:
+            scene["visual_cue"] = {
+                "description": scene.pop("visual_description"),
+                "visual_type": "animation",  # Default type
+                "elements": [],
+                "duration_seconds": scene.get("duration_seconds", 5.0),
+            }
+
+    # Add source_document if missing (some formats don't have it)
+    if "source_document" not in script_data:
+        script_data["source_document"] = ""
+
+    return script_data
+
+
 HOOK_ANALYSIS_SYSTEM_PROMPT = """You are an expert at creating viral YouTube Shorts.
 
 Your job is to analyze a full video script and identify the SINGLE most intriguing 30-45 second segment that would make viewers desperate to watch the full video.
@@ -365,6 +402,8 @@ class ShortGenerator:
 
             with open(script_path) as f:
                 script_data = json.load(f)
+            # Normalize script format (handles visual_description -> visual_cue conversion)
+            script_data = normalize_script_format(script_data)
             script = Script(**script_data)
 
             narration_path = project.get_path("narration")
