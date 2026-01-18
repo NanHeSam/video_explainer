@@ -17,6 +17,7 @@ A system for generating high-quality explainer videos from technical documents. 
 - **Sound Design**: Automated SFX planning, music layering, and audio mixing
 - **AI Background Music**: Generate ambient background music using Meta's MusicGen model (MPS/CUDA/CPU)
 - **Remotion Animations**: React-based programmatic video generation
+- **Shorts Generation**: Create vertical shorts with TikTok-style captions and dark theme
 - **CLI Pipeline**: Run each stage independently for easy iteration
 
 ## Quick Start
@@ -241,6 +242,49 @@ python -m src.cli render llm-inference --concurrency 8  # Custom thread count
 
 Output: `projects/<project>/output/video.mp4`
 
+#### Shorts Generation
+
+Generate vertical shorts (1080x1920) optimized for YouTube Shorts, Instagram Reels, and TikTok:
+
+```bash
+python -m src.cli short llm-inference           # Generate short from project
+python -m src.cli short llm-inference --force   # Regenerate everything
+python -m src.cli short llm-inference --variant teaser  # Create named variant
+python -m src.cli short llm-inference --duration 30     # Target 30 seconds
+python -m src.cli short llm-inference --mock    # Use mock for testing
+```
+
+**Prerequisites:** Run `script` and `narration` commands first.
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--duration` | Target duration in seconds (default: 45, range: 30-60) |
+| `--variant` | Variant name for multiple shorts from same project |
+| `--scenes` | Override scene selection (comma-separated scene IDs) |
+| `--force` | Force regenerate even if files exist |
+| `--skip-voiceover` | Skip voiceover generation for faster iteration |
+| `--skip-custom-scenes` | Use generic components instead of custom scenes |
+
+**Features:**
+- Single-word captions (72px bold, uppercase, glow effect)
+- Dark gradient theme optimized for mobile
+- Phase-based animations synced with voiceover
+- Custom React scene generation for each beat
+- Automatic hook selection from most intriguing scenes
+
+Output: `projects/<project>/short/<variant>/`
+
+**Rendering Shorts:**
+
+```bash
+python -m src.cli render llm-inference --short              # Render at 1080p (1080x1920)
+python -m src.cli render llm-inference --short -r 4k        # Render at 4K (2160x3840)
+python -m src.cli render llm-inference --short --variant teaser  # Render specific variant
+python -m src.cli render llm-inference --short --fast       # Faster encoding
+```
+
 #### Sound Design
 
 ```bash
@@ -326,6 +370,12 @@ video_explainer/
 │       │   └── background.mp3
 │       ├── factcheck/           # Fact check reports
 │       │   └── report.json
+│       ├── short/               # Shorts variants
+│       │   └── default/
+│       │       ├── short_script.json
+│       │       ├── scenes/      # Custom React components
+│       │       ├── voiceover/   # Short voiceover audio
+│       │       └── storyboard/  # Shorts storyboard
 │       └── output/              # Generated videos
 │
 ├── src/                         # Core pipeline code
@@ -341,6 +391,7 @@ video_explainer/
 │   ├── voiceover/               # Voiceover generation
 │   ├── storyboard/              # Storyboard system
 │   ├── factcheck/               # Fact checking with web verification
+│   ├── short/                   # Shorts generation
 │   ├── feedback/                # Feedback processing
 │   ├── animation/               # Animation rendering
 │   ├── composition/             # Video assembly
@@ -352,6 +403,7 @@ video_explainer/
 │   ├── src/
 │   │   ├── components/          # Reusable animation components
 │   │   ├── scenes/              # Scene compositions
+│   │   ├── shorts/              # Shorts player and components
 │   │   └── types/               # TypeScript types
 │   └── scripts/
 │       └── render.mjs           # Headless rendering script
@@ -360,7 +412,7 @@ video_explainer/
 │   └── schema/
 │       └── storyboard.schema.json
 │
-├── tests/                       # Test suite (695+ Python tests + 45 JS tests)
+├── tests/                       # Test suite (844 Python + 149 JS tests)
 ├── config.yaml                  # Global configuration
 └── pyproject.toml               # Python package configuration
 ```
@@ -430,7 +482,7 @@ Note: The default LLM provider is `claude-code`, which uses the Claude Code CLI 
 
 ## Testing
 
-The project includes 740+ tests (695+ Python + 45 JavaScript).
+The project includes 990+ tests (844 Python + 149 JavaScript).
 
 ### Python Tests
 

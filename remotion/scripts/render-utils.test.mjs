@@ -11,8 +11,11 @@ import {
   validateConfig,
   deriveStoryboardPath,
   deriveProjectDir,
+  deriveShortsSceneDir,
   getFinalResolution,
+  shouldSkipSceneValidation,
   RESOLUTION_PRESETS,
+  SHORTS_RESOLUTION_PRESETS,
 } from "./render-utils.mjs";
 
 describe("parseArgs", () => {
@@ -223,6 +226,38 @@ describe("calculateDuration", () => {
     // 10 + 2 + 10 + 2 = 24
     expect(calculateDuration("ScenePlayer", props)).toBe(24);
   });
+
+  it("should calculate duration for ShortsPlayer", () => {
+    const props = {
+      storyboard: {
+        total_duration_seconds: 45,
+        beats: [],
+      },
+    };
+    expect(calculateDuration("ShortsPlayer", props)).toBe(45);
+  });
+
+  it("should default to 60 for ShortsPlayer without total_duration_seconds", () => {
+    const props = {
+      storyboard: {
+        beats: [],
+      },
+    };
+    expect(calculateDuration("ShortsPlayer", props)).toBe(60);
+  });
+
+  it("should handle ShortsPlayer with various durations", () => {
+    const durations = [30, 45, 60, 90];
+    for (const duration of durations) {
+      const props = {
+        storyboard: {
+          total_duration_seconds: duration,
+          beats: [{ id: "beat_1" }],
+        },
+      };
+      expect(calculateDuration("ShortsPlayer", props)).toBe(duration);
+    }
+  });
 });
 
 describe("buildProps", () => {
@@ -300,6 +335,28 @@ describe("deriveProjectDir", () => {
   });
 });
 
+describe("deriveShortsSceneDir", () => {
+  it("should derive shorts scenes dir from shorts storyboard path", () => {
+    const result = deriveShortsSceneDir("/projects/my-video/short/default/storyboard/shorts_storyboard.json");
+    expect(result).toBe("/projects/my-video/short/default/scenes");
+  });
+
+  it("should handle different variant names", () => {
+    const result = deriveShortsSceneDir("/projects/test/short/teaser/storyboard/shorts_storyboard.json");
+    expect(result).toBe("/projects/test/short/teaser/scenes");
+  });
+
+  it("should handle relative paths", () => {
+    const result = deriveShortsSceneDir("projects/test/short/default/storyboard/shorts_storyboard.json");
+    expect(result).toBe("projects/test/short/default/scenes");
+  });
+
+  it("should work with deeply nested project paths", () => {
+    const result = deriveShortsSceneDir("/home/user/work/projects/my-video/short/v2/storyboard/shorts_storyboard.json");
+    expect(result).toBe("/home/user/work/projects/my-video/short/v2/scenes");
+  });
+});
+
 describe("getFinalResolution", () => {
   const mockComposition = { width: 1920, height: 1080 };
 
@@ -370,6 +427,78 @@ describe("RESOLUTION_PRESETS", () => {
   });
 });
 
+describe("SHORTS_RESOLUTION_PRESETS", () => {
+  it("should have 4k preset (vertical)", () => {
+    expect(SHORTS_RESOLUTION_PRESETS["4k"]).toEqual({ width: 2160, height: 3840 });
+  });
+
+  it("should have 1440p preset (vertical)", () => {
+    expect(SHORTS_RESOLUTION_PRESETS["1440p"]).toEqual({ width: 1440, height: 2560 });
+  });
+
+  it("should have 1080p preset (vertical)", () => {
+    expect(SHORTS_RESOLUTION_PRESETS["1080p"]).toEqual({ width: 1080, height: 1920 });
+  });
+
+  it("should have 720p preset (vertical)", () => {
+    expect(SHORTS_RESOLUTION_PRESETS["720p"]).toEqual({ width: 720, height: 1280 });
+  });
+
+  it("should have 480p preset (vertical)", () => {
+    expect(SHORTS_RESOLUTION_PRESETS["480p"]).toEqual({ width: 480, height: 854 });
+  });
+
+  it("should have 5 presets total", () => {
+    expect(Object.keys(SHORTS_RESOLUTION_PRESETS)).toHaveLength(5);
+  });
+
+  it("should all maintain approximately 9:16 aspect ratio", () => {
+    for (const [name, { width, height }] of Object.entries(SHORTS_RESOLUTION_PRESETS)) {
+      const ratio = width / height;
+      expect(Math.abs(ratio - 9/16)).toBeLessThan(0.01);
+    }
+  });
+
+  it("should have same resolution names as landscape presets", () => {
+    const landscapeKeys = Object.keys(RESOLUTION_PRESETS);
+    const shortsKeys = Object.keys(SHORTS_RESOLUTION_PRESETS);
+    expect(shortsKeys).toEqual(landscapeKeys);
+  });
+
+  it("should have inverted dimensions compared to landscape", () => {
+    for (const key of Object.keys(RESOLUTION_PRESETS)) {
+      const landscape = RESOLUTION_PRESETS[key];
+      const shorts = SHORTS_RESOLUTION_PRESETS[key];
+      expect(shorts.width).toBe(landscape.height);
+      expect(shorts.height).toBe(landscape.width);
+    }
+  });
+});
+
+describe("shouldSkipSceneValidation", () => {
+  it("should return true for ShortsPlayer", () => {
+    expect(shouldSkipSceneValidation("ShortsPlayer")).toBe(true);
+  });
+
+  it("should return false for ScenePlayer", () => {
+    expect(shouldSkipSceneValidation("ScenePlayer")).toBe(false);
+  });
+
+  it("should return false for StoryboardPlayer", () => {
+    expect(shouldSkipSceneValidation("StoryboardPlayer")).toBe(false);
+  });
+
+  it("should return false for unknown compositions", () => {
+    expect(shouldSkipSceneValidation("UnknownPlayer")).toBe(false);
+    expect(shouldSkipSceneValidation("CustomPlayer")).toBe(false);
+  });
+
+  it("should be case-sensitive", () => {
+    expect(shouldSkipSceneValidation("shortsplayer")).toBe(false);
+    expect(shouldSkipSceneValidation("SHORTSPLAYER")).toBe(false);
+  });
+});
+
 describe("Integration: Full argument parsing scenarios", () => {
   it("should handle typical 4K render command", () => {
     const config = parseArgs([
@@ -420,5 +549,47 @@ describe("Integration: Full argument parsing scenarios", () => {
     expect(config.outputPath).toBe("./fast-render.mp4");
     expect(config.fast).toBe(true);
     expect(config.concurrency).toBe(8);
+  });
+
+  it("should handle ShortsPlayer composition render", () => {
+    const config = parseArgs([
+      "--project", "../projects/llm-inference",
+      "--composition", "ShortsPlayer",
+      "--output", "./short.mp4",
+      "--width", "1080",
+      "--height", "1920",
+    ]);
+
+    expect(config.projectDir).toBe("../projects/llm-inference");
+    expect(config.compositionId).toBe("ShortsPlayer");
+    expect(config.width).toBe(1080);
+    expect(config.height).toBe(1920);
+  });
+
+  it("should handle shorts 4K render", () => {
+    const config = parseArgs([
+      "--project", "../projects/test",
+      "--composition", "ShortsPlayer",
+      "--output", "./short-4k.mp4",
+      "--width", "2160",
+      "--height", "3840",
+      "--storyboard", "../projects/test/short/default/storyboard/shorts_storyboard.json",
+    ]);
+
+    expect(config.compositionId).toBe("ShortsPlayer");
+    expect(config.width).toBe(2160);
+    expect(config.height).toBe(3840);
+    expect(config.storyboardPath).toBe("../projects/test/short/default/storyboard/shorts_storyboard.json");
+  });
+
+  it("should handle shorts voiceover path", () => {
+    const config = parseArgs([
+      "--project", "../projects/test",
+      "--composition", "ShortsPlayer",
+      "--voiceover-path", "short/default/voiceover",
+    ]);
+
+    expect(config.compositionId).toBe("ShortsPlayer");
+    expect(config.voiceoverBasePath).toBe("short/default/voiceover");
   });
 });

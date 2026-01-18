@@ -1385,6 +1385,8 @@ class TestCmdRender:
         args.resolution = "1080p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         result = cmd_render(args)
         assert result == 1
@@ -1407,6 +1409,8 @@ class TestCmdRender:
         args.resolution = "1080p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         result = cmd_render(args)
         assert result == 1
@@ -1422,6 +1426,8 @@ class TestCmdRender:
         args.resolution = "4k"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
@@ -1444,6 +1450,8 @@ class TestCmdRender:
         args.resolution = "720p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
@@ -1461,6 +1469,8 @@ class TestCmdRender:
         args.resolution = "4k"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
@@ -1482,6 +1492,8 @@ class TestCmdRender:
         args.resolution = "1080p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
@@ -1503,6 +1515,8 @@ class TestCmdRender:
         args.resolution = "1080p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError("node not found")
@@ -1521,6 +1535,8 @@ class TestCmdRender:
         args.resolution = "1080p"
         args.fast = False
         args.concurrency = None
+        args.short = False
+        args.variant = "default"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=1)

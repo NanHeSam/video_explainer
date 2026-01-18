@@ -29,8 +29,10 @@ import {
   validateConfig,
   deriveStoryboardPath,
   deriveProjectDir,
+  deriveShortsSceneDir,
   getFinalResolution,
   validateSceneTypes,
+  shouldSkipSceneValidation,
 } from "./render-utils.mjs";
 import fs from "fs";
 import path from "path";
@@ -74,7 +76,12 @@ async function main() {
     console.log(`Loaded storyboard from ${config.storyboardPath}`);
     console.log(`Project directory: ${projectDir}`);
     console.log(`Title: ${storyboard.title}`);
-    console.log(`Scenes: ${storyboard.scenes.length}`);
+    // Handle both full video (scenes) and shorts (beats) storyboard formats
+    if (storyboard.scenes) {
+      console.log(`Scenes: ${storyboard.scenes.length}`);
+    } else if (storyboard.beats) {
+      console.log(`Beats: ${storyboard.beats.length}`);
+    }
     console.log(`Composition: ${config.compositionId}`);
   } else if (config.propsPath) {
     // Legacy props file
@@ -99,14 +106,17 @@ async function main() {
     process.exit(1);
   }
 
+  // ShortsPlayer uses its own component system, skip scene validation
+  const skipSceneValidation = shouldSkipSceneValidation(config.compositionId);
+
   const projectScenesDir = resolve(projectDir, "scenes");
-  if (!existsSync(projectScenesDir)) {
+  if (!skipSceneValidation && !existsSync(projectScenesDir)) {
     console.error(`Project scenes directory not found: ${projectScenesDir}`);
     process.exit(1);
   }
 
-  // Validate scene types match registry keys
-  if (config.storyboardPath) {
+  // Validate scene types match registry keys (only for full video, not shorts)
+  if (config.storyboardPath && !skipSceneValidation) {
     const storyboard = JSON.parse(readFileSync(config.storyboardPath, "utf-8"));
     const validation = validateSceneTypes(storyboard, projectScenesDir, fs, path);
 
@@ -150,6 +160,19 @@ async function main() {
   console.log(`Public directory: ${publicDir}`);
   console.log(`Project scenes: ${projectScenesDir}`);
 
+  // For shorts, derive the short scenes directory from the storyboard path
+  // e.g., /project/short/default/storyboard/shorts_storyboard.json -> /project/short/default/scenes
+  let projectShortScenesDir = resolve(__dirname, "../src/shorts"); // Default fallback
+  if (skipSceneValidation && config.storyboardPath) {
+    const derivedShortScenesDir = deriveShortsSceneDir(config.storyboardPath);
+    if (existsSync(derivedShortScenesDir)) {
+      projectShortScenesDir = derivedShortScenesDir;
+      console.log(`Project short scenes: ${projectShortScenesDir}`);
+    } else {
+      console.log(`No custom short scenes found at: ${derivedShortScenesDir}`);
+    }
+  }
+
   const bundleLocation = await bundle({
     entryPoint,
     publicDir,
@@ -166,6 +189,7 @@ async function main() {
         alias: {
           ...webpackConfig.resolve?.alias,
           "@project-scenes": projectScenesDir,
+          "@project-short-scenes": projectShortScenesDir,
           "@remotion-components": resolve(__dirname, "../src/components"),
         },
       },

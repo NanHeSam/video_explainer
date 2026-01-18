@@ -102,6 +102,22 @@ class Project:
         """Directory for output files."""
         return self.root_dir / "output"
 
+    @property
+    def short_dir(self) -> Path:
+        """Directory for YouTube Shorts."""
+        return self.root_dir / "short"
+
+    def get_short_variant_dir(self, variant: str = "default") -> Path:
+        """Get directory for a specific short variant.
+
+        Args:
+            variant: Variant name (default: "default").
+
+        Returns:
+            Path to the variant directory.
+        """
+        return self.short_dir / variant
+
     def get_path(self, key: str) -> Path:
         """Get a path from the project config.
 

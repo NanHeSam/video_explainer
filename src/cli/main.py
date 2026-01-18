@@ -1177,6 +1177,15 @@ RESOLUTION_PRESETS = {
     "480p": (854, 480),
 }
 
+# Shorts resolution presets (vertical 9:16 aspect ratio)
+SHORTS_RESOLUTION_PRESETS = {
+    "4k": (2160, 3840),
+    "1440p": (1440, 2560),
+    "1080p": (1080, 1920),
+    "720p": (720, 1280),
+    "480p": (480, 854),
+}
+
 
 def cmd_render(args: argparse.Namespace) -> int:
     """Render video for a project."""
@@ -1190,7 +1199,13 @@ def cmd_render(args: argparse.Namespace) -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    print(f"Rendering video for {project.id}")
+    is_short = getattr(args, "short", False)
+    variant = getattr(args, "variant", "default")
+
+    if is_short:
+        print(f"Rendering short for {project.id} (variant: {variant})")
+    else:
+        print(f"Rendering video for {project.id}")
 
     # Determine composition and setup
     remotion_dir = Path(__file__).parent.parent.parent / "remotion"
@@ -1200,36 +1215,64 @@ def cmd_render(args: argparse.Namespace) -> int:
         print(f"Error: Render script not found: {render_script}", file=sys.stderr)
         return 1
 
-    # Check for storyboard
-    storyboard_path = project.get_path("storyboard")
+    # Check for storyboard (different paths for shorts vs full video)
+    if is_short:
+        storyboard_path = project.root_dir / "short" / variant / "storyboard" / "shorts_storyboard.json"
+        voiceover_dir = project.root_dir / "short" / variant / "voiceover"
+        audio_dir = f"short/{variant}/voiceover"
+        composition_id = "ShortsPlayer"
+    else:
+        storyboard_path = project.get_path("storyboard")
+        voiceover_dir = project.voiceover_dir
+        audio_dir = "voiceover"
+        composition_id = "ScenePlayer"
+
     if not storyboard_path.exists():
         print(f"Error: Storyboard not found: {storyboard_path}", file=sys.stderr)
-        print("Run storyboard generation first or create storyboard/storyboard.json")
+        if is_short:
+            print(f"Run 'python -m src.cli short {project.id}' first")
+        else:
+            print("Run storyboard generation first or create storyboard/storyboard.json")
         return 1
 
     # Check for voiceover files
-    # SFX is now handled directly by Remotion via sfx_cues in storyboard.json
-    voiceover_files = list(project.voiceover_dir.glob("*.mp3"))
+    voiceover_files = list(voiceover_dir.glob("*.mp3"))
     print(f"Found {len(voiceover_files)} voiceover files")
-    audio_dir = "voiceover"
 
-    # Determine resolution
+    # Determine resolution (use shorts presets for shorts)
     resolution_name = args.resolution or "1080p"
-    if resolution_name not in RESOLUTION_PRESETS:
-        print(f"Error: Unknown resolution '{resolution_name}'", file=sys.stderr)
-        print(f"Available: {', '.join(RESOLUTION_PRESETS.keys())}", file=sys.stderr)
-        return 1
-    width, height = RESOLUTION_PRESETS[resolution_name]
+    if is_short:
+        if resolution_name not in SHORTS_RESOLUTION_PRESETS:
+            print(f"Error: Unknown resolution '{resolution_name}'", file=sys.stderr)
+            print(f"Available: {', '.join(SHORTS_RESOLUTION_PRESETS.keys())}", file=sys.stderr)
+            return 1
+        width, height = SHORTS_RESOLUTION_PRESETS[resolution_name]
+    else:
+        if resolution_name not in RESOLUTION_PRESETS:
+            print(f"Error: Unknown resolution '{resolution_name}'", file=sys.stderr)
+            print(f"Available: {', '.join(RESOLUTION_PRESETS.keys())}", file=sys.stderr)
+            return 1
+        width, height = RESOLUTION_PRESETS[resolution_name]
 
     # Determine output path
-    if args.preview:
-        output_path = project.output_dir / "preview" / "preview.mp4"
-    else:
-        # Include resolution in filename for non-1080p renders
-        if resolution_name != "1080p":
-            output_path = project.output_dir / f"final-{resolution_name}.mp4"
+    if is_short:
+        short_output_dir = project.root_dir / "short" / variant / "output"
+        short_output_dir.mkdir(parents=True, exist_ok=True)
+        if args.preview:
+            output_path = short_output_dir / "preview.mp4"
+        elif resolution_name != "1080p":
+            output_path = short_output_dir / f"short-{resolution_name}.mp4"
         else:
-            output_path = project.get_path("final_video")
+            output_path = short_output_dir / "short.mp4"
+    else:
+        if args.preview:
+            output_path = project.output_dir / "preview" / "preview.mp4"
+        else:
+            # Include resolution in filename for non-1080p renders
+            if resolution_name != "1080p":
+                output_path = project.output_dir / f"final-{resolution_name}.mp4"
+            else:
+                output_path = project.get_path("final_video")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1243,7 +1286,12 @@ def cmd_render(args: argparse.Namespace) -> int:
         "--width", str(width),
         "--height", str(height),
         "--voiceover-path", audio_dir,
+        "--composition", composition_id,
     ]
+
+    # For shorts, pass the storyboard path explicitly
+    if is_short:
+        cmd.extend(["--storyboard", str(storyboard_path)])
 
     # Performance options
     if args.fast:
@@ -1252,6 +1300,7 @@ def cmd_render(args: argparse.Namespace) -> int:
         cmd.extend(["--concurrency", str(args.concurrency)])
 
     print(f"Project: {project.root_dir}")
+    print(f"Composition: {composition_id}")
     print(f"Audio: {audio_dir}")
     print(f"Resolution: {resolution_name} ({width}x{height})")
     print(f"Output: {output_path}")
@@ -1714,6 +1763,184 @@ def cmd_factcheck(args: argparse.Namespace) -> int:
     except FactCheckError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
+
+def cmd_short(args: argparse.Namespace) -> int:
+    """Generate YouTube Short from existing project.
+
+    This command creates a vertical short (1080x1920) optimized for
+    YouTube Shorts, Instagram Reels, and TikTok from an existing
+    full-length video project.
+
+    Prerequisites:
+    - Script must be generated (run 'script' command first)
+    - Narrations must be generated (run 'narration' command first)
+    """
+    import json
+    from ..project import load_project
+    from ..short import ShortGenerator, ShortSceneGenerator
+    from ..models import Script
+
+    try:
+        project = load_project(Path(args.projects_dir) / args.project)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    # Validate prerequisites
+    narration_path = project.get_path("narration")
+    if not narration_path.exists():
+        print("Error: Narrations not found. Run 'narration' command first.", file=sys.stderr)
+        return 1
+
+    script_path = project.get_path("script")
+    if not script_path.exists():
+        print("Error: Script not found. Run 'script' command first.", file=sys.stderr)
+        return 1
+
+    # Load source script for visual descriptions
+    with open(script_path) as f:
+        source_script = Script(**json.load(f))
+
+    print(f"Generating YouTube Short for: {project.id}")
+    print(f"  Variant: {args.variant}")
+    print(f"  Duration: {args.duration}s")
+    print(f"  Custom scenes: {not args.skip_custom_scenes}")
+    print()
+
+    # Parse scene override if provided
+    scene_ids = None
+    if args.scenes:
+        scene_ids = [s.strip() for s in args.scenes.split(",")]
+        print(f"  Using specified scenes: {scene_ids}")
+
+    # Initialize generators
+    generator = ShortGenerator()
+    scene_generator = ShortSceneGenerator()
+
+    # Generate short script
+    print("Analyzing script for best hook...")
+    result = generator.generate_short(
+        project,
+        variant=args.variant,
+        duration=args.duration,
+        scene_ids=scene_ids,
+        force=args.force,
+        mock=args.mock,
+    )
+
+    if not result.success:
+        print(f"Error: {result.error}", file=sys.stderr)
+        return 1
+
+    print(f"  Generated short script: {result.short_script_path}")
+
+    # Setup variant directory and scenes
+    variant_dir = project.short_dir / args.variant
+    scenes_dir = variant_dir / "scenes"
+    storyboard_dir = variant_dir / "storyboard"
+    storyboard_dir.mkdir(parents=True, exist_ok=True)
+    storyboard_path = storyboard_dir / "shorts_storyboard.json"
+
+    # Setup vertical scenes (styles.ts, CTA scene)
+    print("Setting up vertical scenes...")
+    short_script = ShortGenerator.load_short_script(result.short_script_path)
+    scene_paths = scene_generator.setup_short_scenes(
+        project, short_script, variant=args.variant
+    )
+    print(f"  Generated styles: {scene_paths['styles_path']}")
+    print(f"  Generated CTA scene: {scene_paths['cta_path']}")
+
+    # Generate voiceover FIRST, then create storyboard from actual word timings
+    # This ensures captions perfectly match the spoken audio
+    shorts_storyboard = None
+    if not args.skip_voiceover:
+        from ..voiceover import VoiceoverGenerator
+
+        print("Generating voiceover with word timestamps...")
+        voiceover_generator = VoiceoverGenerator()
+        voiceover_dir = variant_dir / "voiceover"
+
+        try:
+            short_voiceover = voiceover_generator.generate_short_voiceover(
+                short_script,
+                voiceover_dir,
+            )
+
+            # Get relative path for Remotion
+            relative_voiceover_path = short_voiceover.audio_path.relative_to(project.root_dir)
+
+            print(f"  Voiceover: {relative_voiceover_path}")
+            print(f"  Duration: {short_voiceover.duration_seconds:.2f}s")
+
+            # Generate storyboard with custom scenes (new enhanced pipeline)
+            if not args.skip_custom_scenes:
+                print("Generating shorts storyboard with custom scenes...")
+                # Get the full video scenes directory for inspiration
+                project_scenes_dir = project.root_dir / "scenes"
+                shorts_storyboard = generator.generate_shorts_with_custom_scenes(
+                    short_script,
+                    short_voiceover.word_timestamps,
+                    short_voiceover.duration_seconds,
+                    source_script,
+                    scenes_dir,
+                    project_scenes_dir=project_scenes_dir if project_scenes_dir.exists() else None,
+                    selected_scene_ids=scene_ids,
+                    mock=args.mock,
+                )
+            else:
+                # Fallback to old pipeline without custom scenes
+                print("Generating shorts storyboard from voiceover...")
+                shorts_storyboard = generator.generate_shorts_storyboard_from_voiceover(
+                    short_script,
+                    short_voiceover.word_timestamps,
+                    short_voiceover.duration_seconds,
+                    mock=args.mock,
+                )
+
+            shorts_storyboard.voiceover_path = str(relative_voiceover_path)
+
+        except Exception as e:
+            print(f"  Warning: Voiceover generation failed: {e}")
+            print("  Falling back to timestamp-independent storyboard...")
+            shorts_storyboard = None
+    else:
+        print("Skipping voiceover generation (--skip-voiceover)")
+
+    # Fallback: generate storyboard without voiceover timing
+    if shorts_storyboard is None:
+        print("Generating shorts storyboard (without voiceover sync)...")
+        shorts_storyboard = generator.generate_shorts_storyboard(
+            short_script,
+            mock=args.mock,
+        )
+
+    # Save final storyboard
+    generator.save_shorts_storyboard(shorts_storyboard, storyboard_path)
+    print(f"  Generated shorts storyboard: {storyboard_path}")
+    print(f"  Total beats: {len(shorts_storyboard.beats)}")
+
+    # Report on custom scenes generated
+    custom_scene_count = sum(1 for b in shorts_storyboard.beats if b.component_name)
+    if custom_scene_count > 0:
+        print(f"  Custom scenes generated: {custom_scene_count}")
+
+    print()
+    print("=" * 60)
+    print("SHORT GENERATION COMPLETE")
+    print("=" * 60)
+    print()
+    print(f"Short script: {result.short_script_path}")
+    print(f"Shorts storyboard: {storyboard_path}")
+    print(f"Scenes directory: {scene_paths['scenes_dir']}")
+    if shorts_storyboard.voiceover_path:
+        print(f"Voiceover: {shorts_storyboard.voiceover_path}")
+    print()
+    print("To preview in Remotion:")
+    print(f"  cd remotion && npm run dev")
+    print("  Select 'ShortsPlayer' composition and provide the storyboard")
+
+    return 0
 
 
 def cmd_generate(args: argparse.Namespace) -> int:
@@ -2191,6 +2418,16 @@ Use --force to regenerate all steps.
         type=int,
         help="Number of parallel threads for rendering",
     )
+    render_parser.add_argument(
+        "--short",
+        action="store_true",
+        help="Render a short video instead of the full video",
+    )
+    render_parser.add_argument(
+        "--variant",
+        default="default",
+        help="Short variant to render (default: 'default')",
+    )
     render_parser.set_defaults(func=cmd_render)
 
     # feedback command
@@ -2266,6 +2503,62 @@ Use --force to regenerate all steps.
         help="Show detailed progress",
     )
     factcheck_parser.set_defaults(func=cmd_factcheck)
+
+    # short command
+    short_parser = subparsers.add_parser(
+        "short",
+        help="Generate YouTube Short from existing project",
+        description="""
+Generate a YouTube Short (vertical 1080x1920, 30-60 seconds) from an existing
+full-length video project. The short hooks viewers with intriguing content
+and drives them to watch the full video.
+
+Prerequisites:
+- Run 'script' command first to generate the script
+- Run 'narration' command first to generate narrations
+
+The LLM will automatically select the most intriguing scenes for the hook,
+or you can override with --scenes to specify exact scenes.
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    short_parser.add_argument("project", help="Project ID")
+    short_parser.add_argument(
+        "--duration", "-d",
+        type=int,
+        default=45,
+        help="Target duration in seconds (default: 45, range: 30-60)",
+    )
+    short_parser.add_argument(
+        "--variant",
+        default="default",
+        help="Variant name for multiple shorts from same project",
+    )
+    short_parser.add_argument(
+        "--scenes",
+        help="Override scene selection (comma-separated scene IDs)",
+    )
+    short_parser.add_argument(
+        "--force", "-f",
+        action="store_true",
+        help="Force regenerate even if files exist",
+    )
+    short_parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Use mock LLM for testing (no API calls)",
+    )
+    short_parser.add_argument(
+        "--skip-voiceover",
+        action="store_true",
+        help="Skip voiceover generation (useful for faster iteration)",
+    )
+    short_parser.add_argument(
+        "--skip-custom-scenes",
+        action="store_true",
+        help="Skip custom scene generation (use generic pre-built components)",
+    )
+    short_parser.set_defaults(func=cmd_short)
 
     # music command
     music_parser = subparsers.add_parser(

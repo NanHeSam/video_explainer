@@ -73,6 +73,9 @@ export function calculateDuration(compositionId, props) {
       (acc, scene) => acc + scene.audio_duration_seconds + buffer,
       0
     );
+  } else if (compositionId === "ShortsPlayer" && props.storyboard) {
+    // Shorts format - use total_duration_seconds from storyboard
+    return props.storyboard.total_duration_seconds || 60;
   } else if (compositionId === "StoryboardPlayer" && props.storyboard) {
     // Old beat-based format
     return props.storyboard.duration_seconds;
@@ -99,7 +102,7 @@ export function buildProps(storyboard, voiceoverBasePath) {
 }
 
 /**
- * Resolution presets matching the CLI.
+ * Resolution presets matching the CLI (landscape 16:9).
  */
 export const RESOLUTION_PRESETS = {
   "4k": { width: 3840, height: 2160 },
@@ -108,6 +111,27 @@ export const RESOLUTION_PRESETS = {
   "720p": { width: 1280, height: 720 },
   "480p": { width: 854, height: 480 },
 };
+
+/**
+ * Shorts resolution presets (vertical 9:16).
+ */
+export const SHORTS_RESOLUTION_PRESETS = {
+  "4k": { width: 2160, height: 3840 },
+  "1440p": { width: 1440, height: 2560 },
+  "1080p": { width: 1080, height: 1920 },
+  "720p": { width: 720, height: 1280 },
+  "480p": { width: 480, height: 854 },
+};
+
+/**
+ * Check if a composition should skip scene validation.
+ * ShortsPlayer uses its own component system and doesn't need project scenes.
+ * @param {string} compositionId - The composition ID
+ * @returns {boolean} True if scene validation should be skipped
+ */
+export function shouldSkipSceneValidation(compositionId) {
+  return compositionId === "ShortsPlayer";
+}
 
 /**
  * Validate that required configuration is present.
@@ -143,6 +167,21 @@ export function deriveProjectDir(storyboardPath) {
   const parts = storyboardPath.split("/");
   parts.pop(); // remove storyboard.json
   parts.pop(); // remove storyboard/
+  return parts.join("/");
+}
+
+/**
+ * Derive shorts scenes directory from shorts storyboard path.
+ * @param {string} storyboardPath - Path to shorts_storyboard.json
+ * @returns {string} Shorts scenes directory path
+ */
+export function deriveShortsSceneDir(storyboardPath) {
+  // shorts storyboard is at projects/<name>/short/<variant>/storyboard/shorts_storyboard.json
+  // scenes are at projects/<name>/short/<variant>/scenes/
+  const parts = storyboardPath.split("/");
+  parts.pop(); // remove shorts_storyboard.json
+  parts.pop(); // remove storyboard/
+  parts.push("scenes");
   return parts.join("/");
 }
 

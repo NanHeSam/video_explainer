@@ -1,11 +1,15 @@
 import { Composition } from "remotion";
 import { loadFont as loadOutfit } from "@remotion/google-fonts/Outfit";
+import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { ExplainerVideo } from "./scenes/ExplainerVideo";
 import { StoryboardPlayer } from "./scenes/StoryboardPlayer";
 import { ThreeDemo } from "./ThreeDemo";
+import { ShortsPlayer } from "./shorts/ShortsPlayer";
+import type { ShortsStoryboard } from "./shorts/ShortsPlayer";
 
-// Load Outfit font globally - modern geometric sans-serif for tech content
-loadOutfit();
+// Load fonts globally
+loadOutfit(); // Modern geometric sans-serif for tech content
+loadInter();  // Clean sans-serif for shorts captions
 import {
   SceneStoryboardPlayer,
   DynamicStoryboardPlayer,
@@ -96,6 +100,118 @@ export const RemotionRoot: React.FC = () => {
           // Fallback for dev preview without storyboard
           return {
             durationInFrames: 30 * 1800, // 30 min max
+          };
+        }}
+      />
+
+      {/* ===== YouTube Shorts (Vertical 9:16) ===== */}
+
+      {/* Vertical Scene Player for YouTube Shorts */}
+      {/* Run with: PROJECT=your-project VARIANT=variant-name npm run dev:short */}
+      <Composition
+        id="VerticalScenePlayer"
+        component={DynamicStoryboardPlayer}
+        durationInFrames={30 * 60} // 1 min max for shorts
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          voiceoverBasePath: "voiceover",
+          isVertical: true,
+        }}
+        calculateMetadata={async ({ props }) => {
+          // When storyboard is provided (e.g., during render), use its duration
+          const storyboard = props.storyboard as SceneStoryboard | undefined;
+          if (storyboard) {
+            const duration = calculateStoryboardDuration(storyboard);
+            return {
+              durationInFrames: Math.ceil(duration * 30),
+            };
+          }
+          // For dynamic loading (dev preview), try to get injected storyboard
+          try {
+            const injected = process.env.__STORYBOARD_JSON__;
+            if (injected && typeof injected === "object") {
+              const duration = calculateStoryboardDuration(injected as unknown as SceneStoryboard);
+              return {
+                durationInFrames: Math.ceil(duration * 30),
+              };
+            }
+          } catch {
+            // Fallback to default
+          }
+          // Fallback for dev preview without storyboard
+          return {
+            durationInFrames: 30 * 60, // 1 min max for shorts
+          };
+        }}
+      />
+
+      {/* Shorts Player - Optimized for YouTube Shorts / TikTok / Reels */}
+      {/* Uses simplified visuals + animated captions */}
+      {/* Run with: PROJECT=your-project npm run dev (loads shorts_storyboard.json) */}
+      {/* Or: PROJECT=your-project VARIANT=variant-name npm run dev */}
+      <Composition
+        id="ShortsPlayer"
+        component={ShortsPlayer}
+        durationInFrames={30 * 60} // 1 min max
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          storyboard: {
+            id: "preview",
+            title: "Shorts Preview",
+            total_duration_seconds: 10,
+            beats: [
+              {
+                id: "beat1",
+                start_seconds: 0,
+                end_seconds: 5,
+                visual: {
+                  type: "big_number",
+                  primary_text: "150,528",
+                  secondary_text: "pixels in one image",
+                  color: "primary",
+                },
+                caption_text: "One image contains over 150 thousand pixels",
+                word_timestamps: [],
+              },
+              {
+                id: "beat2",
+                start_seconds: 5,
+                end_seconds: 10,
+                visual: {
+                  type: "question",
+                  primary_text: "How do transformers handle this?",
+                  color: "accent",
+                },
+                caption_text: "But how do transformers actually handle this?",
+                word_timestamps: [],
+              },
+            ],
+            hook_question: "How do transformers process images?",
+            cta_text: "Full breakdown in description",
+          } as ShortsStoryboard,
+        }}
+        calculateMetadata={async ({ props }) => {
+          // Try to use injected shorts storyboard from PROJECT env
+          try {
+            const injected = process.env.__SHORTS_STORYBOARD_JSON__;
+            if (injected && typeof injected === "object") {
+              const storyboard = injected as unknown as ShortsStoryboard;
+              return {
+                durationInFrames: Math.ceil(storyboard.total_duration_seconds * 30),
+                props: { ...props, storyboard },
+              };
+            }
+          } catch {
+            // Fallback to props
+          }
+          const storyboard = props.storyboard as ShortsStoryboard | undefined;
+          const duration = storyboard?.total_duration_seconds || 60;
+          return {
+            durationInFrames: Math.ceil(duration * 30),
           };
         }}
       />

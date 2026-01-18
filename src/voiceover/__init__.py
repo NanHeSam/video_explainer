@@ -5,7 +5,7 @@ from .narration import (
     load_narrations_from_file,
     load_narrations_from_project,
 )
-from .generator import VoiceoverGenerator, VoiceoverResult, SceneVoiceover
+from .generator import VoiceoverGenerator, VoiceoverResult, SceneVoiceover, ShortVoiceover
 
 __all__ = [
     "SceneNarration",
@@ -14,4 +14,5 @@ __all__ = [
     "VoiceoverGenerator",
     "VoiceoverResult",
     "SceneVoiceover",
+    "ShortVoiceover",
 ]
