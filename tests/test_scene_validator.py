@@ -717,6 +717,42 @@ class TestSceneGeneratorIntegration:
         assert (scenes_dir / "styles.ts").exists()
         assert (scenes_dir / "index.ts").exists()
 
+    def test_generate_all_scenes_creates_reference_component(self, tmp_path: Path):
+        """Test that components/Reference.tsx is created.
+
+        This test prevents regression of the 'Module not found: ./components/Reference' bug.
+        The generator prompt tells LLM to use Reference component, so it must be created.
+        """
+        script_path = tmp_path / "script" / "script.json"
+        script_path.parent.mkdir(parents=True)
+
+        import json
+        script_data = {
+            "title": "Test Video",
+            "scenes": []
+        }
+        script_path.write_text(json.dumps(script_data))
+
+        generator = SceneGenerator(working_dir=tmp_path)
+
+        generator.generate_all_scenes(
+            project_dir=tmp_path,
+            script_path=script_path,
+            force=True,
+        )
+
+        scenes_dir = tmp_path / "scenes"
+        reference_path = scenes_dir / "components" / "Reference.tsx"
+        assert reference_path.exists(), \
+            "Reference component must be created in scenes/components/Reference.tsx"
+
+        # Verify it has the expected exports
+        content = reference_path.read_text()
+        assert "export const Reference" in content, \
+            "Reference.tsx must export Reference component"
+        assert "interface ReferenceProps" in content, \
+            "Reference.tsx must define ReferenceProps interface"
+
 
 class TestDynamicBackgroundCheck:
     """Tests for dynamic background pattern detection."""
@@ -1218,3 +1254,130 @@ export const TestScene: React.FC = () => {
         # Should have warning about flex column without minHeight
         flex_warnings = [w for w in result.warnings if "flex" in w.message.lower() and "minHeight" in w.message]
         assert len(flex_warnings) > 0
+
+
+class TestJsxSyntaxCheck:
+    """Tests for JSX syntax validation.
+
+    This test class prevents regression of the 'The character ">" is not valid
+    inside a JSX element' error that occurs when comparison operators are used
+    in JSX text content without proper escaping.
+    """
+
+    def test_detects_unescaped_greater_than_in_jsx_text(self, tmp_path: Path):
+        """Test that unescaped > in JSX text triggers an error."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div>Given that x > 0 and y = 2x + 3</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "UnescapedGtScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have error about unescaped comparison operator
+        jsx_errors = [e for e in result.errors if ">" in e.message or "unescaped" in e.message.lower()]
+        assert len(jsx_errors) > 0, \
+            "Validator should detect unescaped > in JSX text content"
+
+    def test_detects_unescaped_less_than_in_jsx_text(self, tmp_path: Path):
+        """Test that unescaped < in JSX text triggers an error."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div>When 0 < x we have positive values</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "UnescapedLtScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should have error about unescaped comparison operator
+        jsx_errors = [e for e in result.errors if "<" in e.message or "unescaped" in e.message.lower()]
+        assert len(jsx_errors) > 0, \
+            "Validator should detect unescaped < in JSX text content"
+
+    def test_no_error_with_escaped_comparison_operators(self, tmp_path: Path):
+        """Test that properly escaped operators don't trigger errors."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <div>Given that x &gt; 0 and y &lt; 10</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "EscapedScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Should not have errors about unescaped operators
+        jsx_errors = [e for e in result.errors if "unescaped" in e.message.lower()]
+        assert len(jsx_errors) == 0, \
+            "Properly escaped operators (&gt; &lt;) should not trigger errors"
+
+    def test_no_error_with_comparison_in_js_expression(self, tmp_path: Path):
+        """Test that comparison operators in JS expressions are allowed."""
+        scene_content = '''
+import React from "react";
+import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
+import { COLORS } from "./styles";
+
+export const TestScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const glowPulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
+  const opacity = frame > 30 ? 1 : frame / 30;
+  const visible = opacity > 0.5;
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background, opacity }}>
+      <div style={{ display: visible ? "block" : "none" }}>{glowPulse}</div>
+    </AbsoluteFill>
+  );
+};
+'''
+        scene_file = tmp_path / "JsExpressionScene.tsx"
+        scene_file.write_text(scene_content)
+        (tmp_path / "styles.ts").write_text("export const COLORS = { background: '#fff' };")
+
+        validator = SceneValidator()
+        result = validator.validate_single_scene(scene_file)
+
+        # Comparison operators in JS expressions are valid, should not error
+        jsx_errors = [e for e in result.errors if "unescaped" in e.message.lower() and ">" in e.message]
+        assert len(jsx_errors) == 0, \
+            "Comparison operators in JS expressions should not trigger errors"

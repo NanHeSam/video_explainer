@@ -1436,6 +1436,96 @@ export function getAvailableSceneTypes(): string[] {{
 '''
 
 
+REFERENCE_TEMPLATE = '''/**
+ * Reference Component
+ *
+ * Displays source references in the bottom-right corner of scenes.
+ * Used to show citations, sources, and technical references.
+ */
+
+import React from "react";
+import {{ interpolate, useCurrentFrame, useVideoConfig, spring }} from "remotion";
+import {{ COLORS, FONTS }} from "../styles";
+
+interface ReferenceProps {{
+  sources: string[];
+  startFrame?: number;
+  delay?: number;
+}}
+
+export const Reference: React.FC<ReferenceProps> = ({{
+  sources,
+  startFrame = 0,
+  delay = 60,
+}}) => {{
+  const frame = useCurrentFrame();
+  const {{ fps, width, height }} = useVideoConfig();
+  const localFrame = frame - startFrame;
+  const scale = Math.min(width / 1920, height / 1080);
+
+  // Fade in animation
+  const opacity = spring({{
+    frame: localFrame - delay,
+    fps,
+    config: {{ damping: 20, stiffness: 80 }},
+  }});
+
+  if (sources.length === 0) return null;
+
+  return (
+    <div
+      style={{{{
+        position: "absolute",
+        right: 24 * scale,
+        bottom: 24 * scale,
+        maxWidth: 300 * scale,
+        opacity,
+        fontFamily: FONTS.system,
+      }}}}
+    >
+      <div
+        style={{{{
+          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          borderRadius: 8 * scale,
+          padding: `${{8 * scale}}px ${{12 * scale}}px`,
+          border: `1px solid ${{COLORS.border}}`,
+          boxShadow: `0 2px 8px rgba(0, 0, 0, 0.08)`,
+        }}}}
+      >
+        <div
+          style={{{{
+            fontSize: 9 * scale,
+            fontWeight: 600,
+            color: COLORS.textMuted,
+            textTransform: "uppercase",
+            letterSpacing: 0.5 * scale,
+            marginBottom: 4 * scale,
+          }}}}
+        >
+          Sources
+        </div>
+        {{sources.map((source, index) => (
+          <div
+            key={{index}}
+            style={{{{
+              fontSize: 9 * scale,
+              color: COLORS.textDim,
+              lineHeight: 1.4,
+              marginTop: index > 0 ? 2 * scale : 0,
+            }}}}
+          >
+            {{source}}
+          </div>
+        ))}}
+      </div>
+    </div>
+  );
+}};
+
+export default Reference;
+'''
+
+
 class SceneGenerator:
     """Generates Remotion scene components from scripts using Claude Code."""
 
@@ -1518,6 +1608,9 @@ class SceneGenerator:
 
         # Generate styles.ts first
         self._generate_styles(scenes_dir, script.get("title", "Untitled"))
+
+        # Generate Reference component in components/ subdirectory
+        self._generate_reference_component(scenes_dir)
 
         # Generate each scene
         results = {
@@ -1996,6 +2089,19 @@ Write the complete component code to the file: {output_path}
         index_path = scenes_dir / "index.ts"
         with open(index_path, "w") as f:
             f.write(content)
+
+    def _generate_reference_component(self, scenes_dir: Path) -> None:
+        """Generate the Reference component in components/ subdirectory.
+
+        This creates the Reference component that scenes can optionally import
+        for displaying source citations.
+        """
+        components_dir = scenes_dir / "components"
+        components_dir.mkdir(parents=True, exist_ok=True)
+
+        reference_path = components_dir / "Reference.tsx"
+        with open(reference_path, "w") as f:
+            f.write(REFERENCE_TEMPLATE)
 
     def _load_example_scene(self, example_dir: Path | None = None) -> str:
         """Load an example scene for reference.

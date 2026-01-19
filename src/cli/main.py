@@ -2528,6 +2528,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
             step_args.sync = False  # Generate mode, not sync
             step_args.scene = None
             step_args.no_validate = False
+            step_args.verbose = False
             result = cmd_scenes(step_args)
 
         elif step == "voiceover":

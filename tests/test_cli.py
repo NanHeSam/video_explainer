@@ -2216,19 +2216,20 @@ class TestCmdGeneratePipelineArgs:
             "cmd_generate must set step_args.topic for narration step"
 
     def test_generate_narration_step_sets_verbose(self):
-        """Test that cmd_generate's narration step sets 'verbose' argument.
+        """Test that cmd_generate's steps set 'verbose' argument.
 
         This test prevents regression of the 'AttributeError: verbose' bug.
+        Steps that call cmd_* functions requiring verbose: script, narration, scenes.
         """
         from src.cli.main import cmd_generate
         import inspect
         source = inspect.getsource(cmd_generate)
 
-        # Count occurrences - need at least 2 (one for script, one for narration)
-        # since both steps need verbose
+        # Count occurrences - need at least 3 (script, narration, scenes)
+        # since all three steps need verbose
         verbose_count = source.count("step_args.verbose")
-        assert verbose_count >= 2, \
-            f"cmd_generate must set step_args.verbose for multiple steps (found {verbose_count})"
+        assert verbose_count >= 3, \
+            f"cmd_generate must set step_args.verbose for script, narration, and scenes steps (found {verbose_count})"
 
     def test_generate_all_steps_set_required_base_args(self):
         """Test that all pipeline steps in cmd_generate set basic required args.

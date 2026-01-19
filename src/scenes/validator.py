@@ -130,6 +130,9 @@ class SceneValidator:
         # Check for visual boundary overflow risks
         issues.extend(self._check_visual_boundaries(content, lines, filename))
 
+        # Check for JSX syntax issues (unescaped < > characters)
+        issues.extend(self._check_jsx_syntax(content, lines, filename))
+
         return issues
 
     def _check_undefined_variables(
@@ -756,6 +759,48 @@ class SceneValidator:
                         )
                 except (ValueError, IndexError):
                     pass
+
+        return issues
+
+    def _check_jsx_syntax(
+        self, content: str, lines: list[str], filename: str
+    ) -> list[ValidationIssue]:
+        """Check for JSX syntax issues.
+
+        Detects common JSX syntax errors:
+        - Unescaped > or < characters in JSX text content
+        - These cause "The character '>' is not valid inside a JSX element" errors
+        """
+        issues: list[ValidationIssue] = []
+
+        # Pattern to find JSX text content that contains unescaped < or >
+        # Look for patterns like: >text with > or < in it<
+        # This is tricky because > and < are valid in JS expressions
+        # Focus on content between JSX tags that has unescaped comparison operators
+
+        for line_num, line in enumerate(lines, 1):
+            # Skip lines that are pure JS/TS (not JSX)
+            # JSX lines typically have HTML-like tags
+            if not re.search(r'<\w+|</\w+|<br\s*/?>|{.*}', line):
+                continue
+
+            # Look for text content with unescaped > that's not part of JSX/arrow syntax
+            # Pattern: after a > or {" and before < or "}, look for standalone > or <
+            # Common issue: "x > 0" in JSX text
+            jsx_text_pattern = r'>\s*([^<>{]*[^<>{}=!]\s*[><]\s*[^<>{}]*)\s*<'
+            for match in re.finditer(jsx_text_pattern, line):
+                text_content = match.group(1)
+                # Check if it contains unescaped > or < that looks like comparison
+                if re.search(r'\w\s*>\s*\d|\d\s*<\s*\w|\w\s*<\s*\d|\d\s*>\s*\w', text_content):
+                    issues.append(
+                        ValidationIssue(
+                            severity="error",
+                            message=f"Unescaped comparison operator in JSX text: '{text_content.strip()}'",
+                            file=filename,
+                            line=line_num,
+                            suggestion="Use &gt; for > and &lt; for < in JSX text content",
+                        )
+                    )
 
         return issues
 
