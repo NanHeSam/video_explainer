@@ -16,6 +16,11 @@ import {
   SceneStoryboard,
   calculateStoryboardDuration,
 } from "./scenes/SceneStoryboardPlayer";
+import {
+  SingleScenePlayer,
+  SingleScenePlayerProps,
+  calculateSingleSceneDuration,
+} from "./scenes/SingleScenePlayer";
 import { defaultScriptProps } from "./types/script";
 import type { Storyboard } from "./types/storyboard";
 
@@ -100,6 +105,32 @@ export const RemotionRoot: React.FC = () => {
           // Fallback for dev preview without storyboard
           return {
             durationInFrames: 30 * 1800, // 30 min max
+          };
+        }}
+      />
+
+      {/* ===== Single Scene Player (for inspection/refinement) ===== */}
+
+      {/* Single Scene Player - loads just ONE scene starting at frame 0 */}
+      {/* Perfect for visual inspection without navigating through entire video */}
+      {/* URL: /SingleScenePlayer?props={"sceneType":"project/scene_name","durationInSeconds":30} */}
+      <Composition
+        id="SingleScenePlayer"
+        component={SingleScenePlayer}
+        durationInFrames={30 * 60} // 1 min max - actual duration set by props
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          sceneType: "unknown",
+          durationInSeconds: 30,
+          voiceoverBasePath: "voiceover",
+          backgroundColor: "#0f0f1a",
+        }}
+        calculateMetadata={async ({ props }) => {
+          const p = props as SingleScenePlayerProps;
+          return {
+            durationInFrames: calculateSingleSceneDuration(p, 30),
           };
         }}
       />

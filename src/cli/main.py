@@ -24,6 +24,8 @@ Usage:
     python -m src.cli feedback <project> add "<text>"         # Process feedback
     python -m src.cli feedback <project> list                 # List feedback
     python -m src.cli factcheck <project>                     # Fact-check script
+    python -m src.cli refine <project>                        # Refine video quality
+    python -m src.cli refine <project> --scene 1              # Refine specific scene
 
 Input formats supported:
     - Markdown files (.md, .markdown)
@@ -41,6 +43,7 @@ Pipeline workflow:
     8. music     - Generate AI background music (optional)
     9. render    - Render final video
     10. feedback - Iterate on video with natural language feedback
+    11. refine   - Refine video quality to 3Blue1Brown/Veritasium level
 """
 
 import argparse
@@ -438,6 +441,29 @@ def _export_recording_script(project, narrations, args) -> int:
     return 0
 
 
+def _get_audio_duration(audio_path: Path) -> float:
+    """Get audio duration using ffprobe."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return float(result.stdout.strip())
+    except (subprocess.TimeoutExpired, ValueError, FileNotFoundError):
+        pass
+    return 0.0
+
+
 def cmd_storyboard(args: argparse.Namespace) -> int:
     """Generate or view storyboard for a project."""
     from ..project import load_project
@@ -560,13 +586,21 @@ def cmd_storyboard(args: argparse.Namespace) -> int:
         scene_type_key = _title_to_scene_key(title)
         scene_type = f"{project.id}/{scene_type_key}"
 
-        # Get audio info from voiceover manifest or narration
+        # Get audio info - prefer actual file duration over manifest (manifest may be stale)
         if scene_id in voiceover_data:
             audio_file = voiceover_data[scene_id]["audio_file"]
-            audio_duration = voiceover_data[scene_id]["duration"]
+            audio_path = project.voiceover_dir / audio_file
+            if audio_path.exists():
+                audio_duration = _get_audio_duration(audio_path)
+            else:
+                audio_duration = voiceover_data[scene_id]["duration"]
         else:
             audio_file = f"{scene_id}.mp3"
-            audio_duration = scene.get("duration_seconds", 20)
+            audio_path = project.voiceover_dir / audio_file
+            if audio_path.exists():
+                audio_duration = _get_audio_duration(audio_path)
+            else:
+                audio_duration = scene.get("duration_seconds", 20)
 
         storyboard_scene = {
             "id": scene_id,
@@ -2680,6 +2714,10 @@ Use --force to regenerate all steps.
         help="LLM timeout in seconds (default: 600)",
     )
     generate_parser.set_defaults(func=cmd_generate)
+
+    # refine command - imported from refine module
+    from ..refine.command import add_refine_parser
+    add_refine_parser(subparsers)
 
     # voiceover command
     voiceover_parser = subparsers.add_parser("voiceover", help="Generate voiceovers")

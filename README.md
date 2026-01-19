@@ -65,7 +65,8 @@ python -m src.cli narration <project>     # 2. Generate narrations for scenes
 python -m src.cli scenes <project>        # 3. Generate Remotion scene components
 python -m src.cli voiceover <project>     # 4. Generate audio from narrations
 python -m src.cli storyboard <project>    # 5. Create storyboard linking scenes + audio
-python -m src.cli render <project>        # 6. Render final video
+python -m src.cli refine <project>        # 6. (Optional) AI-powered visual refinement
+python -m src.cli render <project>        # 7. Render final video
 
 # Or run the entire pipeline with a single command
 python -m src.cli generate <project>      # Run all steps end-to-end
@@ -223,6 +224,56 @@ The storyboard combines:
 - Scene types from generated Remotion components
 
 Output: `projects/<project>/storyboard/storyboard.json`
+
+#### Visual Refinement
+
+Refine scene quality through AI-powered visual inspection. Uses Claude Code with browser access to view Remotion scenes and identify/fix visual issues.
+
+**Prerequisites:**
+- Scene components generated (`scenes` command)
+- Storyboard created (`storyboard` command)
+- Remotion dev server running or the command will start it automatically
+
+```bash
+# Refine a specific scene
+python -m src.cli refine llm-inference --scene 3      # Refine scene 3
+python -m src.cli refine llm-inference --scene 3 --live  # Stream Claude Code output
+
+# Full project refinement (all scenes)
+python -m src.cli refine llm-inference                # Refine all scenes
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--scene N` | Refine only scene N (1-indexed) |
+| `--live` | Stream Claude Code output in real-time |
+| `-v, --verbose` | Show detailed progress |
+
+**How it works:**
+
+1. **Beat Parsing**: Narration is analyzed to identify key visual moments (beats)
+2. **Visual Inspection**: Claude Code opens the scene in Remotion Studio (SingleScenePlayer)
+3. **Quality Assessment**: Screenshots are analyzed against 10 guiding principles:
+   - Show Don't Tell - Use visuals, not just text
+   - Animation Reveals - Animate elements in sync with narration
+   - Progressive Disclosure - Show info as it's mentioned
+   - Text Complements - Text supports visuals, doesn't replace
+   - Visual Hierarchy - Guide viewer's eye
+   - Breathing Room - Don't clutter
+   - Purposeful Motion - Every animation has meaning
+   - Emotional Resonance - Connect with viewer
+   - Professional Polish - Clean, consistent
+   - Sync with Narration - Timing matches speech
+4. **Fix Application**: Claude Code edits the scene component to fix identified issues
+5. **Verification**: New screenshots verify improvements
+
+**Technical Details:**
+
+The refine command uses a `SingleScenePlayer` Remotion composition that loads individual scenes starting at frame 0, eliminating the need to navigate through the entire video. This speeds up inspection significantly.
+
+Output: Scene files are modified in place (`projects/<project>/scenes/*.tsx`)
 
 #### Rendering
 
@@ -509,6 +560,7 @@ video_explainer/
 │   ├── factcheck/               # Fact checking with web verification
 │   ├── short/                   # Shorts generation
 │   ├── feedback/                # Feedback processing
+│   ├── refine/                  # Visual refinement (AI-powered inspection)
 │   ├── animation/               # Animation rendering
 │   ├── composition/             # Video assembly
 │   ├── pipeline/                # End-to-end orchestration
