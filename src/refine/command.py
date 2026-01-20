@@ -160,26 +160,40 @@ def _run_visual_phase(project: Project, args: argparse.Namespace) -> int:
     # Print summary
     _print_refinement_summary(results)
 
-    # Save results
-    output_path = project.root_dir / "output" / "refinement_results.json"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Save results to refinement directory in project folder
+    refinement_dir = project.root_dir / "refinement"
+    refinement_dir.mkdir(parents=True, exist_ok=True)
 
-    results_data = {
-        "project_id": project.id,
-        "phase": "visual",
-        "scenes": [r.to_dict() for r in results],
-        "summary": {
-            "total_scenes": len(results),
-            "scenes_passed": sum(1 for r in results if r.verification_passed),
-            "total_issues_found": sum(len(r.issues_found) for r in results),
-            "total_fixes_applied": sum(len(r.fixes_applied) for r in results),
-        },
-    }
+    # Save per-scene results
+    for result in results:
+        scene_filename = f"{result.scene_id}.json"
+        scene_path = refinement_dir / scene_filename
+        scene_data = {
+            "project_id": project.id,
+            "phase": "visual",
+            "scene": result.to_dict(),
+        }
+        with open(scene_path, "w") as f:
+            json.dump(scene_data, f, indent=2)
+        print(f"   📄 Scene results saved to: {scene_path}")
 
-    with open(output_path, "w") as f:
-        json.dump(results_data, f, indent=2)
-
-    print(f"\n   📄 Results saved to: {output_path}")
+    # Save summary if multiple scenes
+    if len(results) > 1:
+        summary_path = refinement_dir / "summary.json"
+        summary_data = {
+            "project_id": project.id,
+            "phase": "visual",
+            "summary": {
+                "total_scenes": len(results),
+                "scenes_passed": sum(1 for r in results if r.verification_passed),
+                "total_issues_found": sum(len(r.issues_found) for r in results),
+                "total_fixes_applied": sum(len(r.fixes_applied) for r in results),
+            },
+            "scenes": [{"scene_id": r.scene_id, "passed": r.verification_passed} for r in results],
+        }
+        with open(summary_path, "w") as f:
+            json.dump(summary_data, f, indent=2)
+        print(f"   📄 Summary saved to: {summary_path}")
 
     # Return success if all scenes passed verification
     all_passed = all(r.verification_passed for r in results)
