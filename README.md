@@ -225,20 +225,22 @@ The storyboard combines:
 
 Output: `projects/<project>/storyboard/storyboard.json`
 
-#### Refinement (3-Phase Process)
+#### Refinement (4-Phase Process)
 
-The refinement system helps elevate video quality to professional standards (3Blue1Brown / Veritasium level) through a 3-phase process:
+The refinement system helps elevate video quality to professional standards (3Blue1Brown / Veritasium level) through a 4-phase process:
 
 1. **Phase 1: Analyze** - Gap analysis that generates patches to fix script issues
 2. **Phase 2: Script** - Loads patches from Phase 1, adds storytelling refinements, applies changes
-3. **Phase 3: Visual** - AI-powered visual inspection and fixes
+3. **Phase 3: Visual-Cue** - Improves visual_cue specifications in script.json
+4. **Phase 4: Visual** - AI-powered visual inspection and fixes
 
 **Key Design: Phases 1 and 2 are connected.** Phase 1 outputs patches that Phase 2 consumes and applies.
 
 **Prerequisites:**
 - For Phase 1: Input source material (`input/*.md` or `input/*.txt`) and narrations
 - For Phase 2: Run Phase 1 first to generate patches
-- For Phase 3: Scene components generated (`scenes` command) and storyboard created
+- For Phase 3: Script with visual_cue fields in `script/script.json`
+- For Phase 4: Scene components generated (`scenes` command) and storyboard created
 
 ```bash
 # Phase 1: Gap Analysis (generates patches)
@@ -248,7 +250,12 @@ python -m src.cli refine llm-inference --phase analyze
 python -m src.cli refine llm-inference --phase script              # Interactive approval
 python -m src.cli refine llm-inference --phase script --batch-approve  # Auto-approve all
 
-# Phase 3: Visual Refinement (inspect and fix scenes)
+# Phase 3: Visual-Cue Refinement (improve visual specifications)
+python -m src.cli refine llm-inference --phase visual-cue          # Analyze all scenes
+python -m src.cli refine llm-inference --phase visual-cue --scene 0  # Specific scene
+python -m src.cli refine llm-inference --phase visual-cue --apply  # Apply patches to script.json
+
+# Phase 4: Visual Refinement (inspect and fix scenes)
 python -m src.cli refine llm-inference --phase visual
 python -m src.cli refine llm-inference --phase visual --scene 3  # Specific scene
 
@@ -260,8 +267,9 @@ python -m src.cli refine llm-inference
 
 | Option | Description |
 |--------|-------------|
-| `--phase` | Phase to run: `analyze`, `script`, or `visual` (default: visual) |
-| `--scene N` | Refine only scene N (1-indexed, visual phase only) |
+| `--phase` | Phase to run: `analyze`, `script`, `visual-cue`, or `visual` (default: visual) |
+| `--scene N` | Refine only scene N (0-indexed for visual-cue, 1-indexed for visual) |
+| `--apply` | Apply generated patches to script.json (visual-cue phase) |
 | `--batch-approve` | Auto-approve all suggested changes (script phase) |
 | `--live` | Stream Claude Code output in real-time |
 | `-v, --verbose` | Show detailed progress |
@@ -345,7 +353,42 @@ python -m src.cli refine llm-inference --phase script --batch-approve  # Auto-ap
 
 ---
 
-##### Phase 3: Visual Refinement (`--phase visual`)
+##### Phase 3: Visual-Cue Refinement (`--phase visual-cue`)
+
+Analyzes and improves the `visual_cue` specifications in `script.json` to follow established visual patterns.
+
+```bash
+python -m src.cli refine llm-inference --phase visual-cue           # Analyze all scenes
+python -m src.cli refine llm-inference --phase visual-cue --scene 0 # Specific scene
+python -m src.cli refine llm-inference --phase visual-cue --apply   # Apply patches
+```
+
+**How it works:**
+
+1. **Load Script**: Reads `script/script.json` and extracts visual_cue for each scene
+2. **Analyze Visual Cues**: Uses LLM to evaluate each visual_cue against established patterns:
+   - Dark glass panels with multi-layer shadows
+   - 3D depth and layered compositions
+   - Bezel borders and inner shadows
+   - Specific color specifications (e.g., rgba values)
+3. **Generate Patches**: Creates `UpdateVisualCuePatch` for scenes needing improvement
+4. **Apply Patches**: With `--apply` flag, updates `script.json` with improved visual_cues
+
+**Visual Pattern Guidelines:**
+
+The refiner ensures visual_cues specify:
+- **Material style**: Dark glass panels vs light panels
+- **Shadow layers**: Multi-layer shadows with specific opacities
+- **3D depth**: Layered compositions with clear z-ordering
+- **Color values**: Specific rgba ranges for backgrounds
+
+**Output:**
+- Analysis results: `projects/<project>/refine/visual_cue_analysis.json`
+- With `--apply`: Updates `script/script.json` visual_cue fields
+
+---
+
+##### Phase 4: Visual Refinement (`--phase visual`)
 
 AI-powered visual inspection using Claude Code with browser access.
 
@@ -358,7 +401,7 @@ python -m src.cli refine llm-inference --phase visual --scene 3 --live
 
 1. **Beat Parsing**: Narration is analyzed to identify key visual moments (beats)
 2. **Visual Inspection**: Claude Code opens the scene in Remotion Studio (SingleScenePlayer)
-3. **Quality Assessment**: Screenshots are analyzed against 11 guiding principles:
+3. **Quality Assessment**: Screenshots are analyzed against 13 guiding principles:
    - Show Don't Tell - Use visuals, not just text
    - Animation Reveals - Animate elements in sync with narration
    - Progressive Disclosure - Show info as it's mentioned
@@ -370,6 +413,8 @@ python -m src.cli refine llm-inference --phase visual --scene 3 --live
    - Professional Polish - Clean, consistent
    - Sync with Narration - Timing matches speech
    - Screen Space Utilization - Use full canvas effectively
+   - Material Depth - Multi-layer shadows and 3D depth
+   - Visual Spec Match - Match visual_cue specification from script.json
 4. **Fix Application**: Claude Code edits the scene component to fix identified issues
 5. **Verification**: New screenshots verify improvements
 

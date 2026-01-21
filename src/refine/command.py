@@ -22,10 +22,12 @@ from .models import (
     ModifyScenePatch,
     ExpandScenePatch,
     AddBridgePatch,
+    UpdateVisualCuePatch,
 )
 from .validation import validate_project_sync, ProjectValidator
 from .visual import VisualInspector, ClaudeCodeVisualInspector
 from .script import ScriptAnalyzer, ScriptRefiner
+from .visual_cue import VisualCueRefiner
 
 
 def cmd_refine(args: argparse.Namespace) -> int:
@@ -77,6 +79,8 @@ def cmd_refine(args: argparse.Namespace) -> int:
         return _run_script_phase(project, args)
     elif phase == "visual":
         return _run_visual_phase(project, args)
+    elif phase == "visual-cue":
+        return _run_visual_cue_phase(project, args)
     else:
         print(f"Error: Unknown phase '{phase}'", file=sys.stderr)
         return 1
@@ -471,6 +475,84 @@ def _run_visual_phase(project: Project, args: argparse.Namespace) -> int:
     return 0 if all_passed else 1
 
 
+def _run_visual_cue_phase(project: Project, args: argparse.Namespace) -> int:
+    """Run visual-cue refinement phase."""
+    print("\n🎨 Visual Cue Refinement")
+    print("   " + "=" * 40)
+
+    verbose = not getattr(args, "quiet", False)
+    apply_patches = getattr(args, "apply", False)
+    scene_index = getattr(args, "scene", None)
+
+    refiner = VisualCueRefiner(project=project, verbose=verbose)
+
+    # Determine which scenes to analyze
+    scene_indices = None
+    if scene_index is not None:
+        scene_indices = [scene_index - 1]  # Convert to 0-based
+
+    # Run analysis
+    result = refiner.analyze(scene_indices=scene_indices)
+
+    if result.error_message:
+        print(f"\n   ❌ Error: {result.error_message}")
+        return 1
+
+    # Print results
+    _print_visual_cue_analysis(result)
+
+    # Save results
+    output_path = refiner.save_result(result)
+    print(f"\n   📄 Analysis saved to: {output_path}")
+
+    if not result.patches:
+        print("\n   ✅ All visual_cues are well-specified. No updates needed!")
+        return 0
+
+    # Apply patches if requested
+    if apply_patches:
+        print(f"\n   🔧 Applying {len(result.patches)} patches...")
+        applied = refiner.apply_patches(result.patches)
+        print(f"   ✅ Applied {applied}/{len(result.patches)} patches to script.json")
+
+        if applied > 0:
+            print("\n   💡 Next steps:")
+            print("      1. Review changes in script/script.json")
+            print("      2. Run 'refine --phase visual' to inspect and fix scenes")
+    else:
+        print(f"\n   💡 Found {len(result.patches)} patches to apply.")
+        print("   Run with --apply to update script.json, or review patches in the analysis file.")
+
+    return 0
+
+
+def _print_visual_cue_analysis(result) -> None:
+    """Print visual cue analysis results."""
+    print("\n" + "=" * 60)
+    print("📋 VISUAL CUE ANALYSIS RESULTS")
+    print("=" * 60)
+
+    print(f"\n   Scenes analyzed: {result.scenes_analyzed}")
+    print(f"   Scenes needing update: {result.scenes_needing_update}")
+
+    if result.patches:
+        print(f"\n   🔧 Patches to apply ({len(result.patches)}):")
+        for i, patch in enumerate(result.patches, 1):
+            print(f"\n   [{i}] Scene: {patch.scene_title}")
+            print(f"       Reason: {patch.reason[:80]}...")
+            if patch.new_visual_cue:
+                desc = patch.new_visual_cue.get("description", "")[:100]
+                print(f"       New description: {desc}...")
+                elements = patch.new_visual_cue.get("elements", [])
+                if elements:
+                    print(f"       Elements: {len(elements)} items")
+
+    if result.analysis_notes:
+        print(f"\n   📝 Notes: {result.analysis_notes}")
+
+    print("\n" + "=" * 60)
+
+
 def _print_refinement_summary(results: list) -> None:
     """Print a summary of refinement results."""
     print("\n" + "=" * 60)
@@ -515,24 +597,30 @@ def add_refine_parser(subparsers: argparse._SubParsersAction) -> None:
         "refine",
         help="Refine video project to high quality (3Blue1Brown/Veritasium level)",
         description="""
-Refine a video project to high quality standards using a 3-phase process:
+Refine a video project to high quality standards using a multi-phase process:
 
 Phase 1 (analyze): Compare source material against script to identify gaps
 Phase 2 (script): Refine narrations and update script structure
 Phase 3 (visual): Inspect and refine scene visuals (default)
+Phase 4 (visual-cue): Analyze and improve visual_cue specifications in script.json
 
 The visual phase uses AI to:
 1. Parse narration into visual "beats"
 2. Capture screenshots at key moments
-3. Analyze against 10 quality principles
+3. Analyze against 13 quality principles
 4. Generate and apply fixes
 5. Verify improvements
 
+The visual-cue phase analyzes script.json visual specifications and generates
+patches to improve them (dark glass patterns, 3D depth, specific elements).
+
 Example usage:
-  python -m src.cli.main refine my-project                     # Refine all scenes (visual)
-  python -m src.cli.main refine my-project --scene 1           # Refine specific scene
-  python -m src.cli.main refine my-project --phase analyze     # Run gap analysis
-  python -m src.cli.main refine my-project --phase script      # Refine narrations
+  python -m src.cli.main refine my-project                        # Refine all scenes (visual)
+  python -m src.cli.main refine my-project --scene 1              # Refine specific scene
+  python -m src.cli.main refine my-project --phase analyze        # Run gap analysis
+  python -m src.cli.main refine my-project --phase script         # Refine narrations
+  python -m src.cli.main refine my-project --phase visual-cue     # Analyze visual_cues
+  python -m src.cli.main refine my-project --phase visual-cue --apply  # Apply visual_cue patches
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -544,9 +632,9 @@ Example usage:
 
     refine_parser.add_argument(
         "--phase",
-        choices=["analyze", "script", "visual"],
+        choices=["analyze", "script", "visual", "visual-cue"],
         default="visual",
-        help="Refinement phase to run (default: visual)",
+        help="Refinement phase to run: analyze, script, visual (default), or visual-cue",
     )
 
     refine_parser.add_argument(
@@ -590,6 +678,12 @@ Example usage:
         "--batch-approve",
         action="store_true",
         help="Automatically approve all suggested revisions (for --phase script)",
+    )
+
+    refine_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply patches to script.json (for --phase visual-cue)",
     )
 
     refine_parser.add_argument(

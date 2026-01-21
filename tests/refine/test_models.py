@@ -15,6 +15,8 @@ from src.refine.models import (
     SyncIssue,
     SyncIssueType,
     ProjectSyncStatus,
+    ScriptPatchType,
+    UpdateVisualCuePatch,
 )
 
 
@@ -229,7 +231,7 @@ class TestIssueType:
     """Tests for IssueType enum."""
 
     def test_all_issue_types_exist(self):
-        """Test that all 11 principle issue types exist plus 'other'."""
+        """Test that all 13 principle issue types exist plus 'other'."""
         expected_types = [
             "show_dont_tell",
             "animation_reveals",
@@ -242,7 +244,83 @@ class TestIssueType:
             "professional_polish",
             "sync_with_narration",
             "screen_space_utilization",
+            "material_depth",
+            "visual_spec_match",
             "other",
         ]
         for type_name in expected_types:
             assert IssueType(type_name) is not None
+
+    def test_material_depth_issue_type(self):
+        """Test that material_depth issue type exists."""
+        assert IssueType.MATERIAL_DEPTH.value == "material_depth"
+
+    def test_visual_spec_match_issue_type(self):
+        """Test that visual_spec_match issue type exists."""
+        assert IssueType.VISUAL_SPEC_MATCH.value == "visual_spec_match"
+
+
+class TestUpdateVisualCuePatch:
+    """Tests for UpdateVisualCuePatch model."""
+
+    def test_patch_creation(self):
+        """Test creating an UpdateVisualCuePatch."""
+        patch = UpdateVisualCuePatch(
+            reason="Visual cue needs dark glass specification",
+            priority="medium",
+            scene_id="scene1",
+            scene_title="The Impossible Leap",
+            current_visual_cue={"description": "Old description"},
+            new_visual_cue={
+                "description": "Dark glass panels with 3D depth",
+                "visual_type": "animation",
+                "elements": ["Dark glass panels", "Multi-layer shadows"],
+                "duration_seconds": 25.0,
+            },
+        )
+        assert patch.patch_type == ScriptPatchType.UPDATE_VISUAL_CUE
+        assert patch.scene_id == "scene1"
+        assert patch.scene_title == "The Impossible Leap"
+        assert patch.new_visual_cue["description"] == "Dark glass panels with 3D depth"
+
+    def test_patch_to_dict(self):
+        """Test UpdateVisualCuePatch serialization."""
+        patch = UpdateVisualCuePatch(
+            reason="Test reason",
+            priority="high",
+            scene_id="scene2",
+            scene_title="Test Scene",
+            current_visual_cue=None,
+            new_visual_cue={
+                "description": "New visual cue",
+                "elements": ["Element 1"],
+            },
+        )
+        data = patch.to_dict()
+        assert data["patch_type"] == "update_visual_cue"
+        assert data["scene_id"] == "scene2"
+        assert data["scene_title"] == "Test Scene"
+        assert data["current_visual_cue"] is None
+        assert data["new_visual_cue"]["description"] == "New visual cue"
+
+    def test_patch_from_dict(self):
+        """Test UpdateVisualCuePatch deserialization."""
+        data = {
+            "patch_type": "update_visual_cue",
+            "reason": "Loaded reason",
+            "priority": "low",
+            "scene_id": "scene3",
+            "scene_title": "Loaded Scene",
+            "current_visual_cue": {"description": "Old"},
+            "new_visual_cue": {"description": "New", "elements": []},
+        }
+        patch = UpdateVisualCuePatch.from_dict(data)
+        assert patch.patch_type == ScriptPatchType.UPDATE_VISUAL_CUE
+        assert patch.reason == "Loaded reason"
+        assert patch.scene_id == "scene3"
+        assert patch.current_visual_cue["description"] == "Old"
+        assert patch.new_visual_cue["description"] == "New"
+
+    def test_patch_type_enum(self):
+        """Test that UPDATE_VISUAL_CUE is in ScriptPatchType."""
+        assert ScriptPatchType.UPDATE_VISUAL_CUE.value == "update_visual_cue"

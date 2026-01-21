@@ -238,6 +238,7 @@ class ProjectValidator:
             - duration_frames: Duration in frames
             - audio_file: Path to audio file
             - narration: Narration text (if available)
+            - visual_cue: Visual specification from script.json (if available)
         """
         storyboard = self.project.load_storyboard()
         scenes = storyboard.get("scenes", [])
@@ -260,6 +261,19 @@ class ProjectValidator:
         except (FileNotFoundError, IndexError):
             pass
 
+        # Try to get visual_cue from script.json
+        visual_cue = None
+        try:
+            script_path = self.project.root_dir / "script" / "script.json"
+            if script_path.exists():
+                with open(script_path) as f:
+                    script_data = json.load(f)
+                script_scenes = script_data.get("scenes", [])
+                if scene_index < len(script_scenes):
+                    visual_cue = script_scenes[scene_index].get("visual_cue")
+        except (FileNotFoundError, json.JSONDecodeError, IndexError):
+            pass
+
         return {
             "id": scene.get("id", f"scene{scene_index + 1}"),
             "title": scene.get("title", "Untitled"),
@@ -270,6 +284,7 @@ class ProjectValidator:
             "duration_frames": duration_frames,
             "audio_file": scene.get("audio_file", ""),
             "narration": narration_text,
+            "visual_cue": visual_cue,
         }
 
 

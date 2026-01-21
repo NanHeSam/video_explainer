@@ -57,6 +57,12 @@ Config.overrideWebpackConfig((config) => {
         "@project-short-scenes": shortScenesDir,
         "@remotion-components": path.resolve(remotionDir, "src/components"),
       },
+      // Include remotion node_modules for project scene resolution
+      modules: [
+        ...(config.resolve?.modules || []),
+        path.resolve(remotionDir, "node_modules"),
+        "node_modules",
+      ],
     },
     plugins: [
       ...(config.plugins || []),

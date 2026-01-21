@@ -117,8 +117,51 @@ def sample_storyboard():
 
 
 @pytest.fixture
-def project_with_files(temp_project_dir, sample_narrations, sample_storyboard):
-    """Create a project with narrations and storyboard files."""
+def sample_script():
+    """Sample script data with visual_cues."""
+    return {
+        "title": "Test Video",
+        "total_duration_seconds": 49.0,
+        "scenes": [
+            {
+                "scene_id": 1,
+                "scene_type": "hook",
+                "title": "The Impossible Leap",
+                "voiceover": "83.3% versus 13.4%. That's OpenAI's o1 against GPT-4.",
+                "duration_seconds": 22.0,
+                "visual_cue": {
+                    "description": "Dark glass panels with 3D depth showing comparison",
+                    "visual_type": "animation",
+                    "elements": [
+                        "Dark glass panels with multi-layer shadows",
+                        "Performance numbers with dramatic reveal",
+                    ],
+                    "duration_seconds": 22.0,
+                },
+            },
+            {
+                "scene_id": 2,
+                "scene_type": "context",
+                "title": "The Discovery",
+                "voiceover": "The story begins in January 2022.",
+                "duration_seconds": 27.0,
+                "visual_cue": {
+                    "description": "Timeline visualization of the discovery",
+                    "visual_type": "animation",
+                    "elements": [
+                        "Timeline with key dates",
+                        "Research paper highlights",
+                    ],
+                    "duration_seconds": 27.0,
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def project_with_files(temp_project_dir, sample_narrations, sample_storyboard, sample_script):
+    """Create a project with narrations, storyboard, and script files."""
     # Write narrations
     narrations_path = temp_project_dir / "narration" / "narrations.json"
     with open(narrations_path, "w") as f:
@@ -128,6 +171,11 @@ def project_with_files(temp_project_dir, sample_narrations, sample_storyboard):
     storyboard_path = temp_project_dir / "storyboard" / "storyboard.json"
     with open(storyboard_path, "w") as f:
         json.dump(sample_storyboard, f)
+
+    # Write script.json with visual_cues
+    script_path = temp_project_dir / "script" / "script.json"
+    with open(script_path, "w") as f:
+        json.dump(sample_script, f)
 
     # Create dummy voiceover files
     for scene in sample_storyboard["scenes"]:

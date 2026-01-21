@@ -22,6 +22,8 @@ class IssueType(str, Enum):
     PROFESSIONAL_POLISH = "professional_polish"
     SYNC_WITH_NARRATION = "sync_with_narration"
     SCREEN_SPACE_UTILIZATION = "screen_space_utilization"
+    MATERIAL_DEPTH = "material_depth"
+    VISUAL_SPEC_MATCH = "visual_spec_match"
     OTHER = "other"
 
 
@@ -437,6 +439,7 @@ class ScriptPatchType(str, Enum):
     MODIFY_SCENE = "modify_scene"  # Change an existing scene's content
     EXPAND_SCENE = "expand_scene"  # Add content to cover missing concepts
     ADD_BRIDGE = "add_bridge"  # Add transition content between scenes
+    UPDATE_VISUAL_CUE = "update_visual_cue"  # Update a scene's visual_cue specification
 
 
 @dataclass
@@ -465,6 +468,8 @@ class ScriptPatch:
             return ExpandScenePatch.from_dict(data)
         elif patch_type == ScriptPatchType.ADD_BRIDGE:
             return AddBridgePatch.from_dict(data)
+        elif patch_type == ScriptPatchType.UPDATE_VISUAL_CUE:
+            return UpdateVisualCuePatch.from_dict(data)
         else:
             return cls(
                 patch_type=patch_type,
@@ -617,6 +622,38 @@ class AddBridgePatch(ScriptPatch):
             modify_scene_id=data.get("modify_scene_id", ""),
             current_text=data.get("current_text", ""),
             new_text=data.get("new_text", ""),
+        )
+
+
+@dataclass
+class UpdateVisualCuePatch(ScriptPatch):
+    """Patch to update a scene's visual_cue specification."""
+
+    patch_type: ScriptPatchType = field(default=ScriptPatchType.UPDATE_VISUAL_CUE)
+    scene_id: str = ""
+    scene_title: str = ""
+    current_visual_cue: Optional[dict] = None  # The current visual_cue (may be None)
+    new_visual_cue: dict = field(default_factory=dict)  # The improved visual_cue
+
+    def to_dict(self) -> dict:
+        base = super().to_dict()
+        base.update({
+            "scene_id": self.scene_id,
+            "scene_title": self.scene_title,
+            "current_visual_cue": self.current_visual_cue,
+            "new_visual_cue": self.new_visual_cue,
+        })
+        return base
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "UpdateVisualCuePatch":
+        return cls(
+            reason=data.get("reason", ""),
+            priority=data.get("priority", "medium"),
+            scene_id=data.get("scene_id", ""),
+            scene_title=data.get("scene_title", ""),
+            current_visual_cue=data.get("current_visual_cue"),
+            new_visual_cue=data.get("new_visual_cue", {}),
         )
 
 

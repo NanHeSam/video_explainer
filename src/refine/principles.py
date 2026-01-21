@@ -1,8 +1,8 @@
 """
-The 11 Guiding Principles for Video Refinement
+The 13 Guiding Principles for Video Refinement
 
 These principles define the quality bar for 3Blue1Brown / Veritasium level
-educational videos. Each scene should be evaluated against all 11 principles.
+educational videos. Each scene should be evaluated against all 13 principles.
 """
 
 from dataclasses import dataclass
@@ -170,6 +170,34 @@ GUIDING_PRINCIPLES: List[Principle] = [
         bad_example="Small content clustered in center leaving 40%+ of frame empty; tiny 14px expressions hard to read on mobile",
         checklist_question="Is content sized for impact? Would text be readable on a phone screen?",
     ),
+    Principle(
+        id=12,
+        name="3D depth and material design",
+        issue_type=IssueType.MATERIAL_DEPTH,
+        description=(
+            "UI components should feel like physical 3D objects with depth. Use multi-layer "
+            "shadows (5-7 layers), bezel borders (light top/left, dark bottom/right), and inner "
+            "shadows to create depth. Dark glass should be uniformly dark without grey gradient "
+            "overlays. NEVER use perspective transforms to tilt elements for fake depth."
+        ),
+        good_example="Window with 6-layer drop shadow, bezel border, inner bottom shadow, thin top edge highlight, uniformly dark background",
+        bad_example="Flat rectangle with single shadow, grey gradient overlay at top making it look washed out, or tilted with perspective transform",
+        checklist_question="Do components feel like 3D objects? Multi-layer shadows? Bezel borders? No grey hue on dark elements?",
+    ),
+    Principle(
+        id=13,
+        name="Follows visual specification",
+        issue_type=IssueType.VISUAL_SPEC_MATCH,
+        description=(
+            "The visual MUST match the specification in script.json's visual_cue field. "
+            "If it says 'dark glass panels', use dark backgrounds (rgba 18-22 range). "
+            "If it says 'light panels', use light backgrounds. All listed elements must be present. "
+            "The visual_cue is the source of truth for what the scene should look like."
+        ),
+        good_example="Spec says 'dark glass panels with 3D depth' → scene uses rgba(18,22,35) backgrounds with multi-layer shadows",
+        bad_example="Spec says 'dark glass panels' but scene uses white/light backgrounds like rgba(255,255,255)",
+        checklist_question="Does the visual match the specification? Are all required elements present? Is the color theme correct (dark/light)?",
+    ),
 ]
 
 
@@ -191,7 +219,7 @@ def get_principle_by_issue_type(issue_type: IssueType) -> Principle | None:
 
 def format_principles_for_prompt() -> str:
     """Format all principles as a string suitable for LLM prompts."""
-    lines = ["The 11 Guiding Principles for Video Quality:\n"]
+    lines = ["The 13 Guiding Principles for Video Quality:\n"]
 
     for p in GUIDING_PRINCIPLES:
         lines.append(f"{p.id}. **{p.name}**")

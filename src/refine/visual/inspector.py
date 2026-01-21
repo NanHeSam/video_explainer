@@ -72,13 +72,13 @@ I have captured screenshots at key moments in the narration. For each beat, anal
 
 {beats_info}
 
-## The 10 Guiding Principles
+## The 13 Guiding Principles
 {principles}
 
 ## Instructions
 1. First, READ each screenshot file to see what the visual looks like
 2. Compare what you see against what the narration describes at that moment
-3. Evaluate against the 10 guiding principles
+3. Evaluate against the 13 guiding principles
 4. Identify specific issues with specific fixes
 
 Respond with JSON in this format:
@@ -96,7 +96,7 @@ Respond with JSON in this format:
     "passes_quality_bar": false
 }}
 
-Principle codes: show_dont_tell, animation_reveals, progressive_disclosure, text_complements, visual_hierarchy, breathing_room, purposeful_motion, emotional_resonance, professional_polish, sync_with_narration, other
+Principle codes: show_dont_tell, animation_reveals, progressive_disclosure, text_complements, visual_hierarchy, breathing_room, purposeful_motion, emotional_resonance, professional_polish, sync_with_narration, screen_space_utilization, material_depth, visual_spec_match, other
 
 Severity: low, medium, high
 
@@ -113,7 +113,7 @@ FIX_GENERATION_PROMPT_TEMPLATE = """You need to fix visual issues in a Remotion 
 ## Issues to Fix
 {issues_description}
 
-## The 10 Guiding Principles (for context)
+## The 13 Guiding Principles (for context)
 {principles}
 
 ## Instructions
@@ -176,7 +176,14 @@ Resolution status: resolved, partially_resolved, not_resolved
 """
 
 
-CLAUDE_CODE_VISUAL_INSPECTION_PROMPT = """Inspect and fix visuals for Scene {scene_number}: "{scene_title}"
+CLAUDE_CODE_VISUAL_INSPECTION_PROMPT = """## FIRST: Load the Remotion skill
+Before doing ANYTHING else, invoke the `/remotion` skill by using the Skill tool with skill="remotion".
+This loads essential Remotion best practices including visual-styling patterns you'll need for fixes.
+DO THIS NOW before proceeding.
+
+---
+
+Inspect and fix visuals for Scene {scene_number}: "{scene_title}"
 
 ## CRITICAL: DO NOT read storyboard.json or index.ts. All info is provided below.
 
@@ -185,6 +192,9 @@ CLAUDE_CODE_VISUAL_INSPECTION_PROMPT = """Inspect and fix visuals for Scene {sce
 - Scene duration: {duration_seconds:.1f}s ({total_frames} frames)
 - Total beats to inspect: {num_beats}
 - Frames to check: {beat_frames_list}
+
+## VISUAL SPECIFICATION (from script.json) - FOLLOW THIS CAREFULLY
+{visual_cue_section}
 
 ## Remotion Studio Navigation - IMPORTANT
 To go to a specific frame:
@@ -199,7 +209,8 @@ Without pressing Enter, the frame won't change. If navigation fails, try:
 
 ## CRITICAL: Complete Coverage Required
 - You MUST take a screenshot at EVERY frame listed: {beat_frames_list}
-- You MUST evaluate EVERY screenshot against ALL 11 principles (see checklist below)
+- You MUST evaluate EVERY screenshot against ALL 13 principles (see checklist below)
+- You MUST verify the visual matches the VISUAL SPECIFICATION above
 - Stopping early or skipping frames is NOT acceptable
 - The scene is {duration_seconds:.1f}s long - ensure you inspect content THROUGHOUT the entire duration
 - Partial inspection = failure. Inspect ALL {num_beats} beats.
@@ -210,10 +221,10 @@ Without pressing Enter, the frame won't change. If navigation fails, try:
 ## Narration
 "{narration_text}"
 
-## The 11 Guiding Principles
+## The 13 Guiding Principles
 {principles}
 
-Principle codes for JSON: show_dont_tell, animation_reveals, progressive_disclosure, text_complements, visual_hierarchy, breathing_room, purposeful_motion, emotional_resonance, professional_polish, sync_with_narration, screen_space_utilization
+Principle codes for JSON: show_dont_tell, animation_reveals, progressive_disclosure, text_complements, visual_hierarchy, breathing_room, purposeful_motion, emotional_resonance, professional_polish, sync_with_narration, screen_space_utilization, material_depth, visual_spec_match
 
 ---
 
@@ -223,7 +234,7 @@ Principle codes for JSON: show_dont_tell, animation_reveals, progressive_disclos
 For EACH frame in [{beat_frames_list}]:
 1. Navigate to that exact frame number (use tips above)
 2. Take a screenshot
-3. **Evaluate against ALL 11 principles using this checklist:**
+3. **Evaluate against ALL 13 principles using this checklist:**
    ```
    Beat X @ Frame Y - Principle Checklist:
    [ ] 1. Show don't tell: PASS/ISSUE - [reason]
@@ -237,23 +248,72 @@ For EACH frame in [{beat_frames_list}]:
    [ ] 9. Professional polish: PASS/ISSUE - [reason]
    [ ] 10. Sync with narration: PASS/ISSUE - [reason]
    [ ] 11. Screen space utilization: PASS/ISSUE - [reason]
+   [ ] 12. 3D depth & material design: PASS/ISSUE - [reason]
+   [ ] 13. Follows visual specification: PASS/ISSUE - [reason]
    ```
 4. Document the issues found (principles marked ISSUE)
 
 ⚠️ DO NOT proceed to Phase 2 until you have inspected ALL {num_beats} beats.
 ⚠️ DO NOT fix anything during Phase 1 - just document issues.
-⚠️ You MUST explicitly evaluate ALL 11 principles for EACH beat - no shortcuts!
+⚠️ You MUST explicitly evaluate ALL 13 principles for EACH beat - no shortcuts!
 
 ### Phase 2: FIX ISSUES
 After completing Phase 1 for ALL beats:
 1. Read the scene file: {scene_file}
-2. Apply fixes for the issues you documented
-3. Common patterns:
+2. Apply fixes for the issues you documented (fix visual_spec_match issues first - the spec is the source of truth)
+4. Common patterns:
    - `interpolate(frame, [start, end], [0, 1])` for fade/move
    - `spring({{frame, fps, config: {{damping: 15}}}})` for bounce
    - Increase font sizes for screen_space_utilization issues (aim for 24px+ body, 48px+ headlines)
    - Scale up diagrams to use 60-80% of frame width
    - Add padding/margins for breathing_room issues
+
+**For 3D depth & material design (Principle 12), use these patterns:**
+
+Multi-layer shadows (creates floating depth):
+```tsx
+boxShadow: `
+  0 ${{1 * scale}}px ${{2 * scale}}px rgba(0,0,0,0.08),
+  0 ${{2 * scale}}px ${{4 * scale}}px rgba(0,0,0,0.08),
+  0 ${{4 * scale}}px ${{8 * scale}}px rgba(0,0,0,0.08),
+  0 ${{8 * scale}}px ${{16 * scale}}px rgba(0,0,0,0.1),
+  0 ${{16 * scale}}px ${{32 * scale}}px rgba(0,0,0,0.12),
+  0 ${{32 * scale}}px ${{64 * scale}}px rgba(0,0,0,0.14)
+`
+```
+
+Bezel border (3D raised edge - light top/left, dark bottom/right):
+```tsx
+border: `${{2 * scale}}px solid transparent`,
+borderTopColor: "rgba(255,255,255,0.12)",
+borderLeftColor: "rgba(255,255,255,0.08)",
+borderRightColor: "rgba(0,0,0,0.25)",
+borderBottomColor: "rgba(0,0,0,0.35)",
+```
+
+Inner shadows (recessed depth):
+```tsx
+boxShadow: `
+  inset 0 ${{1 * scale}}px ${{0}}px rgba(255,255,255,0.1),
+  inset 0 ${{-4 * scale}}px ${{15 * scale}}px rgba(0,0,0,0.5),
+  inset ${{4 * scale}}px 0 ${{15 * scale}}px rgba(0,0,0,0.3),
+  inset ${{-4 * scale}}px 0 ${{15 * scale}}px rgba(0,0,0,0.3)
+`
+```
+
+Dark glass background (NO grey overlays):
+```tsx
+background: `linear-gradient(180deg,
+  rgba(18, 22, 35, 0.98) 0%,
+  rgba(12, 15, 28, 0.99) 50%,
+  rgba(8, 10, 22, 0.99) 100%)`
+```
+
+DON'T DO:
+- ❌ `transform: "perspective(1200px) rotateX(2deg)"` - tilting for fake depth
+- ❌ Grey gradient overlays at top of dark components
+- ❌ Single-layer shadows
+- ❌ Light background colors like `rgba(45, 52, 70, 0.95)` for dark glass
 
 ### Phase 3: VERIFY
 After fixing, re-check at least 2-3 key frames where you found issues:
@@ -288,7 +348,8 @@ After completing ALL phases, output:
         "emotional_resonance": "ISSUE - no wow moment",
         "professional_polish": "PASS",
         "sync_with_narration": "PASS",
-        "screen_space_utilization": "ISSUE - elements only use 20% of frame"
+        "screen_space_utilization": "ISSUE - elements only use 20% of frame",
+        "material_depth": "ISSUE - flat single-layer shadows, no bezel"
       }},
       "issues_summary": ["text repeats narration", "no wow moment", "elements too small"]
     }}
@@ -320,7 +381,7 @@ After completing ALL phases, output:
 1. Navigate to: {remotion_url}
 2. The scene starts at frame 0 - no navigation math needed
 3. You MUST inspect ALL {num_beats} beats at frames: {beat_frames_list}
-4. Begin Phase 1: Navigate to frame {first_beat_frame}, take screenshot, evaluate ALL 11 principles using the checklist.
+4. Begin Phase 1: Navigate to frame {first_beat_frame}, take screenshot, evaluate ALL 13 principles using the checklist.
 """
 
 
@@ -357,6 +418,13 @@ class ClaudeCodeVisualInspector:
 
         # Set up beat parser with Claude Code provider for quality beat detection
         self.beat_parser = BeatParser(working_dir=project.root_dir)
+
+        # Find repo root (where .claude/skills is located)
+        # Projects are at: repo_root/projects/{project_id}/
+        self.repo_root = self.project.root_dir.parent.parent
+        if not (self.repo_root / ".claude").exists():
+            # Fallback to project root if .claude not found at expected location
+            self.repo_root = self.project.root_dir
 
     def _log(self, message: str) -> None:
         """Print a message if verbose mode is enabled."""
@@ -604,6 +672,20 @@ class ClaudeCodeVisualInspector:
         beats_info = "\n".join(beats_info_lines)
         beat_frames_list = ", ".join(frame_numbers) if frame_numbers else "0"
 
+        # Format visual_cue section from script.json
+        visual_cue = scene_info.get("visual_cue")
+        if visual_cue:
+            visual_cue_lines = [
+                f"**Description:** {visual_cue.get('description', 'N/A')}",
+                "",
+                "**Required Elements:**",
+            ]
+            for element in visual_cue.get("elements", []):
+                visual_cue_lines.append(f"- {element}")
+            visual_cue_section = "\n".join(visual_cue_lines)
+        else:
+            visual_cue_section = "(No visual specification found in script.json)"
+
         # Build the prompt
         first_beat_frame = frame_numbers[0] if frame_numbers else "0"
         prompt = CLAUDE_CODE_VISUAL_INSPECTION_PROMPT.format(
@@ -619,6 +701,7 @@ class ClaudeCodeVisualInspector:
             beat_frames_list=beat_frames_list,
             first_beat_frame=first_beat_frame,
             principles=format_principles_for_prompt(),
+            visual_cue_section=visual_cue_section,
         )
 
         # Write prompt to temp file for claude code
@@ -658,7 +741,7 @@ class ClaudeCodeVisualInspector:
 
         result = subprocess.run(
             cmd,
-            cwd=str(self.project.root_dir),
+            cwd=str(self.repo_root),  # Run from repo root so Claude Code can find .claude/skills
             capture_output=True,
             text=True,
             timeout=self.timeout,
@@ -683,7 +766,7 @@ class ClaudeCodeVisualInspector:
 
         process = subprocess.Popen(
             cmd,
-            cwd=str(self.project.root_dir),
+            cwd=str(self.repo_root),  # Run from repo root so Claude Code can find .claude/skills
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

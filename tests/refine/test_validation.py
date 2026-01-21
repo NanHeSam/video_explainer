@@ -93,6 +93,25 @@ class TestProjectValidator:
         with pytest.raises(ValueError, match="out of range"):
             validator.get_scene_info(999)
 
+    def test_get_scene_info_includes_visual_cue(self, project_with_files):
+        """Test that get_scene_info includes visual_cue from script.json."""
+        validator = ProjectValidator(project_with_files)
+
+        info = validator.get_scene_info(0)
+        assert "visual_cue" in info
+        assert info["visual_cue"] is not None
+        assert info["visual_cue"]["description"] == "Dark glass panels with 3D depth showing comparison"
+        assert "elements" in info["visual_cue"]
+        assert len(info["visual_cue"]["elements"]) == 2
+
+    def test_get_scene_info_visual_cue_second_scene(self, project_with_files):
+        """Test visual_cue for second scene."""
+        validator = ProjectValidator(project_with_files)
+
+        info = validator.get_scene_info(1)
+        assert "visual_cue" in info
+        assert info["visual_cue"]["description"] == "Timeline visualization of the discovery"
+
     def test_get_scene_duration_frames(self, project_with_files):
         """Test getting scene duration in frames."""
         validator = ProjectValidator(project_with_files)
