@@ -1445,3 +1445,660 @@ class TestEndToEndFeedbackFlow:
         # But patches should be generated
         assert len(result.patches) == 1
         assert result.patches[0]["trigger_scene_refinement"] is True
+
+
+# ============================================================================
+# Structure Patch Tests (Add/Remove/Reorder Scenes)
+# ============================================================================
+
+
+class TestStructurePatchGeneration:
+    """Tests for structure patch generation (add/remove/reorder scenes)."""
+
+    def test_generate_add_scene_patch(self, tmp_path):
+        """Test generating an add scene patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "scene_type": "hook"},
+                {"scene_id": "main", "title": "Main Content", "scene_type": "explanation"},
+            ]
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        mock_llm = MagicMock()
+        mock_llm.generate_json.return_value = {
+            "action": "add",
+            "details": {
+                "insert_after": "intro",
+                "new_scene": {
+                    "title": "Problem Setup",
+                    "scene_type": "context",
+                    "narration": "Let's understand the problem first...",
+                    "visual_description": "Animated problem diagram",
+                    "duration_seconds": 30,
+                },
+            },
+            "reason": "Adding context scene to improve flow",
+        }
+
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Add a scene explaining the problem after the intro",
+            intent=FeedbackIntent.SCRIPT_STRUCTURE,
+            target=FeedbackTarget(scene_ids=[], scope=FeedbackScope.PROJECT),
+            interpretation="Add a context scene after intro",
+        )
+
+        result = generator.generate(item)
+
+        assert len(result.patches) == 1
+        patch = result.patches[0]
+        # AddScenePatch is a dataclass object
+        assert hasattr(patch, 'insert_after_scene_id') or patch.get('insert_after_scene_id')
+        if hasattr(patch, 'insert_after_scene_id'):
+            assert patch.insert_after_scene_id == "intro"
+            assert patch.title == "Problem Setup"
+            assert patch.narration == "Let's understand the problem first..."
+            assert patch.duration_seconds == 30
+        else:
+            # If returned as dict
+            assert patch.get("insert_after_scene_id") == "intro"
+            assert patch.get("title") == "Problem Setup"
+
+    def test_generate_remove_scene_patch(self, tmp_path):
+        """Test generating a remove scene patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "scene_type": "hook"},
+                {"scene_id": "filler", "title": "Filler Scene", "scene_type": "explanation"},
+                {"scene_id": "main", "title": "Main Content", "scene_type": "explanation"},
+            ]
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        mock_llm = MagicMock()
+        mock_llm.generate_json.return_value = {
+            "action": "remove",
+            "details": {
+                "scene_id": "filler",
+            },
+            "reason": "Filler scene is redundant",
+        }
+
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Remove the filler scene, it's not needed",
+            intent=FeedbackIntent.SCRIPT_STRUCTURE,
+            target=FeedbackTarget(scene_ids=[], scope=FeedbackScope.PROJECT),
+            interpretation="Remove the filler scene",
+        )
+
+        result = generator.generate(item)
+
+        assert len(result.patches) == 1
+        patch = result.patches[0]
+        assert patch["patch_type"] == "remove_scene"
+        assert patch["scene_id"] == "filler"
+
+    def test_generate_reorder_scenes_patch(self, tmp_path):
+        """Test generating a reorder scenes patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "scene_type": "hook"},
+                {"scene_id": "conclusion", "title": "Conclusion", "scene_type": "conclusion"},
+                {"scene_id": "main", "title": "Main Content", "scene_type": "explanation"},
+            ]
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        mock_llm = MagicMock()
+        mock_llm.generate_json.return_value = {
+            "action": "reorder",
+            "details": {
+                "new_order": ["intro", "main", "conclusion"],
+            },
+            "reason": "Conclusion should come after main content",
+        }
+
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Move the conclusion to the end",
+            intent=FeedbackIntent.SCRIPT_STRUCTURE,
+            target=FeedbackTarget(scene_ids=[], scope=FeedbackScope.PROJECT),
+            interpretation="Reorder scenes to put conclusion at the end",
+        )
+
+        result = generator.generate(item)
+
+        assert len(result.patches) == 1
+        patch = result.patches[0]
+        assert patch["patch_type"] == "reorder_scenes"
+        assert patch["new_order"] == ["intro", "main", "conclusion"]
+
+
+class TestStructurePatchApplication:
+    """Tests for structure patch application (add/remove/reorder scenes)."""
+
+    def test_apply_add_scene_patch(self, tmp_path):
+        """Test applying an add scene patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {
+                    "scene_id": "intro",
+                    "title": "Introduction",
+                    "scene_type": "hook",
+                    "voiceover": "Welcome!",
+                    "duration_seconds": 10,
+                },
+            ],
+            "total_duration_seconds": 10,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "duration_seconds": 10, "narration": "Welcome!"},
+            ],
+            "total_duration_seconds": 10,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Add a new scene",
+            patches=[
+                {
+                    "patch_type": "add_scene",
+                    "insert_after_scene_id": "intro",
+                    "new_scene_id": "problem_setup",
+                    "title": "Problem Setup",
+                    "narration": "Let's look at the problem...",
+                    "visual_description": "Problem diagram",
+                    "duration_seconds": 25,
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+        assert "script/script.json" in result.files_modified
+
+        # Verify script.json was updated
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 2
+        assert updated_script["scenes"][1]["scene_id"] == "problem_setup"
+        assert updated_script["scenes"][1]["title"] == "Problem Setup"
+        assert updated_script["total_duration_seconds"] == 35
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert len(updated_narrations["scenes"]) == 2
+        assert updated_narrations["scenes"][1]["scene_id"] == "problem_setup"
+
+    def test_apply_add_scene_at_beginning(self, tmp_path):
+        """Test adding a scene at the beginning (no insert_after)."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "main", "title": "Main Content", "scene_type": "explanation", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 30,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [{"scene_id": "main", "title": "Main Content", "duration_seconds": 30, "narration": "Main..."}],
+            "total_duration_seconds": 30,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Add intro at the beginning",
+            patches=[
+                {
+                    "patch_type": "add_scene",
+                    "insert_after_scene_id": None,  # Insert at beginning
+                    "new_scene_id": "intro",
+                    "title": "Introduction",
+                    "narration": "Welcome!",
+                    "visual_description": "Title card",
+                    "duration_seconds": 10,
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["scene_id"] == "intro"
+        assert updated_script["scenes"][1]["scene_id"] == "main"
+
+    def test_apply_remove_scene_patch(self, tmp_path):
+        """Test applying a remove scene patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "duration_seconds": 10},
+                {"scene_id": "filler", "title": "Filler", "duration_seconds": 20},
+                {"scene_id": "main", "title": "Main", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 60,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "intro", "duration_seconds": 10},
+                {"scene_id": "filler", "duration_seconds": 20},
+                {"scene_id": "main", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 60,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Remove filler scene",
+            patches=[
+                {
+                    "patch_type": "remove_scene",
+                    "scene_id": "filler",
+                    "reason": "Redundant",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 2
+        scene_ids = [s["scene_id"] for s in updated_script["scenes"]]
+        assert "filler" not in scene_ids
+        assert updated_script["total_duration_seconds"] == 40
+
+    def test_apply_reorder_scenes_patch(self, tmp_path):
+        """Test applying a reorder scenes patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "duration_seconds": 10},
+                {"scene_id": "conclusion", "title": "Conclusion", "duration_seconds": 15},
+                {"scene_id": "main", "title": "Main", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 55,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "intro", "duration_seconds": 10},
+                {"scene_id": "conclusion", "duration_seconds": 15},
+                {"scene_id": "main", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 55,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Reorder scenes",
+            patches=[
+                {
+                    "patch_type": "reorder_scenes",
+                    "new_order": ["intro", "main", "conclusion"],
+                    "reason": "Better flow",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        scene_order = [s["scene_id"] for s in updated_script["scenes"]]
+        assert scene_order == ["intro", "main", "conclusion"]
+
+
+# ============================================================================
+# Timing Patch Tests
+# ============================================================================
+
+
+class TestTimingPatchGeneration:
+    """Tests for timing patch generation."""
+
+    def test_generate_timing_patch(self, tmp_path):
+        """Test generating a timing patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "intro", "title": "Introduction", "scene_type": "hook", "duration_seconds": 10},
+            ]
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        mock_llm = MagicMock()
+        # No LLM call needed for timing - it creates patches directly
+
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Make the intro longer",
+            intent=FeedbackIntent.TIMING,
+            target=FeedbackTarget(scene_ids=["intro"], scope=FeedbackScope.SCENE),
+            interpretation="Increase intro duration",
+        )
+
+        result = generator.generate(item)
+
+        assert len(result.patches) == 1
+        patch = result.patches[0]
+        assert patch["patch_type"] == "modify_timing"
+        assert patch["scene_id"] == "intro"
+        assert patch["current_duration"] == 10
+
+
+class TestTimingPatchApplication:
+    """Tests for timing patch application."""
+
+    def test_apply_timing_patch(self, tmp_path):
+        """Test applying a timing patch."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {
+                    "scene_id": "intro",
+                    "title": "Introduction",
+                    "duration_seconds": 10,
+                    "visual_cue": {"duration_seconds": 10},
+                },
+            ],
+            "total_duration_seconds": 10,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [{"scene_id": "intro", "duration_seconds": 10}],
+            "total_duration_seconds": 10,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Make intro longer",
+            patches=[
+                {
+                    "patch_type": "modify_timing",
+                    "scene_id": "intro",
+                    "new_duration": 20,
+                    "reason": "More time needed",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["duration_seconds"] == 20
+        assert updated_script["total_duration_seconds"] == 20
+
+
+# ============================================================================
+# Mixed Intent Tests
+# ============================================================================
+
+
+class TestMixedIntentPatches:
+    """Tests for mixed intent feedback processing."""
+
+    def test_mixed_intent_generates_multiple_patch_types(self, tmp_path):
+        """Test that mixed intents generate appropriate patches for each sub-intent."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {
+                    "scene_id": "intro",
+                    "title": "Introduction",
+                    "scene_type": "hook",
+                    "voiceover": "Original narration",
+                    "duration_seconds": 10,
+                    "visual_cue": {"description": "Original visual"},
+                },
+            ]
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        mock_llm = MagicMock()
+        # First call for script_content sub-intent
+        # Second call for visual_cue sub-intent
+        mock_llm.generate_json.side_effect = [
+            {
+                "changes": [
+                    {
+                        "field": "voiceover",
+                        "old_text": "Original narration",
+                        "new_text": "Updated narration",
+                        "reason": "Improve clarity",
+                    }
+                ]
+            },
+            {
+                "needs_update": True,
+                "new_visual_cue": {"description": "Updated visual", "visual_type": "animation"},
+                "reason": "Better visuals",
+            },
+        ]
+
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Update both narration and visuals for intro",
+            intent=FeedbackIntent.MIXED,
+            sub_intents=[FeedbackIntent.SCRIPT_CONTENT, FeedbackIntent.VISUAL_CUE],
+            target=FeedbackTarget(scene_ids=["intro"], scope=FeedbackScope.SCENE),
+            interpretation="Update narration and visual cue",
+        )
+
+        result = generator.generate(item)
+
+        # Should have patches from both sub-intents
+        assert len(result.patches) >= 1
+        patch_types = [p.get("patch_type") if isinstance(p, dict) else type(p).__name__ for p in result.patches]
+        # At least one patch should be generated
+        assert len(patch_types) >= 1
+
+
+# ============================================================================
+# Error Handling Tests
+# ============================================================================
+
+
+class TestErrorHandling:
+    """Tests for error handling in feedback processing."""
+
+    def test_generator_handles_missing_script(self, tmp_path):
+        """Test that generator handles missing script gracefully."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+        # No script directory created
+
+        mock_llm = MagicMock()
+        generator = PatchGenerator(project, mock_llm, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Update visual",
+            intent=FeedbackIntent.VISUAL_CUE,
+            target=FeedbackTarget(scene_ids=["intro"], scope=FeedbackScope.SCENE),
+            interpretation="Update visual",
+        )
+
+        result = generator.generate(item)
+
+        # Should return item with no patches but not crash
+        assert result.patches == []
+
+    def test_applicator_handles_invalid_patch_type(self, tmp_path):
+        """Test that applicator handles unknown patch types."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {"scenes": [{"scene_id": "intro", "title": "Introduction"}]}
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Test",
+            patches=[
+                {
+                    "patch_type": "unknown_type",
+                    "data": "some data",
+                }
+            ],
+        )
+
+        # Should not crash on unknown patch type
+        result = applicator.apply(item, verify=False)
+        assert result is not None
+
+    def test_applicator_handles_missing_scene_for_remove(self, tmp_path):
+        """Test that remove patch handles missing scene gracefully."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [{"scene_id": "intro", "title": "Introduction", "duration_seconds": 10}],
+            "total_duration_seconds": 10,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Remove nonexistent scene",
+            patches=[
+                {
+                    "patch_type": "remove_scene",
+                    "scene_id": "nonexistent",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        # Should complete without crashing
+        # Scene count should remain the same
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 1

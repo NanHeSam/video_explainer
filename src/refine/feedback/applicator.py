@@ -549,10 +549,49 @@ class PatchApplicator:
 
     def _apply_timing_patch(self, patch_data: dict) -> list[str]:
         """Apply a timing change patch."""
-        # For now, timing patches require manual specification
-        # Future: Use LLM to determine new duration
-        self._log(f"    -> Timing patch needs manual review: {patch_data}")
-        return []
+        modified = []
+        scene_id = patch_data.get("scene_id")
+        new_duration = patch_data.get("new_duration")
+
+        if not scene_id or new_duration is None:
+            self._log(f"    -> Timing patch missing required fields: {patch_data}")
+            return modified
+
+        # Update script.json
+        script = self._load_script()
+        if script:
+            for scene in script.get("scenes", []):
+                if self._match_scene_id(scene, scene_id):
+                    scene["duration_seconds"] = new_duration
+                    if "visual_cue" in scene and isinstance(scene["visual_cue"], dict):
+                        scene["visual_cue"]["duration_seconds"] = new_duration
+                    break
+
+            # Recalculate total duration
+            script["total_duration_seconds"] = sum(
+                s.get("duration_seconds", 0) for s in script.get("scenes", [])
+            )
+
+            if self._save_script(script):
+                modified.append("script/script.json")
+                self._log(f"    -> Updated duration for {scene_id} to {new_duration}s")
+
+        # Update narrations.json
+        narrations = self._load_narrations()
+        if narrations:
+            for scene in narrations.get("scenes", []):
+                if self._match_scene_id(scene, scene_id):
+                    scene["duration_seconds"] = new_duration
+                    break
+
+            narrations["total_duration_seconds"] = sum(
+                s.get("duration_seconds", 0) for s in narrations.get("scenes", [])
+            )
+
+            if self._save_narrations(narrations):
+                modified.append("narration/narrations.json")
+
+        return modified
 
     def _verify_changes(self, item: FeedbackItem) -> bool:
         """Verify that changes were applied correctly.
