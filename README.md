@@ -642,12 +642,69 @@ Output: `projects/<project>/factcheck/report.json`
 
 #### Feedback Processing
 
+Process natural language feedback to automatically update scripts, narrations, and visuals.
+
 ```bash
-python -m src.cli feedback llm-inference add "Make text larger in scene 1"
-python -m src.cli feedback llm-inference add "Fix timing" --dry-run
+# Add and process new feedback
+python -m src.cli feedback llm-inference add "Make the intro more engaging"
+python -m src.cli feedback llm-inference add "Fix timing in scene 3" --dry-run
+
+# List all feedback for a project
 python -m src.cli feedback llm-inference list
+
+# Show details of a specific feedback item
 python -m src.cli feedback llm-inference show fb_0001_1234567890
+
+# Retry a failed feedback item
+python -m src.cli feedback llm-inference retry fb_0001_1234567890
 ```
+
+**How it works:**
+
+The feedback system uses an intent-based pipeline:
+
+1. **Parse** - LLM analyzes feedback to determine intent and affected scenes
+2. **Generate** - Creates patches based on the detected intent type
+3. **Apply** - Applies patches to project files with verification
+
+**Supported Intents:**
+
+| Intent | Description | Files Modified |
+|--------|-------------|----------------|
+| `script_content` | Narration/voiceover text changes | `script.json`, `narrations.json` |
+| `visual_cue` | Visual specification changes | `script.json` (visual_cue field) |
+| `visual_impl` | Code changes to scene components | `scenes/*.tsx` |
+| `script_structure` | Add/remove/reorder scenes | `script.json`, `narrations.json` |
+| `timing` | Duration changes | `script.json` |
+| `style` | Visual styling changes | `script.json`, `scenes/*.tsx` |
+| `mixed` | Multiple intent types | Multiple files |
+
+**Examples:**
+
+```bash
+# Script content change
+python -m src.cli feedback llm-inference add "Simplify the explanation in scene 2"
+
+# Visual change
+python -m src.cli feedback llm-inference add "Make the code panel larger in the intro"
+
+# Structure change
+python -m src.cli feedback llm-inference add "Add a new scene explaining transformers after scene 3"
+
+# Timing change
+python -m src.cli feedback llm-inference add "The conclusion feels rushed, give it more time"
+
+# Style change
+python -m src.cli feedback llm-inference add "Use blue instead of orange for the highlights"
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Analyze and generate patches without applying changes |
+
+Output: Feedback history stored in `projects/<project>/refinement/feedback.json`
 
 ### Resolution Options
 
@@ -708,8 +765,8 @@ video_explainer/
 │   ├── storyboard/              # Storyboard system
 │   ├── factcheck/               # Fact checking with web verification
 │   ├── short/                   # Shorts generation
-│   ├── feedback/                # Feedback processing
-│   ├── refine/                  # Visual refinement (AI-powered inspection)
+│   ├── refine/                  # Refinement system
+│   │   └── feedback/            # Intent-based feedback processing
 │   ├── animation/               # Animation rendering
 │   ├── composition/             # Video assembly
 │   ├── pipeline/                # End-to-end orchestration
@@ -729,7 +786,7 @@ video_explainer/
 │   └── schema/
 │       └── storyboard.schema.json
 │
-├── tests/                       # Test suite (844 Python + 149 JS tests)
+├── tests/                       # Test suite (1192 Python + 203 JS tests)
 ├── config.yaml                  # Global configuration
 └── pyproject.toml               # Python package configuration
 ```
@@ -799,7 +856,7 @@ Note: The default LLM provider is `claude-code`, which uses the Claude Code CLI 
 
 ## Testing
 
-The project includes 990+ tests (844 Python + 149 JavaScript).
+The project includes 1395 tests (1192 Python + 203 JavaScript).
 
 ### Python Tests
 

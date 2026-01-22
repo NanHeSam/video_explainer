@@ -193,8 +193,17 @@ Inspect and fix visuals for Scene {scene_number}: "{scene_title}"
 - Total beats to inspect: {num_beats}
 - Frames to check: {beat_frames_list}
 
-## VISUAL SPECIFICATION (from script.json) - FOLLOW THIS CAREFULLY
+## ⚠️ VISUAL SPECIFICATION - THIS IS THE SOURCE OF TRUTH ⚠️
+**THE SCENE MUST IMPLEMENT THIS SPECIFICATION EXACTLY. NOT APPROXIMATELY - EXACTLY.**
+
 {visual_cue_section}
+
+**CRITICAL: Every element listed above MUST be present in the scene. Every animation described MUST be implemented.
+If the spec says "3D tree" → there must be a tree with 3D depth effects (shadows, layers, perspective).
+If the spec says "branching animation" → branches must animate growing outward.
+If the spec says "withering effect" → there must be visible withering/decay animation.
+If the spec says "blooming" → there must be visible blooming/flourishing animation.
+MISSING ANY ELEMENT = visual_spec_match FAIL. IMPLEMENT THE SPEC EXACTLY.**
 
 ## Remotion Studio Navigation - IMPORTANT
 To go to a specific frame:
@@ -249,7 +258,7 @@ For EACH frame in [{beat_frames_list}]:
    [ ] 10. Sync with narration: PASS/ISSUE - [reason]
    [ ] 11. Screen space utilization: PASS/ISSUE - [reason]
    [ ] 12. 3D depth & material design: PASS/ISSUE - [reason]
-   [ ] 13. Follows visual specification: PASS/ISSUE - [reason]
+   [ ] 13. Follows visual specification: PASS/ISSUE - [list each element from spec and whether it's present]
    ```
 4. Document the issues found (principles marked ISSUE)
 
@@ -260,7 +269,13 @@ For EACH frame in [{beat_frames_list}]:
 ### Phase 2: FIX ISSUES
 After completing Phase 1 for ALL beats:
 1. Read the scene file: {scene_file}
-2. Apply fixes for the issues you documented (fix visual_spec_match issues first - the spec is the source of truth)
+2. **PRIORITY: Fix visual_spec_match issues FIRST.**
+   - Go back to the VISUAL SPECIFICATION section above
+   - For EACH element listed, ensure it exists in the code
+   - If an element is missing, ADD IT
+   - If an animation is described but not implemented, IMPLEMENT IT
+   - The spec is the EXACT requirement - not a suggestion
+3. Then fix other principle violations
 4. Common patterns:
    - `interpolate(frame, [start, end], [0, 1])` for fade/move
    - `spring({{frame, fps, config: {{damping: 15}}}})` for bounce
@@ -319,13 +334,21 @@ DON'T DO:
 After fixing, re-check at least 2-3 key frames where you found issues:
 1. Navigate to a frame that had issues
 2. Take a screenshot
-3. **Confirm which principles now pass:**
+3. **FIRST: Verify visual_spec_match by checking EACH element from the spec:**
+   ```
+   Visual Specification Checklist:
+   - [Element 1 from spec]: ✅ PRESENT / ❌ MISSING
+   - [Element 2 from spec]: ✅ PRESENT / ❌ MISSING
+   - [Animation 1 from spec]: ✅ IMPLEMENTED / ❌ NOT VISIBLE
+   ... (check EVERY element listed in the VISUAL SPECIFICATION section)
+   ```
+4. **Then confirm other principles:**
    ```
    Verification @ Frame Y:
    - screen_space_utilization: Was ISSUE → Now PASS (elements now use 70% of frame)
    - visual_hierarchy: Was ISSUE → Now PASS (74% is 3x larger than 4%)
    ```
-4. If any principle still fails, go back to Phase 2
+5. If visual_spec_match or any principle still fails, go back to Phase 2
 
 ---
 
@@ -333,6 +356,16 @@ After fixing, re-check at least 2-3 key frames where you found issues:
 After completing ALL phases, output:
 ```json
 {{
+  "visual_spec_checklist": {{
+    "description_summary": "Brief summary of the visual_cue description",
+    "elements_checked": [
+      {{"element": "Element 1 from spec", "present": true, "notes": "How it's implemented"}},
+      {{"element": "Element 2 from spec", "present": false, "notes": "MISSING - needs to be added"}},
+      {{"element": "Animation X from spec", "present": true, "notes": "Visible at frame Y"}}
+    ],
+    "all_elements_present": false,
+    "spec_compliance_score": "3/5 elements present"
+  }},
   "beats_inspected": [
     {{
       "beat_index": 0,
@@ -349,23 +382,29 @@ After completing ALL phases, output:
         "professional_polish": "PASS",
         "sync_with_narration": "PASS",
         "screen_space_utilization": "ISSUE - elements only use 20% of frame",
-        "material_depth": "ISSUE - flat single-layer shadows, no bezel"
+        "material_depth": "ISSUE - flat single-layer shadows, no bezel",
+        "visual_spec_match": "ISSUE - missing 2 elements from spec"
       }},
-      "issues_summary": ["text repeats narration", "no wow moment", "elements too small"]
+      "issues_summary": ["text repeats narration", "no wow moment", "elements too small", "missing spec elements"]
     }}
   ],
   "total_beats_expected": {num_beats},
   "total_beats_inspected": <number>,
   "issues_found": [
+    {{"beat_index": 0, "frame": 0, "principle_violated": "visual_spec_match", "description": "Missing: Element X, Animation Y from specification", "severity": "high"}},
     {{"beat_index": 0, "frame": 0, "principle_violated": "screen_space_utilization", "description": "...", "severity": "high"}}
   ],
   "fixes_applied": [
-    {{"description": "...", "file": "{scene_file}", "lines_changed": "10-25"}}
+    {{"description": "Added Element X as specified in visual_cue", "file": "{scene_file}", "lines_changed": "10-25"}},
+    {{"description": "Implemented Animation Y per specification", "file": "{scene_file}", "lines_changed": "30-45"}}
   ],
   "verification_results": [
     {{
       "frame": 0,
+      "visual_spec_elements_now_present": ["Element X", "Animation Y"],
+      "visual_spec_elements_still_missing": [],
       "principles_fixed": [
+        {{"principle": "visual_spec_match", "was": "ISSUE", "now": "PASS", "evidence": "all 5 spec elements now present"}},
         {{"principle": "screen_space_utilization", "was": "ISSUE", "now": "PASS", "evidence": "elements now use 70% of frame"}}
       ],
       "principles_still_failing": []
@@ -678,10 +717,14 @@ class ClaudeCodeVisualInspector:
             visual_cue_lines = [
                 f"**Description:** {visual_cue.get('description', 'N/A')}",
                 "",
-                "**Required Elements:**",
+                "**Required Elements (ALL MUST BE PRESENT):**",
             ]
-            for element in visual_cue.get("elements", []):
-                visual_cue_lines.append(f"- {element}")
+            elements = visual_cue.get("elements", [])
+            for i, element in enumerate(elements, 1):
+                visual_cue_lines.append(f"  {i}. [ ] {element}")
+            visual_cue_lines.append("")
+            visual_cue_lines.append(f"**Total elements to implement: {len(elements)}**")
+            visual_cue_lines.append("**You MUST verify ALL elements are present. Any missing = FAIL.**")
             visual_cue_section = "\n".join(visual_cue_lines)
         else:
             visual_cue_section = "(No visual specification found in script.json)"
@@ -906,7 +949,12 @@ class ClaudeCodeVisualInspector:
         raw_issues = result.get("issues_found", [])
 
         for raw_issue in raw_issues:
-            beat_index = raw_issue.get("beat_index", 0)
+            # Ensure beat_index is an int (Claude may return string)
+            raw_beat_index = raw_issue.get("beat_index", 0)
+            try:
+                beat_index = int(raw_beat_index)
+            except (ValueError, TypeError):
+                beat_index = 0
             principle_code = raw_issue.get("principle_violated", "other")
 
             try:
@@ -914,12 +962,16 @@ class ClaudeCodeVisualInspector:
             except ValueError:
                 issue_type = IssueType.OTHER
 
+            # Ensure description and severity are strings
+            description = str(raw_issue.get("description", ""))
+            severity = str(raw_issue.get("severity", "medium"))
+
             issues.append(
                 Issue(
                     beat_index=beat_index,
                     principle_violated=issue_type,
-                    description=raw_issue.get("description", ""),
-                    severity=raw_issue.get("severity", "medium"),
+                    description=description,
+                    severity=severity,
                 )
             )
 
@@ -931,9 +983,16 @@ class ClaudeCodeVisualInspector:
         raw_fixes = result.get("fixes_applied", [])
 
         for raw_fix in raw_fixes:
+            # Ensure beat_index is an int (Claude may return string)
+            raw_beat_index = raw_fix.get("beat_index", 0)
+            try:
+                beat_index = int(raw_beat_index)
+            except (ValueError, TypeError):
+                beat_index = 0
+
             # Create a placeholder issue for the fix
             issue = Issue(
-                beat_index=raw_fix.get("beat_index", 0),
+                beat_index=beat_index,
                 principle_violated=IssueType.OTHER,
                 description="Issue addressed by fix",
                 severity="medium",

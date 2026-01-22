@@ -189,14 +189,18 @@ GUIDING_PRINCIPLES: List[Principle] = [
         name="Follows visual specification",
         issue_type=IssueType.VISUAL_SPEC_MATCH,
         description=(
-            "The visual MUST match the specification in script.json's visual_cue field. "
-            "If it says 'dark glass panels', use dark backgrounds (rgba 18-22 range). "
-            "If it says 'light panels', use light backgrounds. All listed elements must be present. "
-            "The visual_cue is the source of truth for what the scene should look like."
+            "THIS IS THE MOST IMPORTANT PRINCIPLE. The visual MUST STRICTLY match the specification "
+            "in script.json's visual_cue field. The visual_cue is the EXACT specification - not a suggestion. "
+            "Every element listed MUST be present. Every animation described MUST be implemented. "
+            "Every visual effect mentioned MUST be visible. If the spec says '3D tree with branching animation', "
+            "there MUST be a 3D-looking tree with actual branching animation - not a flat diagram or static tree. "
+            "If the spec says 'withering effect for backtracking', there MUST be a visible withering animation. "
+            "Missing ANY element from the spec = FAIL. Wrong animation style = FAIL. "
+            "The visual_cue is the source of truth - implement it EXACTLY as described."
         ),
-        good_example="Spec says 'dark glass panels with 3D depth' → scene uses rgba(18,22,35) backgrounds with multi-layer shadows",
-        bad_example="Spec says 'dark glass panels' but scene uses white/light backgrounds like rgba(255,255,255)",
-        checklist_question="Does the visual match the specification? Are all required elements present? Is the color theme correct (dark/light)?",
+        good_example="Spec says '3D tree with branching exploration, withering backtrack, blooming success' → scene has 3D tree with all three animation types clearly visible",
+        bad_example="Spec describes rich 3D tree animation but scene shows flat 2D diagram with basic fade effects",
+        checklist_question="Does the visual implement EVERY element in the visual_cue? Are ALL described animations present? Does it match the spec EXACTLY, not approximately?",
     ),
 ]
 

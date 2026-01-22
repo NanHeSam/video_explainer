@@ -409,6 +409,7 @@ class ClaudeCodeLLMProvider(LLMProvider):
         prompt: str,
         system_prompt: str | None = None,
         allow_writes: bool = False,
+        live_output: bool = False,
     ) -> ClaudeCodeResult:
         """Generate a response with file read/write capabilities.
 
@@ -419,6 +420,7 @@ class ClaudeCodeLLMProvider(LLMProvider):
             prompt: The user prompt
             system_prompt: Optional system prompt
             allow_writes: If True, allows Write and Edit tools
+            live_output: If True, stream Claude Code output to terminal
 
         Returns:
             ClaudeCodeResult with response and list of modified files
@@ -430,34 +432,104 @@ class ClaudeCodeLLMProvider(LLMProvider):
 
         cmd = self._build_command(prompt, system_prompt, tools=tools)
 
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=str(self.working_dir),
-                timeout=self.timeout,
-            )
+        # Add verbose flag for live output
+        if live_output:
+            cmd.append("--verbose")
 
-            if result.returncode != 0:
-                return ClaudeCodeResult(
-                    response="",
-                    success=False,
-                    error_message=f"Claude Code failed: {result.stderr}",
+        try:
+            if live_output:
+                # Stream output in real-time
+                return self._run_with_live_output(cmd, allow_writes)
+            else:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.working_dir),
+                    timeout=self.timeout,
                 )
 
-            # Extract modified files from output if writes were allowed
+                if result.returncode != 0:
+                    return ClaudeCodeResult(
+                        response="",
+                        success=False,
+                        error_message=f"Claude Code failed: {result.stderr}",
+                    )
+
+                # Extract modified files from output if writes were allowed
+                modified_files = []
+                if allow_writes:
+                    modified_files = self._extract_modified_files(result.stdout)
+
+                return ClaudeCodeResult(
+                    response=result.stdout.strip(),
+                    modified_files=modified_files,
+                    success=True,
+                )
+
+        except subprocess.TimeoutExpired:
+            return ClaudeCodeResult(
+                response="",
+                success=False,
+                error_message=f"Claude Code timed out after {self.timeout}s",
+            )
+
+    def _run_with_live_output(
+        self, cmd: list[str], allow_writes: bool
+    ) -> ClaudeCodeResult:
+        """Run Claude Code with live output streaming.
+
+        Args:
+            cmd: The command to run
+            allow_writes: Whether writes were allowed (for extracting modified files)
+
+        Returns:
+            ClaudeCodeResult with response and modified files
+        """
+        import sys
+
+        output_lines = []
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=str(self.working_dir),
+            )
+
+            print("\n" + "=" * 60)
+            print("Claude Code Output:")
+            print("=" * 60)
+
+            for line in iter(process.stdout.readline, ""):
+                print(line, end="", flush=True)
+                output_lines.append(line)
+
+            process.wait(timeout=self.timeout)
+            print("=" * 60 + "\n")
+
+            full_output = "".join(output_lines)
+
+            if process.returncode != 0:
+                return ClaudeCodeResult(
+                    response=full_output,
+                    success=False,
+                    error_message=f"Claude Code exited with code {process.returncode}",
+                )
+
             modified_files = []
             if allow_writes:
-                modified_files = self._extract_modified_files(result.stdout)
+                modified_files = self._extract_modified_files(full_output)
 
             return ClaudeCodeResult(
-                response=result.stdout.strip(),
+                response=full_output.strip(),
                 modified_files=modified_files,
                 success=True,
             )
 
         except subprocess.TimeoutExpired:
+            process.kill()
             return ClaudeCodeResult(
                 response="",
                 success=False,

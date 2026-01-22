@@ -390,8 +390,8 @@ class VisualCueRefiner:
 
         # Write back to script.json
         try:
-            with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2)
+            with open(script_path, "w", encoding="utf-8") as f:
+                json.dump(script_data, f, indent=2, ensure_ascii=False)
             self._log(f"Saved {applied} updates to script.json")
         except IOError as e:
             self._log(f"ERROR saving script.json: {e}")

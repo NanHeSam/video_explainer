@@ -485,7 +485,7 @@ class ScriptRefiner:
             data["scenes"] = scenes
 
             with open(narrations_path, "w") as f:
-                json.dump(data, f, indent=2)
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
             self._log(f"Added scene '{patch.title}' at position {insert_index + 1}")
 
@@ -516,7 +516,7 @@ class ScriptRefiner:
             script_data["scenes"] = script_scenes
 
             with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2)
+                json.dump(script_data, f, indent=2, ensure_ascii=False)
 
         return True
 
@@ -538,7 +538,7 @@ class ScriptRefiner:
 
             if updated:
                 with open(narrations_path, "w") as f:
-                    json.dump(data, f, indent=2)
+                    json.dump(data, f, indent=2, ensure_ascii=False)
 
         # Also update script.json if modifying voiceover/narration
         script_path = self.project.root_dir / "script" / "script.json"
@@ -553,7 +553,7 @@ class ScriptRefiner:
                     break
 
             with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2)
+                json.dump(script_data, f, indent=2, ensure_ascii=False)
 
         if updated:
             self._log(f"Modified scene '{patch.scene_id}' {patch.field_name}")
@@ -582,7 +582,7 @@ class ScriptRefiner:
 
             if updated:
                 with open(narrations_path, "w") as f:
-                    json.dump(data, f, indent=2)
+                    json.dump(data, f, indent=2, ensure_ascii=False)
 
         # Also update script.json
         script_path = self.project.root_dir / "script" / "script.json"
@@ -600,7 +600,7 @@ class ScriptRefiner:
                     break
 
             with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2)
+                json.dump(script_data, f, indent=2, ensure_ascii=False)
 
         if updated:
             self._log(f"Expanded scene '{patch.scene_id}'")
@@ -625,7 +625,7 @@ class ScriptRefiner:
 
             if updated:
                 with open(narrations_path, "w") as f:
-                    json.dump(data, f, indent=2)
+                    json.dump(data, f, indent=2, ensure_ascii=False)
 
         # Also update script.json
         script_path = self.project.root_dir / "script" / "script.json"
@@ -639,7 +639,7 @@ class ScriptRefiner:
                     break
 
             with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2)
+                json.dump(script_data, f, indent=2, ensure_ascii=False)
 
         if updated:
             self._log(f"Added bridge content to scene '{patch.modify_scene_id}'")

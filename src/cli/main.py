@@ -1358,7 +1358,7 @@ def cmd_render(args: argparse.Namespace) -> int:
 def cmd_feedback(args: argparse.Namespace) -> int:
     """Process or view feedback for a project."""
     from ..project import load_project
-    from ..feedback import FeedbackProcessor, FeedbackStore
+    from ..refine.feedback import FeedbackProcessor, FeedbackStore, FeedbackStatus
 
     try:
         project = load_project(Path(args.projects_dir) / args.project)
@@ -1372,14 +1372,16 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         print("  add <text>     Add and process new feedback")
         print("  list           List all feedback for the project")
         print("  show <id>      Show details of a feedback item")
+        print("  retry <id>     Retry a failed feedback item")
         return 1
 
     if args.feedback_command == "add":
         # Process new feedback
+        live_output = getattr(args, 'live', False)
         processor = FeedbackProcessor(
             project,
-            dry_run=args.dry_run,
             verbose=True,  # Always show detailed progress
+            live_output=live_output,
         )
 
         print(f"Processing feedback for {project.id}...")
@@ -1389,72 +1391,82 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         if args.dry_run:
             print("[DRY RUN] Analyzing feedback only, no changes will be made")
             print()
+        if live_output:
+            print("[LIVE] Streaming Claude Code output")
+            print()
 
-        item = processor.process_feedback(args.feedback_text)
+        item = processor.process(args.feedback_text, dry_run=args.dry_run)
 
-        print(f"Feedback ID: {item.id}")
-        print(f"Status: {item.status}")
+        print(f"\nFeedback ID: {item.id}")
+        print(f"Status: {item.status.value}")
+
+        if item.intent:
+            print(f"Intent: {item.intent.value}")
 
         if item.interpretation:
             print(f"\nInterpretation:")
             print(f"  {item.interpretation}")
 
-        if item.scope:
-            print(f"\nScope: {item.scope}")
-            if item.affected_scenes:
-                print(f"Affected scenes: {', '.join(item.affected_scenes)}")
+        if item.target:
+            print(f"\nScope: {item.target.scope.value}")
+            if item.target.scene_ids:
+                print(f"Affected scenes: {', '.join(item.target.scene_ids)}")
 
-        if item.suggested_changes:
-            print(f"\nSuggested changes:")
-            desc = item.suggested_changes.get("description", "")
-            if desc:
-                print(f"  {desc}")
-            files = item.suggested_changes.get("files_to_modify", [])
-            if files:
-                print(f"  Files: {', '.join(files)}")
+        if item.patches:
+            print(f"\nPatches generated: {len(item.patches)}")
+            for i, patch in enumerate(item.patches, 1):
+                patch_type = patch.get("patch_type", "unknown") if isinstance(patch, dict) else "unknown"
+                print(f"  {i}. {patch_type}")
 
         if item.files_modified:
             print(f"\nFiles modified:")
             for f in item.files_modified:
                 print(f"  - {f}")
 
+        if item.verification_passed is not None:
+            print(f"\nVerification: {'passed' if item.verification_passed else 'failed'}")
+
         if item.error_message:
             print(f"\nError: {item.error_message}", file=sys.stderr)
 
-        return 0 if item.status != "failed" else 1
+        return 0 if item.status != FeedbackStatus.FAILED else 1
 
     elif args.feedback_command == "list":
         # List all feedback
-        store = FeedbackStore(project.root_dir, project.id)
-        history = store.load()
+        store = FeedbackStore(project)
+        items = store.list_all()
 
-        if not history.items:
+        if not items:
             print(f"No feedback found for {project.id}")
             return 0
 
-        print(f"Feedback for {project.id} ({len(history.items)} items):\n")
+        print(f"Feedback for {project.id} ({len(items)} items):\n")
 
-        for item in history.items:
+        for item in items:
             status_icon = {
                 "pending": "⏳",
-                "processing": "🔄",
+                "analyzing": "🔍",
+                "generating": "⚙️",
+                "applying": "📝",
+                "verifying": "✓",
                 "applied": "✅",
-                "rejected": "❌",
                 "failed": "💥",
-            }.get(item.status, "?")
+            }.get(item.status.value, "?")
 
             print(f"  {status_icon} {item.id}")
-            print(f"    Status: {item.status}")
+            print(f"    Status: {item.status.value}")
+            if item.intent:
+                print(f"    Intent: {item.intent.value}")
             print(f"    Feedback: {item.feedback_text[:60]}{'...' if len(item.feedback_text) > 60 else ''}")
-            if item.affected_scenes:
-                print(f"    Scenes: {', '.join(item.affected_scenes)}")
+            if item.target and item.target.scene_ids:
+                print(f"    Scenes: {', '.join(item.target.scene_ids)}")
             print()
 
         return 0
 
     elif args.feedback_command == "show":
         # Show detailed feedback
-        store = FeedbackStore(project.root_dir, project.id)
+        store = FeedbackStore(project)
         item = store.get_item(args.feedback_id)
 
         if not item:
@@ -1462,27 +1474,33 @@ def cmd_feedback(args: argparse.Namespace) -> int:
             return 1
 
         print(f"Feedback: {item.id}")
-        print(f"Status: {item.status}")
+        print(f"Status: {item.status.value}")
         print(f"Timestamp: {item.timestamp}")
         print()
         print("Original feedback:")
         print(f"  {item.feedback_text}")
         print()
 
+        if item.intent:
+            print(f"Intent: {item.intent.value}")
+            if item.sub_intents:
+                print(f"Sub-intents: {', '.join(i.value for i in item.sub_intents)}")
+            print()
+
         if item.interpretation:
             print("Interpretation:")
             print(f"  {item.interpretation}")
             print()
 
-        if item.scope:
-            print(f"Scope: {item.scope}")
-        if item.affected_scenes:
-            print(f"Affected scenes: {', '.join(item.affected_scenes)}")
-        print()
+        if item.target:
+            print(f"Scope: {item.target.scope.value}")
+            if item.target.scene_ids:
+                print(f"Affected scenes: {', '.join(item.target.scene_ids)}")
+            print()
 
-        if item.suggested_changes:
-            print("Suggested changes:")
-            print(json.dumps(item.suggested_changes, indent=2))
+        if item.patches:
+            print(f"Patches ({len(item.patches)}):")
+            print(json.dumps(item.patches, indent=2))
             print()
 
         if item.files_modified:
@@ -1490,10 +1508,36 @@ def cmd_feedback(args: argparse.Namespace) -> int:
             for f in item.files_modified:
                 print(f"  - {f}")
 
+        if item.verification_passed is not None:
+            print(f"\nVerification: {'passed' if item.verification_passed else 'failed'}")
+
         if item.error_message:
             print(f"\nError: {item.error_message}")
 
         return 0
+
+    elif args.feedback_command == "retry":
+        # Retry a failed feedback item
+        processor = FeedbackProcessor(
+            project,
+            verbose=True,
+        )
+
+        print(f"Retrying feedback {args.feedback_id}...")
+
+        item = processor.process_item(args.feedback_id, dry_run=args.dry_run)
+
+        if not item:
+            print(f"Error: Feedback not found: {args.feedback_id}", file=sys.stderr)
+            return 1
+
+        print(f"\nStatus: {item.status.value}")
+        if item.files_modified:
+            print(f"Files modified: {', '.join(item.files_modified)}")
+        if item.error_message:
+            print(f"Error: {item.error_message}", file=sys.stderr)
+
+        return 0 if item.status != FeedbackStatus.FAILED else 1
 
     return 0
 
@@ -2947,6 +2991,11 @@ Use --force to regenerate all steps.
         action="store_true",
         help="Analyze feedback without applying changes",
     )
+    feedback_add_parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Stream Claude Code output in real-time",
+    )
 
     # feedback list
     feedback_subparsers.add_parser(
@@ -2962,6 +3011,21 @@ Use --force to regenerate all steps.
     feedback_show_parser.add_argument(
         "feedback_id",
         help="Feedback ID (e.g., fb_0001_1234567890)",
+    )
+
+    # feedback retry
+    feedback_retry_parser = feedback_subparsers.add_parser(
+        "retry",
+        help="Retry a failed feedback item",
+    )
+    feedback_retry_parser.add_argument(
+        "feedback_id",
+        help="Feedback ID to retry",
+    )
+    feedback_retry_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Analyze feedback without applying changes",
     )
 
     feedback_parser.set_defaults(func=cmd_feedback)
