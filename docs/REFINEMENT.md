@@ -1,6 +1,6 @@
 # Refinement System
 
-The refinement system helps elevate video quality to professional standards (3Blue1Brown / Veritasium level) through a 4-phase process.
+The refinement system helps elevate video quality to professional standards through a 4-phase process.
 
 ## Overview
 

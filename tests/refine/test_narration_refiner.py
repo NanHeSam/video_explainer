@@ -735,9 +735,9 @@ class TestNarrationAnalysisPrompt:
 class TestSystemPrompt:
     """Tests for the system prompt."""
 
-    def test_mentions_3blue1brown_style(self):
+    def test_mentions_professional_style(self):
         """Test that the system prompt mentions target style."""
-        assert "3Blue1Brown" in NARRATION_ANALYSIS_SYSTEM_PROMPT or "Veritasium" in NARRATION_ANALYSIS_SYSTEM_PROMPT
+        assert "professional" in NARRATION_ANALYSIS_SYSTEM_PROMPT.lower()
 
     def test_mentions_patches(self):
         """Test that the system prompt mentions patches."""

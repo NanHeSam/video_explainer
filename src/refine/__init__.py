@@ -2,7 +2,7 @@
 Video Refinement Module
 
 This module provides tools to refine video projects to high quality standards
-(3Blue1Brown / Veritasium level). It implements a 3-phase refinement process:
+It implements a 4-phase refinement process:
 
 Phase 1 (Analyze): Compare source material against script to identify gaps
 Phase 2 (Script): Refine narrations and update script structure

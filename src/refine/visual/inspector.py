@@ -46,7 +46,7 @@ SINGLE_SCENE_PLAYER_URL = "http://localhost:3000/SingleScenePlayer"
 
 VISUAL_ANALYSIS_SYSTEM_PROMPT = """You are an expert video editor and motion designer reviewing educational video content.
 
-Your task is to analyze screenshots from a video scene and identify issues based on the guiding principles for high-quality educational videos (3Blue1Brown / Veritasium style).
+Your task is to analyze screenshots from a video scene and identify issues based on the guiding principles for high-quality educational videos.
 
 When analyzing, be specific about:
 1. What principle is violated

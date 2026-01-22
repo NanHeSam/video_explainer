@@ -1,7 +1,7 @@
 """
 The 13 Guiding Principles for Video Refinement
 
-These principles define the quality bar for 3Blue1Brown / Veritasium level
+These principles define the quality bar for professional-level
 educational videos. Each scene should be evaluated against all 13 principles.
 """
 

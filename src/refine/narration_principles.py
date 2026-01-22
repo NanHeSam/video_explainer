@@ -2,7 +2,7 @@
 Universal storytelling principles for video narration.
 
 These principles apply to any educational/explainer video and help create
-engaging, memorable content in the style of 3Blue1Brown, Veritasium, etc.
+engaging, memorable content for professional educational videos.
 
 These are separate from the visual principles in principles.py, which focus
 on visual design and animation. Narration principles focus on the written

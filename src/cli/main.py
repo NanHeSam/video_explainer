@@ -43,7 +43,7 @@ Pipeline workflow:
     8. music     - Generate AI background music (optional)
     9. render    - Render final video
     10. feedback - Iterate on video with natural language feedback
-    11. refine   - Refine video quality to 3Blue1Brown/Veritasium level
+    11. refine   - Refine video quality to professional standards
 """
 
 import argparse

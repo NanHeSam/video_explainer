@@ -37,7 +37,7 @@ from ..narration_principles import format_principles_for_prompt
 # Prompts for Narration Refinement
 # =============================================================================
 
-NARRATION_ANALYSIS_SYSTEM_PROMPT = """You are an expert video scriptwriter improving narrations for technical explainer videos in the style of 3Blue1Brown and Veritasium.
+NARRATION_ANALYSIS_SYSTEM_PROMPT = """You are an expert video scriptwriter improving narrations for professional technical explainer videos.
 
 Your task is to evaluate narrations against storytelling principles and generate PATCHES to fix identified issues.
 

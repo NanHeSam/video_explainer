@@ -595,7 +595,7 @@ def add_refine_parser(subparsers: argparse._SubParsersAction) -> None:
     """
     refine_parser = subparsers.add_parser(
         "refine",
-        help="Refine video project to high quality (3Blue1Brown/Veritasium level)",
+        help="Refine video project to professional quality",
         description="""
 Refine a video project to high quality standards using a multi-phase process:
 
