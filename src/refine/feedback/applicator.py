@@ -416,10 +416,10 @@ class PatchApplicator:
 
             scenes = script.get("scenes", [])
             if insert_after:
-                # Find insert position
-                insert_idx = len(scenes)
+                # Find insert position using flexible matching
+                insert_idx = len(scenes)  # Default to end if not found
                 for i, s in enumerate(scenes):
-                    if s.get("scene_id") == insert_after:
+                    if self._match_scene_id(s, insert_after):
                         insert_idx = i + 1
                         break
                 scenes.insert(insert_idx, new_scene)
@@ -448,9 +448,10 @@ class PatchApplicator:
 
             scenes = narrations.get("scenes", [])
             if insert_after:
-                insert_idx = len(scenes)
+                # Find insert position using flexible matching
+                insert_idx = len(scenes)  # Default to end if not found
                 for i, s in enumerate(scenes):
-                    if s.get("scene_id") == insert_after:
+                    if self._match_scene_id(s, insert_after):
                         insert_idx = i + 1
                         break
                 scenes.insert(insert_idx, new_narration)
@@ -479,9 +480,10 @@ class PatchApplicator:
         # Update script.json
         script = self._load_script()
         if script:
+            # Use _match_scene_id for flexible matching
             script["scenes"] = [
                 s for s in script.get("scenes", [])
-                if s.get("scene_id") != scene_id
+                if not self._match_scene_id(s, scene_id)
             ]
             script["total_duration_seconds"] = sum(
                 s.get("duration_seconds", 0) for s in script["scenes"]
@@ -494,9 +496,10 @@ class PatchApplicator:
         # Update narrations.json
         narrations = self._load_narrations()
         if narrations:
+            # Use _match_scene_id for flexible matching
             narrations["scenes"] = [
                 s for s in narrations.get("scenes", [])
-                if s.get("scene_id") != scene_id
+                if not self._match_scene_id(s, scene_id)
             ]
             narrations["total_duration_seconds"] = sum(
                 s.get("duration_seconds", 0) for s in narrations["scenes"]
@@ -516,16 +519,30 @@ class PatchApplicator:
         if not new_order:
             return modified
 
+        def reorder_scenes(scenes: list, order: list) -> list:
+            """Reorder scenes using flexible ID matching."""
+            reordered = []
+            used_indices = set()
+
+            # First, add scenes in the requested order
+            for target_id in order:
+                for i, scene in enumerate(scenes):
+                    if i not in used_indices and self._match_scene_id(scene, target_id):
+                        reordered.append(scene)
+                        used_indices.add(i)
+                        break
+
+            # Add any remaining scenes not in the new order at the end
+            for i, scene in enumerate(scenes):
+                if i not in used_indices:
+                    reordered.append(scene)
+
+            return reordered
+
         # Update script.json
         script = self._load_script()
         if script:
-            scenes_by_id = {s.get("scene_id"): s for s in script.get("scenes", [])}
-            reordered = [scenes_by_id[sid] for sid in new_order if sid in scenes_by_id]
-            # Add any scenes not in the new order at the end
-            for scene in script.get("scenes", []):
-                if scene.get("scene_id") not in new_order:
-                    reordered.append(scene)
-            script["scenes"] = reordered
+            script["scenes"] = reorder_scenes(script.get("scenes", []), new_order)
 
             if self._save_script(script):
                 modified.append("script/script.json")
@@ -534,12 +551,7 @@ class PatchApplicator:
         # Update narrations.json
         narrations = self._load_narrations()
         if narrations:
-            scenes_by_id = {s.get("scene_id"): s for s in narrations.get("scenes", [])}
-            reordered = [scenes_by_id[sid] for sid in new_order if sid in scenes_by_id]
-            for scene in narrations.get("scenes", []):
-                if scene.get("scene_id") not in new_order:
-                    reordered.append(scene)
-            narrations["scenes"] = reordered
+            narrations["scenes"] = reorder_scenes(narrations.get("scenes", []), new_order)
 
             if self._save_narrations(narrations):
                 modified.append("narration/narrations.json")

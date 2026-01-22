@@ -9,6 +9,7 @@ This module:
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -148,6 +149,48 @@ class ScriptRefiner:
         """Print message if verbose mode is enabled."""
         if self.verbose:
             print(f"   {message}")
+
+    def _slugify(self, text: str) -> str:
+        """Convert text to slug format for scene ID matching.
+
+        Args:
+            text: Text to convert (e.g., scene title)
+
+        Returns:
+            Slug version (e.g., "The Imitation Trap" -> "the_imitation_trap")
+        """
+        slug = text.lower()
+        slug = re.sub(r"[\s\-]+", "_", slug)
+        slug = re.sub(r"[^a-z0-9_]", "", slug)
+        slug = re.sub(r"_+", "_", slug)
+        return slug.strip("_")
+
+    def _match_scene_id(self, scene: dict, target_id: str) -> bool:
+        """Check if a scene matches the target ID using flexible matching.
+
+        Supports:
+        - Direct ID match (string comparison of scene_id)
+        - Slug match via title (converts title to slug and compares)
+
+        Args:
+            scene: Scene dictionary with scene_id and optionally title
+            target_id: Target scene ID to match (can be numeric string or slug)
+
+        Returns:
+            True if the scene matches the target ID
+        """
+        scene_id = scene.get("scene_id")
+
+        # Direct match (convert both to string for comparison)
+        if str(scene_id) == str(target_id):
+            return True
+
+        # Match by title slug
+        title = scene.get("title", "")
+        if title and self._slugify(title) == target_id:
+            return True
+
+        return False
 
     def load_gap_analysis(self) -> Optional[GapAnalysisResult]:
         """Load gap analysis result from Phase 1.
@@ -464,30 +507,34 @@ class ScriptRefiner:
 
             scenes = data.get("scenes", [])
 
-            # Find insertion point
-            insert_index = 0
+            # Find insertion point using flexible matching
+            insert_index = len(scenes)  # Default to end if not found
             if patch.insert_after_scene_id:
                 for i, scene in enumerate(scenes):
-                    if scene.get("scene_id") == patch.insert_after_scene_id:
+                    if self._match_scene_id(scene, patch.insert_after_scene_id):
                         insert_index = i + 1
                         break
 
-            # Create new scene
+            # Create new scene for narrations.json
             new_scene = {
                 "scene_id": patch.new_scene_id,
                 "title": patch.title,
                 "narration": patch.narration,
-                "visual_description": patch.visual_description,
                 "duration_seconds": patch.duration_seconds,
             }
 
             scenes.insert(insert_index, new_scene)
             data["scenes"] = scenes
 
+            # Update total duration
+            data["total_duration_seconds"] = sum(
+                s.get("duration_seconds", 0) for s in scenes
+            )
+
             with open(narrations_path, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            self._log(f"Added scene '{patch.title}' at position {insert_index + 1}")
+            self._log(f"Added scene '{patch.title}' at position {insert_index + 1} in narrations.json")
 
         # Also update script.json if it exists
         script_path = self.project.root_dir / "script" / "script.json"
@@ -497,26 +544,42 @@ class ScriptRefiner:
 
             script_scenes = script_data.get("scenes", [])
 
-            insert_index = 0
+            # Find insertion point using flexible matching
+            insert_index = len(script_scenes)  # Default to end if not found
             if patch.insert_after_scene_id:
                 for i, scene in enumerate(script_scenes):
-                    if scene.get("scene_id") == patch.insert_after_scene_id:
+                    if self._match_scene_id(scene, patch.insert_after_scene_id):
                         insert_index = i + 1
                         break
+
+            # Create proper visual_cue structure (matching existing scene format)
+            visual_cue = {
+                "description": patch.visual_description,
+                "visual_type": "animation",
+                "elements": [patch.visual_description],  # Start with description as single element
+                "duration_seconds": patch.duration_seconds,
+            }
 
             new_script_scene = {
                 "scene_id": patch.new_scene_id,
                 "title": patch.title,
                 "voiceover": patch.narration,
-                "visual_description": patch.visual_description,
+                "visual_cue": visual_cue,
                 "duration_seconds": patch.duration_seconds,
             }
 
             script_scenes.insert(insert_index, new_script_scene)
             script_data["scenes"] = script_scenes
 
+            # Update total duration
+            script_data["total_duration_seconds"] = sum(
+                s.get("duration_seconds", 0) for s in script_scenes
+            )
+
             with open(script_path, "w") as f:
                 json.dump(script_data, f, indent=2, ensure_ascii=False)
+
+            self._log(f"Added scene '{patch.title}' at position {insert_index + 1} in script.json")
 
         return True
 
@@ -531,7 +594,7 @@ class ScriptRefiner:
                 data = json.load(f)
 
             for scene in data.get("scenes", []):
-                if scene.get("scene_id") == patch.scene_id:
+                if self._match_scene_id(scene, patch.scene_id):
                     scene[patch.field_name] = patch.new_value
                     updated = True
                     break
@@ -547,7 +610,7 @@ class ScriptRefiner:
                 script_data = json.load(f)
 
             for scene in script_data.get("scenes", []):
-                if scene.get("scene_id") == patch.scene_id:
+                if self._match_scene_id(scene, patch.scene_id):
                     # script.json uses "voiceover" instead of "narration"
                     scene["voiceover"] = patch.new_value
                     break
@@ -571,7 +634,7 @@ class ScriptRefiner:
                 data = json.load(f)
 
             for scene in data.get("scenes", []):
-                if scene.get("scene_id") == patch.scene_id:
+                if self._match_scene_id(scene, patch.scene_id):
                     scene["narration"] = patch.expanded_narration
                     if patch.additional_duration_seconds > 0:
                         scene["duration_seconds"] = (
@@ -591,7 +654,7 @@ class ScriptRefiner:
                 script_data = json.load(f)
 
             for scene in script_data.get("scenes", []):
-                if scene.get("scene_id") == patch.scene_id:
+                if self._match_scene_id(scene, patch.scene_id):
                     scene["voiceover"] = patch.expanded_narration
                     if patch.additional_duration_seconds > 0:
                         scene["duration_seconds"] = (
@@ -618,7 +681,7 @@ class ScriptRefiner:
                 data = json.load(f)
 
             for scene in data.get("scenes", []):
-                if scene.get("scene_id") == patch.modify_scene_id:
+                if self._match_scene_id(scene, patch.modify_scene_id):
                     scene["narration"] = patch.new_text
                     updated = True
                     break
@@ -634,7 +697,7 @@ class ScriptRefiner:
                 script_data = json.load(f)
 
             for scene in script_data.get("scenes", []):
-                if scene.get("scene_id") == patch.modify_scene_id:
+                if self._match_scene_id(scene, patch.modify_scene_id):
                     scene["voiceover"] = patch.new_text
                     break
 

@@ -746,3 +746,162 @@ class TestSystemPrompt:
     def test_emphasizes_actionable_output(self):
         """Test that the system prompt emphasizes actionable output."""
         assert "actionable" in NARRATION_ANALYSIS_SYSTEM_PROMPT.lower()
+
+
+class TestSlugMatchingInScriptRefiner:
+    """Tests for slug matching in ScriptRefiner patch application.
+
+    These tests verify that patches work correctly when scene_id formats differ
+    (e.g., numeric "4" vs slug "the_imitation_trap").
+    """
+
+    def test_match_scene_id_direct_match(self, tmp_path):
+        """Test that direct scene_id matching works."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        # Test direct match with string
+        scene = {"scene_id": "intro", "title": "Introduction"}
+        assert refiner._match_scene_id(scene, "intro") is True
+
+        # Test direct match with numeric
+        scene = {"scene_id": 4, "title": "The Imitation Trap"}
+        assert refiner._match_scene_id(scene, "4") is True
+        assert refiner._match_scene_id(scene, 4) is True
+
+    def test_match_scene_id_slug_match(self, tmp_path):
+        """Test that slug-based title matching works."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        # Test slug match via title
+        scene = {"scene_id": 4, "title": "The Imitation Trap"}
+        assert refiner._match_scene_id(scene, "the_imitation_trap") is True
+
+        scene = {"scene_id": 1, "title": "The Impossible Leap"}
+        assert refiner._match_scene_id(scene, "the_impossible_leap") is True
+
+    def test_add_scene_patch_with_slug_insert_after(self, tmp_path):
+        """Test that add_scene patch inserts at correct position using slug matching."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json with numeric scene_ids
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "voiceover": "First", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "voiceover": "Second", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "voiceover": "Third", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "narration": "First", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "narration": "Second", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "narration": "Third", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        # Create patch using slug format for insert_after
+        patch = AddScenePatch(
+            reason="Add missing context",
+            priority="high",
+            insert_after_scene_id="the_impossible_leap",  # Slug format
+            new_scene_id="new_context_scene",
+            title="New Context Scene",
+            narration="This is new context",
+            visual_description="New visual",
+            duration_seconds=18,
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify scene was inserted at correct position in script.json
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 4
+        assert updated_script["scenes"][0]["scene_id"] == 1  # Original first
+        assert updated_script["scenes"][1]["scene_id"] == "new_context_scene"  # New scene at position 2
+        assert updated_script["scenes"][2]["scene_id"] == 2  # Original second
+        assert updated_script["scenes"][3]["scene_id"] == 3  # Original third
+
+        # Verify visual_cue was created properly (not visual_description)
+        new_scene = updated_script["scenes"][1]
+        assert "visual_cue" in new_scene
+        assert "visual_description" not in new_scene
+        assert new_scene["visual_cue"]["description"] == "New visual"
+        assert new_scene["visual_cue"]["visual_type"] == "animation"
+
+        # Verify narrations.json was also updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert len(updated_narrations["scenes"]) == 4
+        assert updated_narrations["scenes"][1]["scene_id"] == "new_context_scene"
+
+    def test_modify_scene_patch_with_slug(self, tmp_path):
+        """Test that modify_scene patch works with slug matching."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": 4, "title": "The Imitation Trap", "voiceover": "Original text", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 20,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": 4, "title": "The Imitation Trap", "narration": "Original text", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 20,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        # Create patch using slug format
+        patch = ModifyScenePatch(
+            reason="Improve narration",
+            priority="medium",
+            scene_id="the_imitation_trap",  # Slug format
+            field_name="narration",
+            old_value="Original text",
+            new_value="Improved text with better flow",
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify both files were updated
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["voiceover"] == "Improved text with better flow"
+
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["narration"] == "Improved text with better flow"

@@ -2102,3 +2102,216 @@ class TestErrorHandling:
         # Scene count should remain the same
         updated_script = json.loads((script_dir / "script.json").read_text())
         assert len(updated_script["scenes"]) == 1
+
+
+# ============================================================================
+# Slug Matching in Structural Operations Tests
+# ============================================================================
+
+
+class TestSlugMatchingInStructuralOps:
+    """Tests for slug matching in add/remove/reorder operations.
+
+    These tests verify that structural operations work correctly when scene_id
+    formats differ (e.g., numeric "1" vs slug "the_impossible_leap").
+    """
+
+    def test_add_scene_after_numeric_id_using_slug(self, tmp_path):
+        """Test adding a scene after a numeric scene_id using slug match."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        # Scene uses numeric scene_id but has a title
+        script = {
+            "scenes": [
+                {
+                    "scene_id": 1,
+                    "title": "The Impossible Leap",
+                    "scene_type": "hook",
+                    "voiceover": "First scene",
+                    "duration_seconds": 10,
+                },
+                {
+                    "scene_id": 2,
+                    "title": "Beyond Linear Thinking",
+                    "scene_type": "explanation",
+                    "voiceover": "Second scene",
+                    "duration_seconds": 20,
+                },
+            ],
+            "total_duration_seconds": 30,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "duration_seconds": 10, "narration": "First scene"},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "duration_seconds": 20, "narration": "Second scene"},
+            ],
+            "total_duration_seconds": 30,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        # Use slug format for insert_after, but scene uses numeric ID
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Add a new scene after the first one",
+            patches=[
+                {
+                    "patch_type": "add_scene",
+                    "insert_after_scene_id": "the_impossible_leap",  # Slug format
+                    "new_scene_id": "new_explanation",
+                    "title": "New Explanation",
+                    "narration": "This is new",
+                    "visual_description": "New visual",
+                    "duration_seconds": 15,
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        # Verify scene was inserted at position 1 (after "The Impossible Leap")
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 3
+        assert updated_script["scenes"][0]["scene_id"] == 1
+        assert updated_script["scenes"][1]["scene_id"] == "new_explanation"  # New scene at position 1
+        assert updated_script["scenes"][2]["scene_id"] == 2
+
+        # Verify narrations.json too
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert len(updated_narrations["scenes"]) == 3
+        assert updated_narrations["scenes"][1]["scene_id"] == "new_explanation"
+
+    def test_remove_scene_using_slug_when_numeric_id(self, tmp_path):
+        """Test removing a scene using slug when scene has numeric ID."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        # Use slug format to remove, but scene uses numeric ID
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Remove the middle scene",
+            patches=[
+                {
+                    "patch_type": "remove_scene",
+                    "scene_id": "beyond_linear_thinking",  # Slug format
+                    "reason": "Not needed",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 2
+        scene_ids = [s["scene_id"] for s in updated_script["scenes"]]
+        assert 2 not in scene_ids  # Scene with ID 2 was removed
+        assert updated_script["total_duration_seconds"] == 25
+
+    def test_reorder_scenes_using_slugs_when_numeric_ids(self, tmp_path):
+        """Test reordering scenes using slugs when scenes have numeric IDs."""
+        project = MagicMock()
+        project.id = "test-project"
+        project.root_dir = tmp_path
+
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": 1, "title": "The Impossible Leap", "duration_seconds": 10},
+                {"scene_id": 2, "title": "Beyond Linear Thinking", "duration_seconds": 20},
+                {"scene_id": 3, "title": "The Final Reveal", "duration_seconds": 15},
+            ],
+            "total_duration_seconds": 45,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        applicator = PatchApplicator(project, verbose=False)
+
+        # Use slug format for reordering
+        item = FeedbackItem(
+            id="fb_0001_test",
+            timestamp=datetime.now(),
+            feedback_text="Put the reveal first",
+            patches=[
+                {
+                    "patch_type": "reorder_scenes",
+                    "new_order": [
+                        "the_final_reveal",  # Move to first
+                        "the_impossible_leap",
+                        "beyond_linear_thinking",
+                    ],
+                    "reason": "Better flow",
+                }
+            ],
+        )
+
+        result = applicator.apply(item, verify=False)
+
+        assert result.status == FeedbackStatus.APPLIED
+
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 3
+        # Verify new order
+        assert updated_script["scenes"][0]["scene_id"] == 3  # Final Reveal
+        assert updated_script["scenes"][1]["scene_id"] == 1  # Impossible Leap
+        assert updated_script["scenes"][2]["scene_id"] == 2  # Beyond Linear
+
+        # Verify narrations.json too
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["scene_id"] == 3
+        assert updated_narrations["scenes"][1]["scene_id"] == 1
+        assert updated_narrations["scenes"][2]["scene_id"] == 2
