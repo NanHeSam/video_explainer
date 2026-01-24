@@ -31,7 +31,9 @@ python -m src.cli music <project> generate
 
 ### Sound Library
 
-The system includes 10 professionally-designed sounds:
+The system includes 17 professionally-designed sounds:
+
+#### Core Sounds
 
 | Sound | Description | Use Case |
 |-------|-------------|----------|
@@ -45,6 +47,18 @@ The system includes 10 professionally-designed sounds:
 | `success_tone` | Positive chime | Solutions and success |
 | `transition_whoosh` | Smooth sweep | Phase transitions |
 | `cache_click` | Solid digital click | Cache/memory operations |
+
+#### Extended Sounds (New)
+
+| Sound | Description | Use Case |
+|-------|-------------|----------|
+| `keyboard_type` | Single keystroke click | Typing animations |
+| `keyboard_rapid` | Burst of 3-5 keys | Fast typing sequences |
+| `bar_grow` | Rising sweep tone | Bar chart growth |
+| `progress_tick` | Digital increment | Progress bars |
+| `digital_stream` | Flowing data sound | Token streaming |
+| `impact_soft` | Soft thump | Subtle reveals |
+| `impact_hard` | Punchy hit | Dramatic reveals |
 
 ```bash
 # List available sounds
@@ -73,16 +87,40 @@ python -m src.cli sound <project> clear
 
 ### Detection Patterns
 
-The analyzer detects these animation patterns in TSX code:
+The system uses **TypeScript AST analysis** to accurately detect animations, even with dynamic expressions:
 
-| Pattern | Sound Type | Detection |
-|---------|------------|-----------|
-| Opacity fade in | `element_appear` | `interpolate(frame, [X,Y], [0,1])` |
-| Opacity fade out | `element_disappear` | `interpolate(frame, [X,Y], [1,0])` |
-| Spring animations | `element_appear` | `spring({...})` |
-| Counter animations | `counter` | `Math.round(interpolate(...))` |
-| Width/height growth | `chart_grow` | Width/height interpolations |
-| Phase transitions | `transition` | Phase constant detection |
+```tsx
+// These expressions ARE properly evaluated:
+const phase1End = Math.round(durationInFrames * 0.10);  // Evaluates to ~50 frames
+const phase2End = Math.round(durationInFrames * 0.40);  // Evaluates to ~200 frames
+const slowSpeed = interpolate(localFrame, [phase2Start, phase2End], [0, 40]);
+```
+
+#### Detected Animation Patterns
+
+| Pattern | Sound Type | Detection Method |
+|---------|------------|------------------|
+| Opacity fade in | `element_appear` | `interpolate(frame, [X,Y], [0,1])` with opacity in variable name |
+| Opacity fade out | `element_disappear` | `interpolate(frame, [X,Y], [1,0])` with opacity in variable name |
+| Spring animations | `reveal` | `spring({frame: X, ...})` |
+| Counter animations | `counter` | `Math.round(interpolate(...))` or variables with "counter/count/speed" |
+| Bar/chart growth | `chart_grow` | Variables with "bar/width/chart" in name |
+| Phase transitions | `transition` | Phase constant detection via symbol table |
+
+#### Semantic Sound Mapping
+
+The system intelligently selects sounds based on context:
+
+| Context Pattern | Mapped Sound |
+|-----------------|--------------|
+| `prompt` + opacity | `keyboard_type` |
+| `code` + opacity | `keyboard_type` |
+| `token` + opacity | `text_tick` |
+| `speed/counter` + counter | `counter_sweep` |
+| `bar/chart` + width | `bar_grow` |
+| `progress` + width | `progress_tick` |
+| `reveal/badge` + scale | `reveal_hit` |
+| `stream/flow` + opacity | `data_flow` |
 
 ### SFX Cue Format
 
@@ -195,6 +233,53 @@ The generator supports different themes for varied sonic palettes:
 ```bash
 python -m src.cli sound <project> generate --theme science
 ```
+
+---
+
+## Architecture
+
+The SFX system uses a multi-stage pipeline:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SFX Generation Pipeline                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. TSX File ──► TypeScript AST Analyzer (Node.js)             │
+│                  - Parse with @babel/parser                     │
+│                  - Build symbol table for constants             │
+│                  - Evaluate expressions (Math.round, etc.)      │
+│                  - Extract animations with resolved frames      │
+│                                                                 │
+│  2. Animations ──► Semantic Sound Mapper (Python)              │
+│                    - Analyze variable names & context           │
+│                    - Map to appropriate sounds                  │
+│                    - Consider scene narrative phase             │
+│                                                                 │
+│  3. Sound Cues ──► Aggregator                                  │
+│                    - Deduplicate overlapping cues               │
+│                    - Enforce density limits                     │
+│                    - Output to storyboard.json                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| AST Extractor | `remotion/scripts/extract-animations.ts` | Parse TSX and evaluate expressions |
+| TypeScript Analyzer | `src/sound/ts_analyzer.py` | Python wrapper for AST extractor |
+| Semantic Mapper | `src/sound/semantic_mapper.py` | Context-aware sound selection |
+| Sound Library | `src/sound/library.py` | Sound generation using numpy |
+| Orchestrator | `src/sound/sfx_orchestrator.py` | Coordinates the pipeline |
+
+### Fallback Behavior
+
+The system falls back to regex-based analysis if:
+- Node.js is not available
+- The AST parser fails
+- The scene file cannot be parsed
 
 ---
 

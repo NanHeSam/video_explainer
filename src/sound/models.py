@@ -188,6 +188,7 @@ VOLUME_BY_TYPE = {
 }
 
 # Mapping from moment type to sound library name
+# Note: For more context-aware mapping, use semantic_mapper.py
 MOMENT_TO_SOUND = {
     "element_appear": "ui_pop",
     "element_disappear": "ui_pop",
@@ -201,8 +202,16 @@ MOMENT_TO_SOUND = {
     "data_flow": "data_flow",
     "connection": "lock_click",
     "highlight": "ui_pop",
-    "chart_grow": "counter_sweep",
+    "chart_grow": "bar_grow",
     "pulse": "ui_pop",
+    # Extended mappings for semantic analysis
+    "typing": "keyboard_type",
+    "typing_rapid": "keyboard_rapid",
+    "bar_growth": "bar_grow",
+    "progress": "progress_tick",
+    "streaming": "digital_stream",
+    "soft_reveal": "impact_soft",
+    "hard_reveal": "impact_hard",
 }
 
 

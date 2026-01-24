@@ -15,7 +15,7 @@ import wave
 import json
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional, Literal
+from typing import Optional, Literal, Union, Tuple
 from enum import Enum
 
 import numpy as np
@@ -249,7 +249,7 @@ def fm_oscillator(
 def filtered_noise(
     n_samples: int,
     filter_type: Literal["lowpass", "highpass", "bandpass"],
-    cutoff: float | tuple[float, float],
+    cutoff: Union[float, Tuple[float, float]],
     resonance: float = 1.0
 ) -> np.ndarray:
     """Generate filtered noise with resonance.

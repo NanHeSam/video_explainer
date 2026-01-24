@@ -3,20 +3,25 @@
 This module provides intelligent SFX generation for frame-accurate sound design.
 
 The sound design workflow is:
-1. Analyze scene code for animation patterns (scene_analyzer)
-2. Sync to narration word timestamps (narration_sync)
-3. Optional LLM semantic analysis (llm_analyzer)
-4. Aggregate and filter moments (aggregator)
-5. Generate SFX cues (cue_generator)
-6. Update storyboard.json (storyboard_updater)
-7. Generate SFX files using SoundLibrary
-8. Remotion renders video with SFX at specified frames
+1. Analyze scene code for animation patterns
+   - TypeScript AST analyzer (ts_analyzer) for accurate expression evaluation
+   - Regex-based analyzer (scene_analyzer) as fallback
+2. Apply semantic sound mapping (semantic_mapper)
+3. Sync to narration word timestamps (narration_sync)
+4. Optional LLM semantic analysis (llm_analyzer)
+5. Aggregate and filter moments (aggregator)
+6. Generate SFX cues (cue_generator)
+7. Update storyboard.json (storyboard_updater)
+8. Generate SFX files using SoundLibrary
+9. Remotion renders video with SFX at specified frames
 
 Components:
 - models: Data structures (SoundMoment, SFXCue)
-- library: SFX generation with 10 focused sounds
+- library: SFX generation with 17 focused sounds
 - generator: Theme-aware sound synthesis
-- scene_analyzer: TSX code pattern detection
+- ts_analyzer: TypeScript AST-based animation extraction
+- scene_analyzer: Regex-based TSX code pattern detection (fallback)
+- semantic_mapper: Context-aware sound selection
 - narration_sync: Word timestamp sync
 - llm_analyzer: LLM semantic analysis
 - aggregator: Moment deduplication and filtering
@@ -36,7 +41,9 @@ from .models import (
     get_sound_for_moment,
 )
 from .generator import SoundGenerator, SoundEvent, SoundTheme
+from .ts_analyzer import TypeScriptAnalyzer, analyze_scene_with_ast
 from .scene_analyzer import SceneAnalyzer, analyze_scene, find_scene_files
+from .semantic_mapper import SemanticSoundMapper, map_moment_to_sound, map_moments_to_sounds
 from .narration_sync import (
     NarrationSyncAnalyzer,
     sync_to_narration,
@@ -68,10 +75,17 @@ __all__ = [
     "SoundGenerator",
     "SoundEvent",
     "SoundTheme",
-    # Scene Analyzer
+    # TypeScript AST Analyzer
+    "TypeScriptAnalyzer",
+    "analyze_scene_with_ast",
+    # Scene Analyzer (regex fallback)
     "SceneAnalyzer",
     "analyze_scene",
     "find_scene_files",
+    # Semantic Mapper
+    "SemanticSoundMapper",
+    "map_moment_to_sound",
+    "map_moments_to_sounds",
     # Narration Sync
     "NarrationSyncAnalyzer",
     "sync_to_narration",

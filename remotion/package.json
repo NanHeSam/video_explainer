@@ -28,9 +28,14 @@
     "zustand": "^3.7.2"
   },
   "devDependencies": {
+    "@babel/parser": "^7.23.0",
+    "@babel/traverse": "^7.23.0",
+    "@babel/types": "^7.23.0",
+    "@types/babel__traverse": "^7.20.4",
     "@types/node": "22.10.2",
     "@types/react": "18.3.12",
     "@types/three": "^0.170.0",
+    "ts-node": "^10.9.2",
     "typescript": "5.7.2",
     "vitest": "^2.1.8"
   }

@@ -6,7 +6,7 @@ files with generated SFX cues.
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from .models import SFXCue
 
@@ -21,7 +21,7 @@ class StoryboardUpdater:
             storyboard_path: Path to the storyboard.json file
         """
         self.storyboard_path = Path(storyboard_path)
-        self._storyboard: dict | None = None
+        self._storyboard: Optional[dict] = None
 
     def load(self) -> dict:
         """Load the storyboard from disk.
@@ -67,7 +67,7 @@ class StoryboardUpdater:
         """Get all scenes from the storyboard."""
         return self.storyboard.get("scenes", [])
 
-    def get_scene_by_id(self, scene_id: str) -> dict | None:
+    def get_scene_by_id(self, scene_id: str) -> Optional[dict]:
         """Get a scene by its ID.
 
         Args:
@@ -81,7 +81,7 @@ class StoryboardUpdater:
                 return scene
         return None
 
-    def get_scene_by_type(self, scene_type: str) -> dict | None:
+    def get_scene_by_type(self, scene_type: str) -> Optional[dict]:
         """Get a scene by its type path.
 
         Args:

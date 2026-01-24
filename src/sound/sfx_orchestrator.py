@@ -2,12 +2,13 @@
 
 This module coordinates the full SFX generation pipeline:
 1. Load storyboard and scene information
-2. Analyze scene code for animation patterns
-3. (Optional) Sync to narration word timestamps
-4. (Optional) LLM semantic analysis
-5. Aggregate and deduplicate moments
-6. Generate SFX cues
-7. Update storyboard.json
+2. Analyze scene code for animation patterns (TypeScript AST or regex fallback)
+3. Apply semantic sound mapping based on context
+4. (Optional) Sync to narration word timestamps
+5. (Optional) LLM semantic analysis
+6. Aggregate and deduplicate moments
+7. Generate SFX cues
+8. Update storyboard.json
 """
 
 from dataclasses import dataclass
@@ -16,6 +17,8 @@ from typing import Optional
 
 from .models import SoundMoment, SFXCue, SceneAnalysisResult
 from .scene_analyzer import SceneAnalyzer, find_scene_files
+from .ts_analyzer import TypeScriptAnalyzer
+from .semantic_mapper import SemanticSoundMapper
 from .cue_generator import CueGenerator, SceneSFXGenerator
 from .storyboard_updater import StoryboardUpdater, load_storyboard
 from .aggregator import aggregate_moments
@@ -43,7 +46,8 @@ class SFXOrchestrator:
     """Orchestrates the full SFX generation pipeline.
 
     Coordinates scene analysis, moment detection, cue generation,
-    and storyboard updates.
+    and storyboard updates. Uses TypeScript AST analysis for accurate
+    frame timing extraction with regex fallback.
     """
 
     def __init__(
@@ -52,6 +56,7 @@ class SFXOrchestrator:
         theme: SoundTheme = SoundTheme.TECH_AI,
         fps: int = 30,
         use_library: bool = True,
+        use_ast_analyzer: bool = True,
     ):
         """Initialize the orchestrator.
 
@@ -60,18 +65,22 @@ class SFXOrchestrator:
             theme: Sound theme for generation
             fps: Frames per second (default 30)
             use_library: Use library sounds vs custom generation
+            use_ast_analyzer: Use TypeScript AST analyzer (falls back to regex)
         """
         self.project_dir = Path(project_dir)
         self.theme = theme
         self.fps = fps
         self.use_library = use_library
+        self.use_ast_analyzer = use_ast_analyzer
 
         # Determine paths
         self.storyboard_path = self.project_dir / "storyboard" / "storyboard.json"
         self.sfx_dir = self.project_dir / "sfx"
 
-        # Components
-        self.analyzer = SceneAnalyzer(fps=fps)
+        # Components - both analyzers available
+        self.regex_analyzer = SceneAnalyzer(fps=fps)
+        self.ts_analyzer = TypeScriptAnalyzer(fps=fps) if use_ast_analyzer else None
+        self.semantic_mapper = SemanticSoundMapper()
         self.cue_generator = CueGenerator(
             use_library=use_library,
             theme=theme,
@@ -162,6 +171,9 @@ class SFXOrchestrator:
     ) -> dict[str, SceneAnalysisResult]:
         """Analyze all scene files and detect animation patterns.
 
+        Uses TypeScript AST analyzer for accurate frame timing extraction,
+        with automatic fallback to regex-based analysis if AST parsing fails.
+
         Args:
             scene_types: Optional list of scene types to analyze.
                         If None, analyzes all scenes in storyboard.
@@ -186,35 +198,88 @@ class SFXOrchestrator:
             if scene_types and scene_type not in scene_types:
                 continue
 
+            # Get duration from storyboard
+            duration_frames = int(scene.get("audio_duration_seconds", 10) * self.fps)
+
             # Try to find the scene file
             scene_file = self._find_scene_file(scene_type, project_id)
 
             # Create analysis result
             if scene_file:
-                try:
-                    result = self.analyzer.analyze_scene(scene_file)
-                    # Update scene_id to match storyboard
-                    result.scene_id = scene_id
-                    result.source_file = str(scene_file)
-                    results[scene_id] = result
-                except Exception as e:
-                    # Create empty result with error note
-                    results[scene_id] = SceneAnalysisResult(
-                        scene_id=scene_id,
-                        scene_type=scene_type,
-                        duration_frames=int(scene.get("audio_duration_seconds", 10) * self.fps),
-                        analysis_notes=[f"Analysis error: {e}"],
-                    )
+                result = self._analyze_scene_file(
+                    scene_file, scene_id, scene_type, duration_frames
+                )
+                results[scene_id] = result
             else:
                 # No scene file found - create empty result
                 results[scene_id] = SceneAnalysisResult(
                     scene_id=scene_id,
                     scene_type=scene_type,
-                    duration_frames=int(scene.get("audio_duration_seconds", 10) * self.fps),
+                    duration_frames=duration_frames,
                     analysis_notes=["Scene file not found"],
                 )
 
         return results
+
+    def _analyze_scene_file(
+        self,
+        scene_file: Path,
+        scene_id: str,
+        scene_type: str,
+        duration_frames: int,
+    ) -> SceneAnalysisResult:
+        """Analyze a single scene file with AST analyzer and regex fallback.
+
+        Args:
+            scene_file: Path to the TSX file
+            scene_id: Scene identifier
+            scene_type: Scene type string
+            duration_frames: Duration in frames
+
+        Returns:
+            SceneAnalysisResult with detected moments
+        """
+        result = None
+        analysis_notes = []
+
+        # Try TypeScript AST analyzer first (if enabled)
+        if self.use_ast_analyzer and self.ts_analyzer:
+            try:
+                result = self.ts_analyzer.analyze_scene(scene_file, duration_frames)
+                analysis_notes.append("Analyzed with TypeScript AST parser")
+            except Exception as e:
+                analysis_notes.append(f"AST analysis failed: {e}, falling back to regex")
+
+        # Fall back to regex analyzer
+        if result is None or not result.moments:
+            try:
+                result = self.regex_analyzer.analyze_scene(scene_file)
+                if not analysis_notes or "falling back" in analysis_notes[-1]:
+                    analysis_notes.append("Analyzed with regex patterns")
+            except Exception as e:
+                # Create empty result with error
+                result = SceneAnalysisResult(
+                    scene_id=scene_id,
+                    scene_type=scene_type,
+                    duration_frames=duration_frames,
+                    analysis_notes=[f"Analysis error: {e}"],
+                )
+                return result
+
+        # Update result with correct metadata
+        result.scene_id = scene_id
+        result.scene_type = scene_type
+        result.source_file = str(scene_file)
+        result.duration_frames = duration_frames
+        result.analysis_notes.extend(analysis_notes)
+
+        # Apply semantic sound mapping to all moments
+        for moment in result.moments:
+            selection = self.semantic_mapper.select_sound(moment, duration_frames)
+            # Store the mapped sound in the context for later use
+            moment.context = f"{moment.context} [mapped: {selection.sound}]"
+
+        return result
 
     def generate_sfx_cues(
         self,
