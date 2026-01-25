@@ -300,35 +300,47 @@ class ScriptAnalyzer:
     def _load_source_material(self) -> tuple[Path, str]:
         """Load source material from the input directory.
 
-        Supports markdown, text, and PDF files.
+        Reads ALL markdown, text, and PDF files and combines their content.
 
         Returns:
-            Tuple of (file path, content) or (None, "") if not found
+            Tuple of (input directory path, combined content) or (Path(), "") if not found
         """
         input_dir = self.project.root_dir / "input"
         if not input_dir.exists():
             return Path(), ""
 
-        # Look for markdown or text files first
+        all_content: list[str] = []
+        files_loaded: list[str] = []
+
+        # Load all markdown and text files
         for pattern in ["*.md", "*.txt", "*.markdown"]:
-            files = list(input_dir.glob(pattern))
-            if files:
-                # Use the first file found (or largest if multiple)
-                source_file = max(files, key=lambda f: f.stat().st_size)
-                return source_file, source_file.read_text()
+            for file_path in sorted(input_dir.glob(pattern)):
+                try:
+                    content = file_path.read_text()
+                    if content.strip():
+                        all_content.append(f"# Source: {file_path.name}\n\n{content}")
+                        files_loaded.append(file_path.name)
+                except Exception as e:
+                    self._log(f"Warning: Failed to read {file_path}: {e}")
 
-        # Look for PDF files
-        pdf_files = list(input_dir.glob("*.pdf"))
-        if pdf_files:
-            source_file = max(pdf_files, key=lambda f: f.stat().st_size)
+        # Load all PDF files
+        for file_path in sorted(input_dir.glob("*.pdf")):
             try:
-                parsed = parse_pdf(source_file)
-                return source_file, parsed.raw_content
+                parsed = parse_pdf(file_path)
+                if parsed.raw_content.strip():
+                    all_content.append(f"# Source: {file_path.name}\n\n{parsed.raw_content}")
+                    files_loaded.append(file_path.name)
             except Exception as e:
-                self._log(f"Warning: Failed to parse PDF {source_file}: {e}")
-                return Path(), ""
+                self._log(f"Warning: Failed to parse PDF {file_path}: {e}")
 
-        return Path(), ""
+        if not all_content:
+            return Path(), ""
+
+        if files_loaded:
+            self._log(f"Loaded {len(files_loaded)} source files: {', '.join(files_loaded)}")
+
+        combined_content = "\n\n---\n\n".join(all_content)
+        return input_dir, combined_content
 
     def _load_script_scenes(self) -> list[dict]:
         """Load scenes from the script.
