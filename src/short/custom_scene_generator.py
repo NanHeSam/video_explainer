@@ -934,6 +934,23 @@ const phase3End = {phases[2]['end']};
 
         return "\n".join(lines)
 
+    def _fix_imports(self, code: str) -> str:
+        """Fix common import path issues in generated code.
+
+        LLMs sometimes generate incorrect relative paths like '../styles'
+        when all files are in the same directory.
+
+        Args:
+            code: Generated TypeScript code.
+
+        Returns:
+            Code with corrected import paths.
+        """
+        # Fix incorrect relative path to styles (should be ./styles, not ../styles)
+        code = re.sub(r'from\s+["\']\.\.\/styles["\']', 'from "./styles"', code)
+        code = re.sub(r'from\s+["\']\.\.\/\.\.\/styles["\']', 'from "./styles"', code)
+        return code
+
     def _extract_code(self, response: str) -> str | None:
         """Extract TypeScript code from response.
 
@@ -950,10 +967,11 @@ const phase3End = {phases[2]['end']};
         for pattern in patterns:
             match = re.search(pattern, response)
             if match:
-                return match.group(1).strip()
+                code = match.group(1).strip()
+                return self._fix_imports(code)
 
         # If response looks like code, return as-is
         if "import" in response and "export" in response:
-            return response.strip()
+            return self._fix_imports(response.strip())
 
         return None

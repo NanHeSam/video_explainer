@@ -310,8 +310,11 @@ A technique to reduce variance in training.
             verbose=False,
         )
         path, content = analyzer._load_source_material()
-        assert path.name == "source.md"
+        # Now returns input directory, not individual file
+        assert path.name == "input"
         assert "Chain-of-Thought" in content
+        # Check file header is added
+        assert "# Source: source.md" in content
 
     def test_load_source_material_not_found(self, temp_project_dir, mock_llm):
         """Test loading source material when none exists."""
@@ -326,6 +329,163 @@ A technique to reduce variance in training.
         analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
         path, content = analyzer._load_source_material()
         assert content == ""
+
+    def test_load_source_material_multiple_files(self, temp_project_dir, mock_llm, sample_narrations):
+        """Test loading multiple source files from input directory."""
+        # Create multiple source files
+        input_dir = temp_project_dir / "input"
+        (input_dir / "doc1.md").write_text("# Document 1\n\nThis is the first document about RL.")
+        (input_dir / "doc2.md").write_text("# Document 2\n\nThis is the second document about PPO.")
+        (input_dir / "notes.txt").write_text("Additional notes about training.")
+
+        # Write narrations
+        narrations_path = temp_project_dir / "narration" / "narrations.json"
+        with open(narrations_path, "w") as f:
+            json.dump(sample_narrations, f)
+
+        from src.project import load_project
+        project = load_project(temp_project_dir)
+
+        analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
+        path, content = analyzer._load_source_material()
+
+        # Should return input directory
+        assert path.name == "input"
+
+        # Should contain content from all files
+        assert "Document 1" in content
+        assert "Document 2" in content
+        assert "Additional notes" in content
+
+        # Should have file headers
+        assert "# Source: doc1.md" in content
+        assert "# Source: doc2.md" in content
+        assert "# Source: notes.txt" in content
+
+        # Files should be separated
+        assert "---" in content
+
+    def test_load_source_material_with_pdf(self, temp_project_dir, mock_llm, sample_narrations):
+        """Test loading PDF files from input directory."""
+        # Create a markdown file and a mock PDF
+        input_dir = temp_project_dir / "input"
+        (input_dir / "doc.md").write_text("# Markdown Doc\n\nMarkdown content here.")
+
+        # Create a dummy PDF file (we'll mock the parser)
+        pdf_path = input_dir / "paper.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4 dummy content")
+
+        # Write narrations
+        narrations_path = temp_project_dir / "narration" / "narrations.json"
+        with open(narrations_path, "w") as f:
+            json.dump(sample_narrations, f)
+
+        from src.project import load_project
+        project = load_project(temp_project_dir)
+
+        # Mock the parse_pdf function
+        mock_parsed_doc = MagicMock()
+        mock_parsed_doc.raw_content = "This is the extracted PDF content about reinforcement learning."
+
+        with patch("src.refine.script.analyzer.parse_pdf", return_value=mock_parsed_doc) as mock_parse:
+            analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
+            path, content = analyzer._load_source_material()
+
+            # PDF parser should have been called once
+            mock_parse.assert_called_once()
+            # Verify it was called with the right filename (handles symlink differences)
+            call_args = mock_parse.call_args[0][0]
+            assert call_args.name == "paper.pdf"
+
+            # Should contain both markdown and PDF content
+            assert "Markdown content here" in content
+            assert "extracted PDF content" in content
+
+            # Should have file headers for both
+            assert "# Source: doc.md" in content
+            assert "# Source: paper.pdf" in content
+
+    def test_load_source_material_pdf_only(self, temp_project_dir, mock_llm, sample_narrations):
+        """Test loading only PDF files when no markdown exists."""
+        input_dir = temp_project_dir / "input"
+
+        # Create only PDF files
+        pdf_path = input_dir / "research.pdf"
+        pdf_path.write_bytes(b"%PDF-1.4 dummy")
+
+        # Write narrations
+        narrations_path = temp_project_dir / "narration" / "narrations.json"
+        with open(narrations_path, "w") as f:
+            json.dump(sample_narrations, f)
+
+        from src.project import load_project
+        project = load_project(temp_project_dir)
+
+        mock_parsed_doc = MagicMock()
+        mock_parsed_doc.raw_content = "PDF only content about GRPO algorithm."
+
+        with patch("src.refine.script.analyzer.parse_pdf", return_value=mock_parsed_doc):
+            analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
+            path, content = analyzer._load_source_material()
+
+            assert path.name == "input"
+            assert "GRPO algorithm" in content
+            assert "# Source: research.pdf" in content
+
+    def test_load_source_material_pdf_error_handling(self, temp_project_dir, mock_llm, sample_narrations):
+        """Test that PDF parsing errors don't break the whole process."""
+        input_dir = temp_project_dir / "input"
+
+        # Create a markdown file and a "corrupted" PDF
+        (input_dir / "good.md").write_text("# Good Document\n\nThis should load fine.")
+        (input_dir / "bad.pdf").write_bytes(b"corrupted pdf data")
+
+        # Write narrations
+        narrations_path = temp_project_dir / "narration" / "narrations.json"
+        with open(narrations_path, "w") as f:
+            json.dump(sample_narrations, f)
+
+        from src.project import load_project
+        project = load_project(temp_project_dir)
+
+        # Mock parse_pdf to raise an exception
+        with patch("src.refine.script.analyzer.parse_pdf", side_effect=ValueError("Invalid PDF")):
+            analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
+            path, content = analyzer._load_source_material()
+
+            # Should still return content from the good markdown file
+            assert "This should load fine" in content
+            assert "# Source: good.md" in content
+
+            # Should NOT contain the bad PDF (it failed to parse)
+            assert "# Source: bad.pdf" not in content
+
+    def test_load_source_material_files_sorted(self, temp_project_dir, mock_llm, sample_narrations):
+        """Test that files are loaded in sorted order for consistency."""
+        input_dir = temp_project_dir / "input"
+
+        # Create files with names that would sort differently
+        (input_dir / "z_last.md").write_text("# Z Last")
+        (input_dir / "a_first.md").write_text("# A First")
+        (input_dir / "m_middle.md").write_text("# M Middle")
+
+        # Write narrations
+        narrations_path = temp_project_dir / "narration" / "narrations.json"
+        with open(narrations_path, "w") as f:
+            json.dump(sample_narrations, f)
+
+        from src.project import load_project
+        project = load_project(temp_project_dir)
+
+        analyzer = ScriptAnalyzer(project=project, llm_provider=mock_llm, verbose=False)
+        path, content = analyzer._load_source_material()
+
+        # Files should appear in sorted order
+        a_pos = content.find("# Source: a_first.md")
+        m_pos = content.find("# Source: m_middle.md")
+        z_pos = content.find("# Source: z_last.md")
+
+        assert a_pos < m_pos < z_pos, "Files should be loaded in sorted order"
 
     def test_load_script_scenes(self, project_with_source, mock_llm):
         """Test loading script scenes from narrations."""
