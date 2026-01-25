@@ -148,6 +148,7 @@ class SyncOrchestrator:
         sync_map: Optional[SyncMap] = None,
         dry_run: bool = False,
         scene_id: Optional[str] = None,
+        force: bool = False,
     ) -> dict[str, MigrationPlan]:
         """Migrate scenes to use centralized timing.
 
@@ -155,6 +156,7 @@ class SyncOrchestrator:
             sync_map: Optional sync map. If None, loads from file.
             dry_run: If True, don't write changes.
             scene_id: Optional specific scene to migrate.
+            force: If True, re-migrate even if already using TIMING import.
 
         Returns:
             Dict mapping scene_id to MigrationPlan.
@@ -186,6 +188,7 @@ class SyncOrchestrator:
                 scene_config=scene_config,
                 timing_block=timing_block,
                 dry_run=dry_run,
+                force=force,
             )
             return {scene_id: plan}
 
@@ -193,6 +196,7 @@ class SyncOrchestrator:
         return self.migrator.migrate_all_scenes(
             sync_map=sync_map,
             dry_run=dry_run,
+            force=force,
         )
 
     def run_full_sync(
@@ -238,6 +242,7 @@ class SyncOrchestrator:
                 sync_map=sync_map,
                 dry_run=dry_run,
                 scene_id=scene_id,
+                force=force,
             )
             result.migration_results = list(migration_results.values())
             result.scenes_migrated = sum(

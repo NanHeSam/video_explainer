@@ -56,6 +56,7 @@ class SceneMigrator:
         scene_config: SceneSyncConfig,
         timing_block: SceneTimingBlock,
         dry_run: bool = False,
+        force: bool = False,
     ) -> MigrationPlan:
         """Migrate a single scene to use centralized timing.
 
@@ -63,6 +64,7 @@ class SceneMigrator:
             scene_config: Scene configuration with sync points.
             timing_block: Timing block with calculated frame numbers.
             dry_run: If True, don't write changes, just show what would happen.
+            force: If True, re-migrate even if already using TIMING import.
 
         Returns:
             MigrationPlan with results.
@@ -89,9 +91,9 @@ class SceneMigrator:
         original_code = scene_file.read_text()
 
         # Check if already migrated
-        if self._is_already_migrated(original_code):
+        if self._is_already_migrated(original_code) and not force:
             if self.verbose:
-                print(f"    ⏭️ Already uses TIMING import, skipping")
+                print(f"    ⏭️ Already uses TIMING import, skipping (use --force to re-migrate)")
             return MigrationPlan(
                 scene_id=scene_config.scene_id,
                 scene_file=scene_file,
@@ -100,6 +102,9 @@ class SceneMigrator:
                 success=True,
                 error_message=None,
             )
+        elif self._is_already_migrated(original_code) and force:
+            if self.verbose:
+                print(f"    🔄 Force re-migrating scene with updated timings")
 
         # Generate migrated code using LLM
         migrated_code = self._migrate_with_llm(
@@ -172,6 +177,7 @@ class SceneMigrator:
         sync_map: Optional[SyncMap] = None,
         timing_data: Optional[dict[str, SceneTimingBlock]] = None,
         dry_run: bool = False,
+        force: bool = False,
     ) -> dict[str, MigrationPlan]:
         """Migrate all scenes in the project.
 
@@ -179,6 +185,7 @@ class SceneMigrator:
             sync_map: Optional sync map. If None, loads from file.
             timing_data: Optional timing data. If None, loads from file.
             dry_run: If True, don't write changes.
+            force: If True, re-migrate even if already using TIMING import.
 
         Returns:
             Dict mapping scene_id to MigrationPlan.
@@ -218,6 +225,7 @@ class SceneMigrator:
                 scene_config=scene_config,
                 timing_block=timing_block,
                 dry_run=dry_run,
+                force=force,
             )
             results[scene_id] = plan
 

@@ -196,6 +196,92 @@ class TestSceneMigratorMigrateScene:
             # Should not have modified the file
             assert "import { TIMING }" in scene_file.read_text()
 
+    def test_migrate_scene_force_remigrate(self):
+        """Test migration re-migrates when force=True."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = MagicMock()
+            project.root_dir = Path(tmpdir)
+
+            scenes_dir = Path(tmpdir) / "scenes"
+            scenes_dir.mkdir()
+            scene_file = scenes_dir / "TestScene.tsx"
+            # Code already has TIMING import
+            original_code = "import { TIMING } from './timing';\n" + SAMPLE_SCENE_CODE
+            scene_file.write_text(original_code)
+
+            llm_provider = MagicMock()
+            llm_provider.generate.return_value = SAMPLE_MIGRATED_CODE
+
+            migrator = SceneMigrator(
+                project=project,
+                verbose=False,
+                llm_provider=llm_provider,
+            )
+
+            scene_config = SceneSyncConfig(
+                scene_id="test",
+                scene_title="Test",
+                scene_file=str(scene_file),
+                duration_seconds=30.0,
+                sync_points=[],
+            )
+            timing_block = SceneTimingBlock(
+                scene_id="test",
+                duration_frames=900,
+                timing_constants={},
+            )
+
+            # With force=True, should call LLM to re-migrate
+            plan = migrator.migrate_scene(
+                scene_config, timing_block, dry_run=True, force=True
+            )
+
+            assert plan.success
+            # LLM should have been called even though file was already migrated
+            llm_provider.generate.assert_called_once()
+
+    def test_migrate_scene_no_force_skips(self):
+        """Test migration skips already migrated scenes when force=False."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = MagicMock()
+            project.root_dir = Path(tmpdir)
+
+            scenes_dir = Path(tmpdir) / "scenes"
+            scenes_dir.mkdir()
+            scene_file = scenes_dir / "TestScene.tsx"
+            # Code already has TIMING import
+            original_code = "import { TIMING } from './timing';\n" + SAMPLE_SCENE_CODE
+            scene_file.write_text(original_code)
+
+            llm_provider = MagicMock()
+            llm_provider.generate.return_value = SAMPLE_MIGRATED_CODE
+
+            migrator = SceneMigrator(
+                project=project,
+                verbose=False,
+                llm_provider=llm_provider,
+            )
+
+            scene_config = SceneSyncConfig(
+                scene_id="test",
+                scene_title="Test",
+                scene_file=str(scene_file),
+                duration_seconds=30.0,
+                sync_points=[],
+            )
+            timing_block = SceneTimingBlock(
+                scene_id="test",
+                duration_frames=900,
+                timing_constants={},
+            )
+
+            # With force=False (default), should skip and NOT call LLM
+            plan = migrator.migrate_scene(scene_config, timing_block, dry_run=True)
+
+            assert plan.success
+            # LLM should NOT have been called since file was already migrated
+            llm_provider.generate.assert_not_called()
+
     def test_migrate_scene_dry_run(self):
         """Test migration dry run doesn't modify files."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -547,6 +633,81 @@ export const TIMING = {
 
             results = migrator.migrate_all_scenes(dry_run=True)
 
+            assert len(results) == 2
+            assert "scene1" in results
+            assert "scene2" in results
+
+    def test_migrate_all_scenes_with_force(self):
+        """Test migrating all scenes with force=True re-migrates already migrated scenes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = MagicMock()
+            project.root_dir = Path(tmpdir)
+
+            # Create directories
+            scenes_dir = Path(tmpdir) / "scenes"
+            scenes_dir.mkdir()
+            sync_dir = Path(tmpdir) / "sync"
+            sync_dir.mkdir()
+
+            # Create scene files - one already migrated, one not
+            scene1 = scenes_dir / "Scene1.tsx"
+            scene1.write_text("import { TIMING } from './timing';\n" + SAMPLE_SCENE_CODE)
+            scene2 = scenes_dir / "Scene2.tsx"
+            scene2.write_text("import { TIMING } from './timing';\n" + SAMPLE_SCENE_CODE)
+
+            # Create sync map
+            sync_map = {
+                "project_id": "test",
+                "scenes": [
+                    {
+                        "scene_id": "scene1",
+                        "scene_title": "Scene 1",
+                        "scene_file": str(scene1),
+                        "duration_seconds": 30.0,
+                        "sync_points": [],
+                        "current_timing_vars": [],
+                        "narration_text": "",
+                    },
+                    {
+                        "scene_id": "scene2",
+                        "scene_title": "Scene 2",
+                        "scene_file": str(scene2),
+                        "duration_seconds": 25.0,
+                        "sync_points": [],
+                        "current_timing_vars": [],
+                        "narration_text": "",
+                    },
+                ],
+            }
+            with open(sync_dir / "sync_map.json", "w") as f:
+                json.dump(sync_map, f)
+
+            # Create timing file
+            timing_file = scenes_dir / "timing.ts"
+            timing_file.write_text("""
+export const TIMING = {
+  scene1: { duration: 900 },
+  scene2: { duration: 750 },
+} as const;
+""")
+
+            llm_provider = MagicMock()
+            llm_provider.generate.return_value = SAMPLE_MIGRATED_CODE
+
+            migrator = SceneMigrator(
+                project=project,
+                verbose=False,
+                llm_provider=llm_provider,
+            )
+
+            # Without force, LLM should NOT be called since both scenes are already migrated
+            results = migrator.migrate_all_scenes(dry_run=True, force=False)
+            assert llm_provider.generate.call_count == 0
+
+            # With force=True, LLM should be called for both scenes
+            llm_provider.generate.reset_mock()
+            results = migrator.migrate_all_scenes(dry_run=True, force=True)
+            assert llm_provider.generate.call_count == 2
             assert len(results) == 2
             assert "scene1" in results
             assert "scene2" in results

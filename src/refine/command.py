@@ -622,6 +622,7 @@ def _run_sync_phase(project: Project, args: argparse.Namespace) -> int:
             results = orchestrator.migrate_scenes(
                 dry_run=dry_run,
                 scene_id=scene_id,
+                force=force,
             )
             success_count = sum(1 for p in results.values() if p.success)
             print(f"\n   ✅ Migrated {success_count}/{len(results)} scenes")
