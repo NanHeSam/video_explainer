@@ -907,3 +907,257 @@ class TestSlugMatchingInScriptRefiner:
 
         updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
         assert updated_narrations["scenes"][0]["narration"] == "Improved text with better flow"
+
+    def test_modify_patch_updates_both_files(self, tmp_path):
+        """Test that modify patch updates both narrations.json and script.json."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json with voiceover field
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "scene1_hook", "title": "The Hook", "voiceover": "Original voiceover", "duration_seconds": 30},
+                {"scene_id": "scene2_main", "title": "Main Content", "voiceover": "Main content text", "duration_seconds": 40},
+            ],
+            "total_duration_seconds": 70,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json with narration field
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "scene1_hook", "title": "The Hook", "narration": "Original voiceover", "duration_seconds": 30},
+                {"scene_id": "scene2_main", "title": "Main Content", "narration": "Main content text", "duration_seconds": 40},
+            ],
+            "total_duration_seconds": 70,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        patch = ModifyScenePatch(
+            reason="Improve hook",
+            priority="high",
+            scene_id="scene1_hook",
+            field_name="narration",  # narration field name
+            old_value="Original voiceover",
+            new_value="This is the improved hook text.",
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["narration"] == "This is the improved hook text."
+
+        # Verify script.json was also updated (uses voiceover field)
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["voiceover"] == "This is the improved hook text."
+
+    def test_modify_patch_warns_when_script_scene_not_found(self, tmp_path, capsys):
+        """Test that a warning is printed when scene exists in narrations but not script."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json WITHOUT the scene we're modifying
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "different_scene", "title": "Different Scene", "voiceover": "Different text", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 30,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json WITH the scene we're modifying
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "scene1_hook", "title": "The Hook", "narration": "Original text", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 30,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=True)
+
+        patch = ModifyScenePatch(
+            reason="Improve hook",
+            priority="high",
+            scene_id="scene1_hook",
+            field_name="narration",
+            old_value="Original text",
+            new_value="Improved text",
+        )
+
+        result = refiner.apply_patch(patch)
+
+        # Should still return True because narrations.json was updated
+        assert result is True
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["narration"] == "Improved text"
+
+        # Verify script.json was NOT modified (scene not found)
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["voiceover"] == "Different text"
+
+        # Verify warning was printed (uses _log which prints to stdout)
+        captured = capsys.readouterr()
+        assert "not found in script.json" in captured.out
+
+    def test_expand_patch_updates_both_files(self, tmp_path):
+        """Test that expand patch updates both narrations.json and script.json."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "Scene One", "voiceover": "Short text", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 20,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "Scene One", "narration": "Short text", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 20,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        patch = ExpandScenePatch(
+            reason="Add more detail",
+            priority="medium",
+            scene_id="scene1",
+            current_narration="Short text",
+            expanded_narration="This is the expanded narration with much more detail and explanation.",
+            concepts_to_add=["concept1", "concept2"],
+            additional_duration_seconds=15,
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["narration"] == "This is the expanded narration with much more detail and explanation."
+        assert updated_narrations["scenes"][0]["duration_seconds"] == 35  # 20 + 15
+
+        # Verify script.json was also updated
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert updated_script["scenes"][0]["voiceover"] == "This is the expanded narration with much more detail and explanation."
+        assert updated_script["scenes"][0]["duration_seconds"] == 35
+
+    def test_add_bridge_patch_updates_both_files(self, tmp_path):
+        """Test that add bridge patch updates both narrations.json and script.json."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Create script.json
+        script_dir = tmp_path / "script"
+        script_dir.mkdir()
+        script = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "First Scene", "voiceover": "First", "duration_seconds": 20},
+                {"scene_id": "scene2", "title": "Second Scene", "voiceover": "Second", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 40,
+        }
+        (script_dir / "script.json").write_text(json.dumps(script))
+
+        # Create narrations.json
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "First Scene", "narration": "First", "duration_seconds": 20},
+                {"scene_id": "scene2", "title": "Second Scene", "narration": "Second", "duration_seconds": 20},
+            ],
+            "total_duration_seconds": 40,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        patch = AddScenePatch(
+            reason="Bridge gap between scenes",
+            priority="high",
+            insert_after_scene_id="scene1",
+            new_scene_id="bridge_scene",
+            title="Bridge Scene",
+            narration="This bridges the two scenes together.",
+            visual_description="Transition animation",
+            duration_seconds=15,
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert len(updated_narrations["scenes"]) == 3
+        assert updated_narrations["scenes"][1]["scene_id"] == "bridge_scene"
+        assert updated_narrations["scenes"][1]["narration"] == "This bridges the two scenes together."
+
+        # Verify script.json was also updated
+        updated_script = json.loads((script_dir / "script.json").read_text())
+        assert len(updated_script["scenes"]) == 3
+        assert updated_script["scenes"][1]["scene_id"] == "bridge_scene"
+        assert updated_script["scenes"][1]["voiceover"] == "This bridges the two scenes together."
+
+    def test_modify_patch_no_script_file(self, tmp_path):
+        """Test that modify patch works when script.json doesn't exist."""
+        project = MagicMock()
+        project.root_dir = tmp_path
+        project.id = "test-project"
+
+        # Only create narrations.json, not script.json
+        narration_dir = tmp_path / "narration"
+        narration_dir.mkdir()
+        narrations = {
+            "scenes": [
+                {"scene_id": "scene1", "title": "Test Scene", "narration": "Original text", "duration_seconds": 30},
+            ],
+            "total_duration_seconds": 30,
+        }
+        (narration_dir / "narrations.json").write_text(json.dumps(narrations))
+
+        refiner = ScriptRefiner(project=project, verbose=False)
+
+        patch = ModifyScenePatch(
+            reason="Improve text",
+            priority="high",
+            scene_id="scene1",
+            field_name="narration",
+            old_value="Original text",
+            new_value="Improved text",
+        )
+
+        result = refiner.apply_patch(patch)
+        assert result is True
+
+        # Verify narrations.json was updated
+        updated_narrations = json.loads((narration_dir / "narrations.json").read_text())
+        assert updated_narrations["scenes"][0]["narration"] == "Improved text"

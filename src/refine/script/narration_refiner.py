@@ -591,7 +591,8 @@ class ScriptRefiner:
 
     def _apply_modify_scene_patch(self, patch: ModifyScenePatch) -> bool:
         """Modify an existing scene's field."""
-        updated = False
+        updated_narrations = False
+        updated_script = False
 
         # Update narrations.json
         narrations_path = self.project.root_dir / "narration" / "narrations.json"
@@ -602,10 +603,10 @@ class ScriptRefiner:
             for scene in data.get("scenes", []):
                 if self._match_scene_id(scene, patch.scene_id):
                     scene[patch.field_name] = patch.new_value
-                    updated = True
+                    updated_narrations = True
                     break
 
-            if updated:
+            if updated_narrations:
                 with open(narrations_path, "w") as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -619,19 +620,24 @@ class ScriptRefiner:
                 if self._match_scene_id(scene, patch.scene_id):
                     # script.json uses "voiceover" instead of "narration"
                     scene["voiceover"] = patch.new_value
+                    updated_script = True
                     break
 
-            with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2, ensure_ascii=False)
+            if updated_script:
+                with open(script_path, "w") as f:
+                    json.dump(script_data, f, indent=2, ensure_ascii=False)
+            elif updated_narrations:
+                self._log(f"Warning: Updated narrations.json but scene '{patch.scene_id}' not found in script.json")
 
-        if updated:
+        if updated_narrations:
             self._log(f"Modified scene '{patch.scene_id}' {patch.field_name}")
 
-        return updated
+        return updated_narrations or updated_script
 
     def _apply_expand_scene_patch(self, patch: ExpandScenePatch) -> bool:
         """Expand a scene with additional content."""
-        updated = False
+        updated_narrations = False
+        updated_script = False
 
         # Update narrations.json
         narrations_path = self.project.root_dir / "narration" / "narrations.json"
@@ -646,10 +652,10 @@ class ScriptRefiner:
                         scene["duration_seconds"] = (
                             scene.get("duration_seconds", 30) + patch.additional_duration_seconds
                         )
-                    updated = True
+                    updated_narrations = True
                     break
 
-            if updated:
+            if updated_narrations:
                 with open(narrations_path, "w") as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -666,19 +672,24 @@ class ScriptRefiner:
                         scene["duration_seconds"] = (
                             scene.get("duration_seconds", 30) + patch.additional_duration_seconds
                         )
+                    updated_script = True
                     break
 
-            with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2, ensure_ascii=False)
+            if updated_script:
+                with open(script_path, "w") as f:
+                    json.dump(script_data, f, indent=2, ensure_ascii=False)
+            elif updated_narrations:
+                self._log(f"Warning: Updated narrations.json but scene '{patch.scene_id}' not found in script.json")
 
-        if updated:
+        if updated_narrations:
             self._log(f"Expanded scene '{patch.scene_id}'")
 
-        return updated
+        return updated_narrations or updated_script
 
     def _apply_add_bridge_patch(self, patch: AddBridgePatch) -> bool:
         """Add bridging content to a scene."""
-        updated = False
+        updated_narrations = False
+        updated_script = False
 
         # Update narrations.json
         narrations_path = self.project.root_dir / "narration" / "narrations.json"
@@ -689,10 +700,10 @@ class ScriptRefiner:
             for scene in data.get("scenes", []):
                 if self._match_scene_id(scene, patch.modify_scene_id):
                     scene["narration"] = patch.new_text
-                    updated = True
+                    updated_narrations = True
                     break
 
-            if updated:
+            if updated_narrations:
                 with open(narrations_path, "w") as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -705,15 +716,19 @@ class ScriptRefiner:
             for scene in script_data.get("scenes", []):
                 if self._match_scene_id(scene, patch.modify_scene_id):
                     scene["voiceover"] = patch.new_text
+                    updated_script = True
                     break
 
-            with open(script_path, "w") as f:
-                json.dump(script_data, f, indent=2, ensure_ascii=False)
+            if updated_script:
+                with open(script_path, "w") as f:
+                    json.dump(script_data, f, indent=2, ensure_ascii=False)
+            elif updated_narrations:
+                self._log(f"Warning: Updated narrations.json but scene '{patch.modify_scene_id}' not found in script.json")
 
-        if updated:
+        if updated_narrations:
             self._log(f"Added bridge content to scene '{patch.modify_scene_id}'")
 
-        return updated
+        return updated_narrations or updated_script
 
     def save_result(
         self,
